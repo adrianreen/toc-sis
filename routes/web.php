@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Auth\AzureController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\CohortController;
+use App\Http\Controllers\ProgrammeController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -22,4 +24,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Student routes
     Route::resource('students', StudentController::class);
+        // Programme routes
+    Route::resource('programmes', ProgrammeController::class);
+        Route::resource('cohorts', CohortController::class);
 });

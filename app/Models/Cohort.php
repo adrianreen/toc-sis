@@ -16,8 +16,10 @@ class Cohort extends Model
         'name',
         'start_date',
         'end_date',
-        'status'
+        'status',
     ];
+
+    protected $withCount = ['enrolments'];
 
     protected $casts = [
         'start_date' => 'date',
@@ -28,4 +30,9 @@ class Cohort extends Model
     {
         return $this->belongsTo(Programme::class);
     }
+    public function enrolments()
+{
+    return $this->hasMany(Enrolment::class);
+}
+
 }
