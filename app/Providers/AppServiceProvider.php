@@ -1,25 +1,25 @@
 <?php
-// app/Providers/AppServiceProvider.php
 
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Laravel\Socialite\Facades\Socialite;
+
+/*  👇 ADD THESE THREE LINES  */
+use Illuminate\Support\Facades\Event;                       // <- the missing one
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Azure\Provider as AzureProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        //
+    }
+
     public function boot(): void
     {
-        $this->bootAzureSocialite();
-    }
-    
-    private function bootAzureSocialite()
-    {
-        Socialite::extend('azure', function ($app) {
-            $config = $app['config']['services.azure'];
-            return Socialite::buildProvider(
-                \SocialiteProviders\Azure\Provider::class, $config
-            );
+        Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event) {
+            $event->extendSocialite('azure', AzureProvider::class);
         });
     }
 }

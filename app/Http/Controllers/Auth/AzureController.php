@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Auth/AzureController.php
 
 namespace App\Http\Controllers\Auth;
 
@@ -8,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
 
 class AzureController extends Controller
 {
@@ -31,6 +31,7 @@ class AzureController extends Controller
                     'email' => $azureUser->email,
                     'azure_groups' => $groups,
                     'last_login_at' => now(),
+                    'password' => bcrypt(Str::random(32)),
                 ]
             );
             
@@ -43,13 +44,12 @@ class AzureController extends Controller
             return redirect()->route('dashboard');
             
         } catch (\Exception $e) {
-            return redirect('/')->with('error', 'Authentication failed');
+            return redirect('/')->with('error', 'Authentication failed: ' . $e->getMessage());
         }
     }
     
     private function determineRole($groups)
     {
-        // You'll need to update this with your actual Azure AD group IDs
         $roleMapping = [
             'manager' => env('AZURE_GROUP_MANAGERS'),
             'student_services' => env('AZURE_GROUP_STUDENT_SERVICES'),
@@ -57,7 +57,7 @@ class AzureController extends Controller
         ];
         
         foreach ($roleMapping as $role => $groupId) {
-            if (in_array($groupId, $groups)) {
+            if ($groupId && in_array($groupId, $groups)) {
                 return $role;
             }
         }

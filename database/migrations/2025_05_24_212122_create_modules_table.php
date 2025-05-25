@@ -8,13 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('programmes', function (Blueprint $table) {
+        Schema::create('modules', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique(); // ELC5, ELC6, etc.
+            $table->string('code')->unique(); // ELC501, ELC502, etc.
             $table->string('title');
             $table->text('description')->nullable();
-            $table->enum('enrolment_type', ['cohort', 'rolling', 'academic_term']);
-            $table->json('settings')->nullable(); // For programme-specific settings
+            $table->integer('credits')->default(0);
+            $table->integer('hours')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -22,6 +22,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('programmes');
+        Schema::dropIfExists('modules');
     }
 };

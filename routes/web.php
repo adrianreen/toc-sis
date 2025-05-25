@@ -1,7 +1,7 @@
 <?php
-// routes/web.php
 
 use App\Http\Controllers\Auth\AzureController;
+use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -19,4 +19,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
+    
+    // Student routes
+    Route::resource('students', StudentController::class);
 });

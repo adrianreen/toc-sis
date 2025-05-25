@@ -43,4 +43,16 @@ class Programme extends Model
     {
         return $this->enrolment_type === 'academic_term';
     }
+    public function modules(): BelongsToMany
+{
+    return $this->belongsToMany(Module::class, 'programme_modules')
+        ->withPivot('sequence', 'is_mandatory')
+        ->orderBy('pivot_sequence')
+        ->withTimestamps();
+}
+
+public function enrolments(): HasMany
+{
+    return $this->hasMany(Enrolment::class);
+}
 }
