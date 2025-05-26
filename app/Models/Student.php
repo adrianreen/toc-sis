@@ -79,4 +79,25 @@ class Student extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+
+public function studentModuleEnrolments(): HasMany
+{
+    return $this->hasMany(StudentModuleEnrolment::class);
+}
+
+public function deferrals(): HasMany
+{
+    return $this->hasMany(Deferral::class);
+}
+
+public function extensions(): HasMany
+{
+    return $this->hasMany(Extension::class);
+}
+
+public function repeatAssessments(): HasMany
+{
+    return $this->hasMany(RepeatAssessment::class);
+}
 }
