@@ -8,6 +8,9 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\EnrolmentController;
 use App\Http\Controllers\DeferralController;
 use App\Http\Controllers\ModuleInstanceController;
+use App\Http\Controllers\ExtensionController;
+use App\Http\Controllers\RepeatAssessmentController;
+use App\Http\Controllers\ReportController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -48,4 +51,22 @@ Route::middleware(['auth'])->group(function () {
     // Module Instance routes
     Route::resource('module-instances', ModuleInstanceController::class);
     Route::patch('module-instances/{instance}/assign-teacher', [ModuleInstanceController::class, 'assignTeacher'])->name('module-instances.assign-teacher');
+
+      // Extension routes
+    Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');
+    Route::get('students/{student}/extensions/create', [ExtensionController::class, 'create'])->name('extensions.create');
+    Route::post('students/{student}/extensions', [ExtensionController::class, 'store'])->name('extensions.store');
+    Route::patch('extensions/{extension}/approve', [ExtensionController::class, 'approve'])->name('extensions.approve');
+    Route::patch('extensions/{extension}/reject', [ExtensionController::class, 'reject'])->name('extensions.reject');
+    
+    // Repeat Assessment routes
+    Route::get('repeat-assessments', [RepeatAssessmentController::class, 'index'])->name('repeat-assessments.index');
+    Route::get('students/{student}/repeat-assessments/create', [RepeatAssessmentController::class, 'create'])->name('repeat-assessments.create');
+    Route::post('students/{student}/repeat-assessments', [RepeatAssessmentController::class, 'store'])->name('repeat-assessments.store');
+    Route::patch('repeat-assessments/{repeat}/approve', [RepeatAssessmentController::class, 'approve'])->name('repeat-assessments.approve');
+    
+    // Reporting routes
+    Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
+    Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
+    Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
 });
