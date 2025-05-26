@@ -37,7 +37,9 @@ class ProgrammeController extends Controller
 
     public function show(Programme $programme)
     {
-        $programme->load(['cohorts', 'modules']);
+        $programme->load(['cohorts' => function ($query) {
+            $query->withCount('enrolments');
+        }, 'modules']);
         return view('programmes.show', compact('programme'));
     }
 
