@@ -4,17 +4,43 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Models\Programme;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
     public function index()
     {
-        $students = Student::with(['createdBy', 'updatedBy'])
+        // Get all programmes for filter dropdown
+        $programmes = Programme::where('is_active', true)
+            ->orderBy('code')
+            ->get(['id', 'code', 'title']);
+
+        // Get all students with their enrolment data
+        // Note: For large datasets (1000+ students), consider implementing 
+        // server-side search with AJAX to improve performance
+        $students = Student::with(['enrolments.programme'])
             ->latest()
-            ->paginate(20);
-            
-        return view('students.index', compact('students'));
+            ->get();
+
+        // Structure data for Alpine.js component
+        $studentsData = $students->map(function ($student) {
+            return [
+                'id' => $student->id,
+                'student_number' => $student->student_number,
+                'full_name' => $student->full_name,
+                'email' => $student->email,
+                'status' => $student->status,
+                'programmes' => $student->enrolments
+                    ->where('status', '!=', 'cancelled')
+                    ->pluck('programme.code')
+                    ->unique()
+                    ->values()
+                    ->toArray()
+            ];
+        });
+
+        return view('students.index', compact('studentsData', 'programmes'));
     }
 
     public function create()
@@ -81,5 +107,60 @@ class StudentController extends Controller
 
         return redirect()->route('students.show', $student->id)
             ->with('success', 'Student updated successfully.');
+    }
+
+    /**
+     * Future: Server-side search endpoint for AJAX implementation
+     * Use this if client-side filtering becomes too slow with large datasets
+     */
+    public function search(Request $request)
+    {
+        $search = $request->get('search', '');
+        $status = $request->get('status', '');
+        $programme = $request->get('programme', '');
+        
+        $query = Student::with(['enrolments.programme']);
+        
+        // Apply search filters
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"])
+                  ->orWhere('student_number', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%");
+            });
+        }
+        
+        if ($status) {
+            $query->where('status', $status);
+        }
+        
+        if ($programme) {
+            $query->whereHas('enrolments.programme', function ($q) use ($programme) {
+                $q->where('code', $programme);
+            });
+        }
+        
+        $students = $query->latest()->get();
+        
+        $studentsData = $students->map(function ($student) {
+            return [
+                'id' => $student->id,
+                'student_number' => $student->student_number,
+                'full_name' => $student->full_name,
+                'email' => $student->email,
+                'status' => $student->status,
+                'programmes' => $student->enrolments
+                    ->where('status', '!=', 'cancelled')
+                    ->pluck('programme.code')
+                    ->unique()
+                    ->values()
+                    ->toArray()
+            ];
+        });
+        
+        return response()->json([
+            'students' => $studentsData,
+            'total' => $studentsData->count()
+        ]);
     }
 }

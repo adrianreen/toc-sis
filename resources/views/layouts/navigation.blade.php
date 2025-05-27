@@ -24,9 +24,13 @@
                         <a href="{{ route('deferrals.index') }}" class="inline-flex items-center px-1 pt-1 border-b-2 {{ request()->routeIs('deferrals.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm font-medium">
                             Deferrals
                         </a>
+                                                <a href="{{ route('assessments.index') }}" class="inline-flex items-center px-1 pt-1 border-b-2 {{ request()->routeIs('assessments.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm font-medium">
+                            Assessments
+                        </a>
+
                         {{-- END: ADDED DEFERRALS LINK --}}
                     @endif
-                    @if(in_array(Auth::user()->role, ['manager', 'teacher']))
+                    @if(in_array(Auth::user()->role, ['manager','student_services', 'teacher']))
     <a href="{{ route('extensions.index') }}" class="inline-flex items-center px-1 pt-1 border-b-2 {{ request()->routeIs('extensions.*') ? 'border-indigo-400 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }} text-sm font-medium">
         Extensions
     </a>

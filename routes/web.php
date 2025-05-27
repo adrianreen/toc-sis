@@ -33,6 +33,9 @@ Route::middleware(['auth'])->group(function () {
     // Student routes
     Route::resource('students', StudentController::class);
     
+    // Future: Server-side search endpoint (uncomment when needed for performance)
+    // Route::get('students-search', [StudentController::class, 'search'])->name('students.search');
+    
     // Programme routes
     Route::resource('programmes', ProgrammeController::class);
     
@@ -84,4 +87,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
     Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
     Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
+                                                                      
 });
