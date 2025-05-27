@@ -32,16 +32,31 @@ Route::middleware(['auth'])->group(function () {
     
     // Student routes
     Route::resource('students', StudentController::class);
-        // Programme routes
+    
+    // Programme routes
     Route::resource('programmes', ProgrammeController::class);
-        Route::resource('cohorts', CohortController::class);
-            // Module routes
+    
+    // Cohort routes
+    Route::resource('cohorts', CohortController::class);
+    
+    // Module routes
     Route::resource('modules', ModuleController::class);
-        // Enrolment routes
+    
+    // Assessment Component routes (nested under modules)
+    Route::get('modules/{module}/assessment-components', [AssessmentComponentController::class, 'index'])->name('assessment-components.index');
+    Route::get('modules/{module}/assessment-components/create', [AssessmentComponentController::class, 'create'])->name('assessment-components.create');
+    Route::post('modules/{module}/assessment-components', [AssessmentComponentController::class, 'store'])->name('assessment-components.store');
+    Route::get('modules/{module}/assessment-components/{assessmentComponent}/edit', [AssessmentComponentController::class, 'edit'])->name('assessment-components.edit');
+    Route::put('modules/{module}/assessment-components/{assessmentComponent}', [AssessmentComponentController::class, 'update'])->name('assessment-components.update');
+    Route::delete('modules/{module}/assessment-components/{assessmentComponent}', [AssessmentComponentController::class, 'destroy'])->name('assessment-components.destroy');
+    Route::post('modules/{module}/assessment-components/reorder', [AssessmentComponentController::class, 'reorder'])->name('assessment-components.reorder');
+    
+    // Enrolment routes
     Route::get('students/{student}/enrol', [EnrolmentController::class, 'create'])->name('enrolments.create');
     Route::post('students/{student}/enrol', [EnrolmentController::class, 'store'])->name('enrolments.store');
     Route::patch('students/{student}/enrolments/{enrolment}/status', [EnrolmentController::class, 'updateStatus'])->name('enrolments.update-status');
-        // Deferral routes
+    
+    // Deferral routes
     Route::get('deferrals', [DeferralController::class, 'index'])->name('deferrals.index');
     Route::get('students/{student}/enrolments/{enrolment}/defer', [DeferralController::class, 'create'])->name('deferrals.create');
     Route::post('students/{student}/enrolments/{enrolment}/defer', [DeferralController::class, 'store'])->name('deferrals.store');
@@ -50,9 +65,9 @@ Route::middleware(['auth'])->group(function () {
     
     // Module Instance routes
     Route::resource('module-instances', ModuleInstanceController::class);
-    Route::patch('module-instances/{instance}/assign-teacher', [ModuleInstanceController::class, 'assignTeacher'])->name('module-instances.assign-teacher');
+    Route::patch('module-instances/{moduleInstance}/assign-teacher', [ModuleInstanceController::class, 'assignTeacher'])->name('module-instances.assign-teacher');
 
-      // Extension routes
+    // Extension routes
     Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');
     Route::get('students/{student}/extensions/create', [ExtensionController::class, 'create'])->name('extensions.create');
     Route::post('students/{student}/extensions', [ExtensionController::class, 'store'])->name('extensions.store');
@@ -63,7 +78,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('repeat-assessments', [RepeatAssessmentController::class, 'index'])->name('repeat-assessments.index');
     Route::get('students/{student}/repeat-assessments/create', [RepeatAssessmentController::class, 'create'])->name('repeat-assessments.create');
     Route::post('students/{student}/repeat-assessments', [RepeatAssessmentController::class, 'store'])->name('repeat-assessments.store');
-    Route::patch('repeat-assessments/{repeat}/approve', [RepeatAssessmentController::class, 'approve'])->name('repeat-assessments.approve');
+    Route::patch('repeat-assessments/{repeatAssessment}/approve', [RepeatAssessmentController::class, 'approve'])->name('repeat-assessments.approve');
     
     // Reporting routes
     Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
