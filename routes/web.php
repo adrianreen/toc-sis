@@ -13,6 +13,7 @@ use App\Http\Controllers\RepeatAssessmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentComponentController;
 use App\Http\Controllers\StudentAssessmentController;
+use App\Http\Controllers\DevRoleController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -101,5 +102,16 @@ Route::get('assessments/module-instances/{moduleInstance}/components/{assessment
 Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'storeBulkGrades'])->name('assessments.bulk-grade');
 Route::get('assessments/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('assessments.student-progress');
 Route::get('assessments/module-instances/{moduleInstance}/export', [StudentAssessmentController::class, 'exportGrades'])->name('assessments.export');
+
+
+
+// ... your other routes
+
+// WARNING: DEVELOPMENT ONLY ROUTE - REMOVE BEFORE DEPLOYMENT
+Route::middleware(['auth'])->group(function () { // Ensure user is authenticated
+    Route::post('/dev/super-secret-role-switcher-path', [DevRoleController::class, 'switchRole'])->name('dev.switch-role');
+});
+// Consider using a less obvious path if you're concerned about it being guessed on a staging server,
+// though the real solution is removing it.
                                                                       
 });

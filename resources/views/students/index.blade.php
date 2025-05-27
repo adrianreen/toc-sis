@@ -223,7 +223,7 @@
         function studentIndex() {
             return {
                 // All students data - loaded once from server
-                allStudents: @json($studentsData),
+                allStudents: @json($studentsData ?? []),
                 
                 // Filter states
                 search: '',
@@ -233,37 +233,60 @@
                 // Loading state for future AJAX implementation
                 loading: false,
                 
+                // Debug initialization
+                init() {
+                    console.log('Alpine.js studentIndex initialized');
+                    console.log('Students data:', this.allStudents);
+                    console.log('Total students:', this.allStudents.length);
+                },
+                
                 // Computed filtered students
                 get filteredStudents() {
-                    let filtered = this.allStudents;
+                    console.log('Filtering students...', {
+                        search: this.search,
+                        statusFilter: this.statusFilter,
+                        programmeFilter: this.programmeFilter,
+                        totalStudents: this.allStudents.length
+                    });
+                    
+                    let filtered = [...this.allStudents]; // Create a copy
                     
                     // Search filter (name, student number, email)
-                    if (this.search.trim()) {
+                    if (this.search && this.search.trim()) {
                         const searchTerm = this.search.toLowerCase().trim();
-                        filtered = filtered.filter(student => 
-                            student.full_name.toLowerCase().includes(searchTerm) ||
-                            student.student_number.toLowerCase().includes(searchTerm) ||
-                            student.email.toLowerCase().includes(searchTerm)
-                        );
+                        console.log('Applying search filter:', searchTerm);
+                        filtered = filtered.filter(student => {
+                            const matches = student.full_name.toLowerCase().includes(searchTerm) ||
+                                student.student_number.toLowerCase().includes(searchTerm) ||
+                                student.email.toLowerCase().includes(searchTerm);
+                            return matches;
+                        });
+                        console.log('After search filter:', filtered.length);
                     }
                     
                     // Status filter
                     if (this.statusFilter) {
+                        console.log('Applying status filter:', this.statusFilter);
                         filtered = filtered.filter(student => student.status === this.statusFilter);
+                        console.log('After status filter:', filtered.length);
                     }
                     
                     // Programme filter
                     if (this.programmeFilter) {
+                        console.log('Applying programme filter:', this.programmeFilter);
                         filtered = filtered.filter(student => 
-                            student.programmes.includes(this.programmeFilter)
+                            student.programmes && student.programmes.includes(this.programmeFilter)
                         );
+                        console.log('After programme filter:', filtered.length);
                     }
                     
+                    console.log('Final filtered results:', filtered.length);
                     return filtered;
                 },
                 
                 // Clear all filters
                 clearFilters() {
+                    console.log('Clearing all filters');
                     this.search = '';
                     this.statusFilter = '';
                     this.programmeFilter = '';
@@ -272,11 +295,17 @@
                 // Note: If search performance becomes slow with large datasets (1000+ students),
                 // we should switch to server-side AJAX filtering using debounced requests
                 // This would involve:
-                // 1. Adding a debounced watch on search/filters
+                // 1. Adding a debounged watch on search/filters
                 // 2. Making AJAX calls to a new endpoint like /students/search
                 // 3. Updating the filteredStudents array from server response
                 // 4. Adding proper loading states and error handling
             }
         }
+        
+        // Debug: Check if Alpine.js is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            console.log('Alpine available:', typeof Alpine !== 'undefined');
+        });
     </script>
 </x-app-layout>

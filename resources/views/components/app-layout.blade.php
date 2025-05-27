@@ -27,6 +27,10 @@
         <main>
             {{ $slot }}
         </main>
+
+        {{-- WARNING: DEVELOPMENT ONLY - REMOVE THIS LINE BEFORE DEPLOYMENT --}}
+        <x-dev-role-switcher /> {{-- <<<< ADDED THE SWITCHER HERE --}}
+
     </div>
 </body>
 </html>

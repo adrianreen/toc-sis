@@ -23,22 +23,34 @@ class StudentController extends Controller
             ->latest()
             ->get();
 
+        // Debug: Log student count
+        \Log::info('StudentController@index - Found ' . $students->count() . ' students');
+
         // Structure data for Alpine.js component
         $studentsData = $students->map(function ($student) {
+            $programmes = $student->enrolments
+                ->where('status', '!=', 'cancelled')
+                ->pluck('programme.code')
+                ->filter() // Remove null values
+                ->unique()
+                ->values()
+                ->toArray();
+
             return [
                 'id' => $student->id,
                 'student_number' => $student->student_number,
                 'full_name' => $student->full_name,
                 'email' => $student->email,
                 'status' => $student->status,
-                'programmes' => $student->enrolments
-                    ->where('status', '!=', 'cancelled')
-                    ->pluck('programme.code')
-                    ->unique()
-                    ->values()
-                    ->toArray()
+                'programmes' => $programmes
             ];
-        });
+        })->toArray(); // Convert to array for JSON
+
+        // Debug: Log structured data
+        \Log::info('StudentController@index - Structured data count: ' . count($studentsData));
+        if (count($studentsData) > 0) {
+            \Log::info('StudentController@index - First student: ' . json_encode($studentsData[0]));
+        }
 
         return view('students.index', compact('studentsData', 'programmes'));
     }
