@@ -11,7 +11,7 @@ use App\Http\Controllers\ModuleInstanceController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\RepeatAssessmentController;
 use App\Http\Controllers\ReportController;
-
+use App\Http\Controllers\AssessmentComponentController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes

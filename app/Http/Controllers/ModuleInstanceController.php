@@ -8,6 +8,7 @@ use App\Models\Cohort;
 use App\Models\ModuleInstance;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ModuleInstanceController extends Controller
 {
@@ -57,6 +58,67 @@ class ModuleInstanceController extends Controller
 
         return redirect()->route('module-instances.show', $instance)
             ->with('success', 'Module instance created successfully.');
+    }
+
+    public function show(ModuleInstance $moduleInstance)
+    {
+        $moduleInstance->load(['module', 'cohort.programme', 'teacher', 'studentEnrolments.student']);
+        
+        return view('module-instances.show', compact('moduleInstance'));
+    }
+
+    public function edit(ModuleInstance $moduleInstance)
+    {
+        $teachers = User::where('role', 'teacher')->orderBy('name')->get();
+        
+        // Get teacher change history
+        $teacherChanges = \Spatie\Activitylog\Models\Activity::where('subject_type', ModuleInstance::class)
+            ->where('subject_id', $moduleInstance->id)
+            ->where('description', 'like', '%Teacher assignment%')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('module-instances.edit', compact('moduleInstance', 'teachers', 'teacherChanges'));
+    }
+
+    public function update(Request $request, ModuleInstance $moduleInstance)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
+            'teacher_id' => 'nullable|exists:users,id',
+            'status' => 'required|in:planned,active,completed',
+        ]);
+
+        DB::transaction(function () use ($validated, $moduleInstance) {
+            // Track teacher changes
+            if ($moduleInstance->teacher_id != $validated['teacher_id']) {
+                activity()
+                    ->performedOn($moduleInstance)
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'old_teacher_id' => $moduleInstance->teacher_id,
+                        'new_teacher_id' => $validated['teacher_id'],
+                    ])
+                    ->log('Teacher assignment changed for ' . $moduleInstance->instance_code);
+
+                // TODO: Send notification to old and new teachers
+            }
+
+            $moduleInstance->update($validated);
+
+            // Update student module enrolments if status changed to completed
+            if ($moduleInstance->status === 'completed' && $moduleInstance->getOriginal('status') !== 'completed') {
+                $moduleInstance->studentEnrolments()
+                    ->where('status', 'active')
+                    ->each(function ($enrolment) {
+                        $enrolment->updateStatus();
+                    });
+            }
+        });
+
+        return redirect()->route('module-instances.show', $moduleInstance)
+            ->with('success', 'Module instance updated successfully.');
     }
 
     public function assignTeacher(Request $request, ModuleInstance $instance)
