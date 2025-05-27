@@ -12,6 +12,7 @@ use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\RepeatAssessmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentComponentController;
+use App\Http\Controllers\StudentAssessmentController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -87,5 +88,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
     Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
     Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
+
+    // Student Assessment routes
+
+    Route::get('assessments', [StudentAssessmentController::class, 'index'])->name('assessments.index');
+Route::get('assessments/pending', [StudentAssessmentController::class, 'pending'])->name('assessments.pending');
+Route::get('assessments/module-instances/{moduleInstance}', [StudentAssessmentController::class, 'moduleInstance'])->name('assessments.module-instance');
+Route::get('assessments/{studentAssessment}/grade', [StudentAssessmentController::class, 'grade'])->name('assessments.grade');
+Route::put('assessments/{studentAssessment}/grade', [StudentAssessmentController::class, 'storeGrade'])->name('assessments.store-grade');
+Route::patch('assessments/{studentAssessment}/submit', [StudentAssessmentController::class, 'markSubmitted'])->name('assessments.mark-submitted');
+Route::get('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'bulkGradeForm'])->name('assessments.bulk-grade-form');
+Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'storeBulkGrades'])->name('assessments.bulk-grade');
+Route::get('assessments/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('assessments.student-progress');
+Route::get('assessments/module-instances/{moduleInstance}/export', [StudentAssessmentController::class, 'exportGrades'])->name('assessments.export');
                                                                       
 });

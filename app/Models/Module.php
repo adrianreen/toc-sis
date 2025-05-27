@@ -30,4 +30,9 @@ class Module extends Model
             ->withPivot('sequence', 'is_mandatory')
             ->withTimestamps();
     }
+
+    public function assessmentComponents(): HasMany
+{
+    return $this->hasMany(AssessmentComponent::class);
+}
 }
