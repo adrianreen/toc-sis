@@ -26,8 +26,22 @@ Route::get('/login', [AzureController::class, 'redirect'])->name('login');
 Route::get('/callback', [AzureController::class, 'callback']);
 Route::post('/logout', [AzureController::class, 'logout'])->name('logout');
 
+Route::get('/my-groups', function() {
+    $user = Auth::user();
+    return response()->json([
+        'email' => $user->email,
+        'role' => $user->role, 
+        'groups' => $user->azure_groups,
+        'group_count' => count($user->azure_groups ?? [])
+    ]);
+})->middleware('auth');
 // Protected routes
 Route::middleware(['auth'])->group(function () {
+    // Add this line in the protected routes section (after Route::middleware(['auth'])->group(function () {)
+// Add these to routes/web.php in the protected section:
+Route::get('/debug-groups', [AzureController::class, 'debugGroups']);
+Route::get('/refresh-groups', [AzureController::class, 'refreshAndGetGroups']);
+Route::get('/test-groups-simple', [AzureController::class, 'testGroupsSimple']);
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
