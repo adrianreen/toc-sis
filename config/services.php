@@ -39,6 +39,11 @@ return [
     'client_secret' => env('AZURE_CLIENT_SECRET'),
     'redirect' => env('AZURE_REDIRECT_URI'),
     'tenant' => env('AZURE_TENANT_ID'),
+
+        // Group ID mappings for role assignment
+    'group_managers' => env('AZURE_GROUP_MANAGERS'),
+    'group_student_services' => env('AZURE_GROUP_STUDENT_SERVICES'),
+    'group_teachers' => env('AZURE_GROUP_TEACHERS'),
 ],
 
 

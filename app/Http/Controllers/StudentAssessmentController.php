@@ -8,6 +8,7 @@ use App\Models\StudentModuleEnrolment;
 use App\Models\ModuleInstance;
 use App\Models\AssessmentComponent;
 use App\Models\Student;
+use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -213,20 +214,220 @@ class StudentAssessmentController extends Controller
             ->with('success', 'Bulk grades saved successfully.');
     }
 
-    /**
-     * Show student progress for a specific student
-     */
-    public function studentProgress(Student $student)
-    {
-        $student->load([
-            'studentModuleEnrolments.moduleInstance.module',
-            'studentModuleEnrolments.studentAssessments.assessmentComponent',
-            'enrolments.programme',
-            'enrolments.cohort'
-        ]);
+/**
+ * Show comprehensive student progress
+ */
+public function studentProgress(Student $student)
+{
+    // Load student with all related data
+    $student->load([
+        'enrolments.programme',
+        'enrolments.cohort',
+        'studentModuleEnrolments.moduleInstance.module',
+        'studentModuleEnrolments.moduleInstance.cohort',
+        'studentModuleEnrolments.studentAssessments.assessmentComponent',
+        'createdBy',
+        'updatedBy'
+    ]);
 
-        return view('assessments.student-progress', compact('student'));
-    }
+    // Calculate overall statistics
+    $stats = $this->calculateStudentStats($student);
+    
+    // Get programme progress
+    $programmeProgress = $this->getProgrammeProgress($student);
+    
+    // Get module progress details
+    $moduleProgress = $this->getModuleProgress($student);
+    
+    // Get recent activity
+    $recentActivity = $this->getStudentActivity($student);
+    
+    // Get upcoming deadlines
+    $upcomingDeadlines = $this->getUpcomingDeadlines($student);
+    
+    return view('assessments.student-progress', compact(
+        'student',
+        'stats',
+        'programmeProgress',
+        'moduleProgress',
+        'recentActivity',
+        'upcomingDeadlines'
+    ));
+}
+
+/**
+ * Calculate overall student statistics
+ */
+protected function calculateStudentStats(Student $student): array
+{
+    $totalAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->count();
+    
+    $completedAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->whereIn('status', ['graded', 'passed', 'failed'])
+        ->count();
+    
+    $passedAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->where('status', 'passed')
+        ->count();
+    
+    $failedAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->where('status', 'failed')
+        ->count();
+    
+    $pendingAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->where('status', 'pending')
+        ->count();
+    
+    $submittedAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->where('status', 'submitted')
+        ->count();
+    
+    // Calculate overall grade average
+    $gradedAssessments = $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->whereNotNull('grade');
+    
+    $overallAverage = $gradedAssessments->count() > 0 
+        ? $gradedAssessments->avg('grade') 
+        : null;
+    
+    return [
+        'total_assessments' => $totalAssessments,
+        'completed_assessments' => $completedAssessments,
+        'passed_assessments' => $passedAssessments,
+        'failed_assessments' => $failedAssessments,
+        'pending_assessments' => $pendingAssessments,
+        'submitted_assessments' => $submittedAssessments,
+        'completion_percentage' => $totalAssessments > 0 ? round(($completedAssessments / $totalAssessments) * 100, 1) : 0,
+        'pass_rate' => $completedAssessments > 0 ? round(($passedAssessments / $completedAssessments) * 100, 1) : 0,
+        'overall_average' => $overallAverage ? round($overallAverage, 1) : null,
+    ];
+}
+
+/**
+ * Get programme-level progress
+ */
+protected function getProgrammeProgress(Student $student): Collection
+{
+    return $student->enrolments->map(function ($enrolment) {
+        $moduleEnrolments = $enrolment->student->studentModuleEnrolments
+            ->where('enrolment_id', $enrolment->id);
+        
+        $totalModules = $moduleEnrolments->count();
+        $completedModules = $moduleEnrolments->where('status', 'completed')->count();
+        $activeModules = $moduleEnrolments->where('status', 'active')->count();
+        $failedModules = $moduleEnrolments->where('status', 'failed')->count();
+        
+        // Calculate weighted average for the programme
+        $completedWithGrades = $moduleEnrolments->where('status', 'completed')->whereNotNull('final_grade');
+        $programmeAverage = $completedWithGrades->count() > 0 
+            ? $completedWithGrades->avg('final_grade') 
+            : null;
+        
+        return [
+            'enrolment' => $enrolment,
+            'total_modules' => $totalModules,
+            'completed_modules' => $completedModules,
+            'active_modules' => $activeModules,
+            'failed_modules' => $failedModules,
+            'completion_percentage' => $totalModules > 0 ? round(($completedModules / $totalModules) * 100, 1) : 0,
+            'programme_average' => $programmeAverage ? round($programmeAverage, 1) : null,
+        ];
+    });
+}
+
+/**
+ * Get detailed module progress
+ */
+protected function getModuleProgress(Student $student): Collection
+{
+    return $student->studentModuleEnrolments->map(function ($moduleEnrolment) {
+        $assessments = $moduleEnrolment->studentAssessments;
+        
+        $totalAssessments = $assessments->count();
+        $completedAssessments = $assessments->whereIn('status', ['graded', 'passed', 'failed'])->count();
+        $passedAssessments = $assessments->where('status', 'passed')->count();
+        $failedAssessments = $assessments->where('status', 'failed')->count();
+        
+        // Calculate weighted final grade if all assessments are complete
+        $finalGrade = null;
+        if ($completedAssessments === $totalAssessments && $totalAssessments > 0) {
+            $weightedSum = 0;
+            $totalWeight = 0;
+            
+            foreach ($assessments as $assessment) {
+                if ($assessment->grade !== null) {
+                    $weight = $assessment->assessmentComponent->weight;
+                    $weightedSum += ($assessment->grade * $weight);
+                    $totalWeight += $weight;
+                }
+            }
+            
+            if ($totalWeight > 0) {
+                $finalGrade = round($weightedSum / $totalWeight, 1);
+                
+                // Update the module enrolment if needed
+                if ($moduleEnrolment->final_grade !== $finalGrade) {
+                    $moduleEnrolment->update([
+                        'final_grade' => $finalGrade,
+                        'status' => $finalGrade >= 40 ? 'completed' : 'failed',
+                        'completion_date' => $finalGrade >= 40 ? now() : null,
+                    ]);
+                }
+            }
+        }
+        
+        return [
+            'module_enrolment' => $moduleEnrolment,
+            'assessments' => $assessments->sortBy('assessmentComponent.sequence'),
+            'total_assessments' => $totalAssessments,
+            'completed_assessments' => $completedAssessments,
+            'passed_assessments' => $passedAssessments,
+            'failed_assessments' => $failedAssessments,
+            'completion_percentage' => $totalAssessments > 0 ? round(($completedAssessments / $totalAssessments) * 100, 1) : 0,
+            'final_grade' => $finalGrade,
+            'status' => $finalGrade !== null ? ($finalGrade >= 40 ? 'completed' : 'failed') : 'in_progress',
+        ];
+    })->sortBy('module_enrolment.created_at');
+}
+
+/**
+ * Get recent student activity
+ */
+protected function getStudentActivity(Student $student): Collection
+{
+    return \Spatie\Activitylog\Models\Activity::where(function ($query) use ($student) {
+        $query->where('subject_type', Student::class)
+              ->where('subject_id', $student->id)
+              ->orWhere('properties->student_id', $student->id)
+              ->orWhere('description', 'like', "%{$student->student_number}%");
+    })
+    ->with('causer')
+    ->latest()
+    ->limit(10)
+    ->get();
+}
+
+/**
+ * Get upcoming deadlines
+ */
+protected function getUpcomingDeadlines(Student $student): Collection
+{
+    return $student->studentModuleEnrolments
+        ->flatMap->studentAssessments
+        ->where('status', 'pending')
+        ->where('due_date', '>=', now())
+        ->sortBy('due_date')
+        ->take(5)
+        ->values();
+}
 
     /**
      * Export grades for a module instance

@@ -1,20 +1,23 @@
 {{-- resources/views/students/show.blade.php --}}
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Student Details: {{ $student->full_name }}
-            </h2>
-            <div class="space-x-2">
-                <a href="{{ route('students.edit', $student) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    Edit Student
-                </a>
-                <a href="{{ route('enrolments.create', $student) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                    Enrol in Programme
-                </a>
-            </div>
+<x-slot name="header">
+    <div class="flex justify-between items-center">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            Student Details: {{ $student->full_name }}
+        </h2>
+        <div class="space-x-2">
+            <a href="{{ route('assessments.student-progress', $student) }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                📊 View Progress
+            </a>
+            <a href="{{ route('students.edit', $student) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Edit Student
+            </a>
+            <a href="{{ route('enrolments.create', $student) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                Enrol in Programme
+            </a>
         </div>
-    </x-slot>
+    </div>
+</x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
