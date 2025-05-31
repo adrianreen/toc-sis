@@ -69,43 +69,62 @@ Route::middleware(['auth'])->group(function () {
             return view('students.profile', compact('student')); // Simple student view
         })->name('students.profile');
 
-        Route::get('/my-progress', function () {
-            $student = Auth::user()->student;
-            if (!$student) {
-                abort(404, 'Student record not found');
-            }
-            
-            // Load basic progress data
-            $student->load([
-                'studentModuleEnrolments.moduleInstance.module',
-                'studentModuleEnrolments.studentAssessments.assessmentComponent'
-            ]);
-            
-            return view('students.progress', compact('student')); // Simple progress view
-        })->name('students.progress');
+Route::get('/my-progress', function () {
+    $student = Auth::user()->student;
+    if (!$student) {
+        abort(404, 'Student record not found');
+    }
+    
+    // Load basic progress data with visibility filtering
+    $student->load([
+        'studentModuleEnrolments.moduleInstance.module',
+        'studentModuleEnrolments.studentAssessments' => function($query) {
+            // Show all assessments but filter results by visibility in the view
+            $query->with('assessmentComponent');
+        }
+    ]);
+    
+    return view('students.progress', compact('student'));
+})->name('students.progress');
         
-        Route::get('/my-assessments', function () {
-            $student = Auth::user()->student;
-            if (!$student) {
-                abort(404, 'Student record not found');
-            }
-            
-            // Get upcoming and recent assessments
-            $upcomingAssessments = $student->studentModuleEnrolments
-                ->flatMap->studentAssessments
-                ->where('status', 'pending')
-                ->where('due_date', '>=', now())
-                ->sortBy('due_date')
-                ->take(5);
-                
-            $recentAssessments = $student->studentModuleEnrolments
-                ->flatMap->studentAssessments
-                ->whereIn('status', ['graded', 'passed', 'failed'])
-                ->sortByDesc('graded_date')
-                ->take(10);
-            
-            return view('students.assessments', compact('student', 'upcomingAssessments', 'recentAssessments'));
-        })->name('students.assessments');
+      Route::get('/my-assessments', function () {
+    $student = Auth::user()->student;
+    if (!$student) {
+        abort(404, 'Student record not found');
+    }
+    
+    // Get upcoming and recent assessments - ONLY VISIBLE ONES for results
+    $allAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments;
+    
+    // Upcoming assessments (always show these regardless of results visibility)
+    $upcomingAssessments = $allAssessments->filter(function($assessment) {
+        return $assessment->status === 'pending' && $assessment->due_date >= now();
+    })->sortBy('due_date')->take(5);
+    
+    // Recent assessments - ONLY show results if visible to student
+    $recentAssessments = $allAssessments->filter(function($assessment) {
+        return in_array($assessment->status, ['graded', 'passed', 'failed']) 
+               && $assessment->isVisibleToStudent(); // KEY CHANGE: Only visible results
+    })->sortByDesc('graded_date')->take(10);
+    
+    // Overdue assessments (always show)
+    $overdueAssessments = $allAssessments->filter(function($assessment) {
+        return $assessment->status === 'pending' && $assessment->due_date < now();
+    })->sortBy('due_date');
+    
+    // Submitted awaiting grading (always show)
+    $awaitingGrading = $allAssessments->filter(function($assessment) {
+        return $assessment->status === 'submitted';
+    })->sortByDesc('submission_date');
+    
+    return view('students.assessments', compact(
+        'student', 
+        'upcomingAssessments', 
+        'recentAssessments',
+        'overdueAssessments',
+        'awaitingGrading'
+    ));
+})->name('students.assessments');
     });
     
     // =================================================================
@@ -150,10 +169,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('assessments/module-instances/{moduleInstance}', [StudentAssessmentController::class, 'moduleInstance'])->name('assessments.module-instance');
         Route::get('assessments/{studentAssessment}/grade', [StudentAssessmentController::class, 'grade'])->name('assessments.grade');
         Route::put('assessments/{studentAssessment}/grade', [StudentAssessmentController::class, 'storeGrade'])->name('assessments.store-grade');
+
         Route::patch('assessments/{studentAssessment}/submit', [StudentAssessmentController::class, 'markSubmitted'])->name('assessments.mark-submitted');
         Route::get('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'bulkGradeForm'])->name('assessments.bulk-grade-form');
         Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'storeBulkGrades'])->name('assessments.bulk-grade');
-        
+            // Visibility control routes
+    Route::patch('assessments/{studentAssessment}/quick-visibility', [StudentAssessmentController::class, 'quickVisibility'])->name('assessments.quick-visibility');
+    Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-visibility', [StudentAssessmentController::class, 'bulkVisibility'])->name('assessments.bulk-visibility');
+
         // Admin view of student progress (separate from student's own view)
         Route::get('admin/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('admin.student-progress');
         Route::get('assessments/module-instances/{moduleInstance}/export', [StudentAssessmentController::class, 'exportGrades'])->name('assessments.export');
@@ -180,7 +203,10 @@ Route::middleware(['auth'])->group(function () {
         Route::put('modules/{module}/assessment-components/{assessmentComponent}', [AssessmentComponentController::class, 'update'])->name('assessment-components.update');
         Route::delete('modules/{module}/assessment-components/{assessmentComponent}', [AssessmentComponentController::class, 'destroy'])->name('assessment-components.destroy');
         Route::post('modules/{module}/assessment-components/reorder', [AssessmentComponentController::class, 'reorder'])->name('assessment-components.reorder');
-        
+            // Admin visibility management
+    Route::get('assessments/scheduled-releases', [StudentAssessmentController::class, 'scheduledReleases'])->name('assessments.scheduled-releases');
+    Route::post('assessments/process-scheduled-releases', [StudentAssessmentController::class, 'processScheduledReleases'])->name('assessments.process-scheduled-releases');
+
         // Module Instance routes
         Route::resource('module-instances', ModuleInstanceController::class);
         Route::patch('module-instances/{moduleInstance}/assign-teacher', [ModuleInstanceController::class, 'assignTeacher'])->name('module-instances.assign-teacher');

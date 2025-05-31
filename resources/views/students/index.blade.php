@@ -227,7 +227,7 @@
                         <!-- Enhanced Actions -->
 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
     <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <a :href="`/assessments/students/${student.id}/progress`" 
+        <a :href="`/admin/students/${student.id}/progress`" 
            class="inline-flex items-center px-3 py-1.5 border border-purple-300 shadow-sm text-xs font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
            title="View detailed progress">
             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

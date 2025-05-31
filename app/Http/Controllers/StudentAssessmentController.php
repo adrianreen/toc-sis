@@ -98,60 +98,220 @@ class StudentAssessmentController extends Controller
     /**
      * Store or update a grade for a student assessment
      */
-    public function storeGrade(Request $request, StudentAssessment $studentAssessment)
-    {
-        // Check permission
-        $moduleInstance = $studentAssessment->studentModuleEnrolment->moduleInstance;
-        if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'grade' => 'required|numeric|min:0|max:100',
-            'feedback' => 'nullable|string|max:2000',
-            'submission_date' => 'nullable|date|before_or_equal:today',
-        ]);
-
-        DB::transaction(function () use ($validated, $studentAssessment) {
-            // Update the assessment
-            $studentAssessment->update([
-                'grade' => $validated['grade'],
-                'status' => $validated['grade'] >= 40 ? 'passed' : 'failed',
-                'feedback' => $validated['feedback'],
-                'submission_date' => $validated['submission_date'] ?? now(),
-                'graded_date' => now(),
-                'graded_by' => auth()->id(),
-            ]);
-
-            // Update the parent student module enrolment
-            $studentAssessment->studentModuleEnrolment->updateStatus();
-
-            // Log the activity
-            activity()
-                ->performedOn($studentAssessment->studentModuleEnrolment->student)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'module' => $studentAssessment->studentModuleEnrolment->moduleInstance->module->code,
-                    'assessment' => $studentAssessment->assessmentComponent->name,
-                    'grade' => $validated['grade'],
-                ])
-                ->log('Assessment graded: ' . $studentAssessment->assessmentComponent->name . ' - ' . $validated['grade'] . '%');
-        });
-
-        return redirect()
-            ->route('assessments.module-instance', $studentAssessment->studentModuleEnrolment->moduleInstance)
-            ->with('success', 'Grade saved successfully.');
+  public function storeGrade(Request $request, StudentAssessment $studentAssessment)
+{
+    // Check permission
+    $moduleInstance = $studentAssessment->studentModuleEnrolment->moduleInstance;
+    if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
+        abort(403);
     }
 
-    /**
-     * Bulk grade entry for multiple students/assessments
-     */
-    public function bulkGradeForm(ModuleInstance $moduleInstance, AssessmentComponent $assessmentComponent)
-    {
-        // Check permission
-        if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
-            abort(403);
+    $validated = $request->validate([
+        'grade' => 'required|numeric|min:0|max:100',
+        'feedback' => 'nullable|string|max:2000',
+        'submission_date' => 'nullable|date|before_or_equal:today',
+        
+        // Visibility controls
+        'visibility_control' => 'required|in:show_now,hide,schedule',
+        'release_date' => 'required_if:visibility_control,schedule|nullable|date|after:now',
+        'release_notes' => 'nullable|string|max:500',
+    ]);
+
+    DB::transaction(function () use ($validated, $studentAssessment) {
+        // Update the assessment grade and feedback
+        $updateData = [
+            'grade' => $validated['grade'],
+            'status' => $validated['grade'] >= 40 ? 'passed' : 'failed',
+            'feedback' => $validated['feedback'],
+            'submission_date' => $validated['submission_date'] ?? now(),
+            'graded_date' => now(),
+            'graded_by' => auth()->id(),
+        ];
+
+        // Handle visibility settings
+        switch ($validated['visibility_control']) {
+            case 'show_now':
+                $updateData['is_visible_to_student'] = true;
+                $updateData['release_date'] = null;
+                $updateData['visibility_changed_by'] = auth()->id();
+                $updateData['visibility_changed_at'] = now();
+                $updateData['release_notes'] = $validated['release_notes'];
+                break;
+                
+            case 'hide':
+                $updateData['is_visible_to_student'] = false;
+                $updateData['release_date'] = null;
+                $updateData['visibility_changed_by'] = auth()->id();
+                $updateData['visibility_changed_at'] = now();
+                $updateData['release_notes'] = $validated['release_notes'];
+                break;
+                
+            case 'schedule':
+                $updateData['is_visible_to_student'] = false;
+                $updateData['release_date'] = $validated['release_date'];
+                $updateData['visibility_changed_by'] = auth()->id();
+                $updateData['visibility_changed_at'] = now();
+                $updateData['release_notes'] = $validated['release_notes'];
+                break;
         }
+
+        $studentAssessment->update($updateData);
+
+        // Update the parent student module enrolment
+        $studentAssessment->studentModuleEnrolment->updateStatus();
+
+        // Log the activity
+        activity()
+            ->performedOn($studentAssessment->studentModuleEnrolment->student)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'module' => $studentAssessment->studentModuleEnrolment->moduleInstance->module->code,
+                'assessment' => $studentAssessment->assessmentComponent->name,
+                'grade' => $validated['grade'],
+                'visibility_control' => $validated['visibility_control'],
+                'release_date' => $validated['release_date'] ?? null,
+            ])
+            ->log('Assessment graded: ' . $studentAssessment->assessmentComponent->name . ' - ' . $validated['grade'] . '% (' . $validated['visibility_control'] . ')');
+    });
+
+    return redirect()
+        ->route('assessments.module-instance', $studentAssessment->studentModuleEnrolment->moduleInstance)
+        ->with('success', 'Grade and visibility settings saved successfully.');
+}
+/**
+ * Quick visibility action without changing grade
+ */
+public function quickVisibility(Request $request, StudentAssessment $studentAssessment)
+{
+    // Check permission
+    $moduleInstance = $studentAssessment->studentModuleEnrolment->moduleInstance;
+    if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'action' => 'required|in:show,hide',
+        'notes' => 'nullable|string|max:500',
+    ]);
+
+    DB::transaction(function () use ($validated, $studentAssessment) {
+        if ($validated['action'] === 'show') {
+            $studentAssessment->showToStudent($validated['notes'] ?? 'Quick action: Made visible');
+        } else {
+            $studentAssessment->hideFromStudent($validated['notes'] ?? 'Quick action: Hidden');
+        }
+    });
+
+    $message = $validated['action'] === 'show' ? 'Assessment made visible to student' : 'Assessment hidden from student';
+    
+    return redirect()->back()->with('success', $message);
+}
+
+/**
+ * Bulk visibility management for module assessments
+ */
+public function bulkVisibility(Request $request, ModuleInstance $moduleInstance, AssessmentComponent $assessmentComponent)
+{
+    // Check permission
+    if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'action' => 'required|in:show_all,hide_all,schedule_all',
+        'release_date' => 'required_if:action,schedule_all|nullable|date|after:now',
+        'notes' => 'nullable|string|max:500',
+    ]);
+
+    $assessments = StudentAssessment::whereHas('studentModuleEnrolment', function($query) use ($moduleInstance) {
+            $query->where('module_instance_id', $moduleInstance->id);
+        })
+        ->where('assessment_component_id', $assessmentComponent->id)
+        ->whereNotNull('grade')
+        ->get();
+
+    $updatedCount = 0;
+
+    DB::transaction(function () use ($validated, $assessments, &$updatedCount) {
+        foreach ($assessments as $assessment) {
+            switch ($validated['action']) {
+                case 'show_all':
+                    $assessment->showToStudent($validated['notes'] ?? 'Bulk action: Show all');
+                    $updatedCount++;
+                    break;
+                    
+                case 'hide_all':
+                    $assessment->hideFromStudent($validated['notes'] ?? 'Bulk action: Hide all');
+                    $updatedCount++;
+                    break;
+                    
+                case 'schedule_all':
+                    $assessment->scheduleRelease(
+                        Carbon::parse($validated['release_date']), 
+                        $validated['notes'] ?? 'Bulk action: Scheduled release'
+                    );
+                    $updatedCount++;
+                    break;
+            }
+        }
+
+        // Log bulk action
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'action' => $validated['action'],
+                'assessment_component' => $assessmentComponent->name,
+                'module_instance' => $moduleInstance->instance_code,
+                'count' => $updatedCount,
+            ])
+            ->log("Bulk visibility action: {$validated['action']} applied to {$updatedCount} assessments");
+    });
+
+    return redirect()
+        ->route('assessments.module-instance', $moduleInstance)
+        ->with('success', "Visibility updated for {$updatedCount} assessments.");
+}
+
+/**
+ * Auto-release scheduled assessments (for cron job)
+ */
+public function processScheduledReleases()
+{
+    $assessments = StudentAssessment::where('is_visible_to_student', false)
+        ->whereNotNull('release_date')
+        ->where('release_date', '<=', now())
+        ->whereNotNull('grade')
+        ->get();
+
+    $releasedCount = 0;
+
+    foreach ($assessments as $assessment) {
+        $assessment->update([
+            'is_visible_to_student' => true,
+            'visibility_changed_at' => now(),
+        ]);
+
+        activity()
+            ->performedOn($assessment)
+            ->log('Assessment auto-released on schedule');
+
+        $releasedCount++;
+    }
+
+    \Log::info("Auto-released {$releasedCount} scheduled assessments");
+
+    return $releasedCount;
+}
+
+/**
+ * Bulk grade entry for multiple students/assessments
+ */
+public function bulkGradeForm(ModuleInstance $moduleInstance, AssessmentComponent $assessmentComponent)
+{
+    // Check permission
+    if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
+        abort(403);
+    }
 
         $studentAssessments = StudentAssessment::whereHas('studentModuleEnrolment', function($query) use ($moduleInstance) {
                 $query->where('module_instance_id', $moduleInstance->id);
@@ -509,6 +669,7 @@ protected function getUpcomingDeadlines(Student $student): Collection
         return back()->with('success', 'Assessment marked as submitted.');
     }
 
+    
     /**
      * Private helper methods
      */

@@ -203,49 +203,7 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-6">
-                    <!-- Upcoming Deadlines -->
-                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
-                        <div class="p-6 border-b border-slate-200">
-                            <h3 class="text-lg font-semibold text-slate-900">Upcoming Deadlines</h3>
-                        </div>
-                        <div class="p-6">
-                            @php
-                                $upcomingDeadlines = \App\Models\StudentAssessment::whereHas('studentModuleEnrolment', function($q) {
-                                    $q->where('student_id', Auth::user()->student->id);
-                                })
-                                ->where('status', 'pending')
-                                ->where('due_date', '>=', now())
-                                ->with(['assessmentComponent', 'studentModuleEnrolment.moduleInstance'])
-                                ->orderBy('due_date')
-                                ->limit(5)
-                                ->get();
-                            @endphp
-                            
-                            @if($upcomingDeadlines->count() > 0)
-                                <div class="space-y-3">
-                                    @foreach($upcomingDeadlines as $deadline)
-                                        <div class="flex items-center justify-between">
-                                            <div>
-                                                <p class="text-sm font-medium text-slate-900">{{ $deadline->assessmentComponent->name }}</p>
-                                                <p class="text-xs text-slate-500">{{ $deadline->studentModuleEnrolment->moduleInstance->instance_code }}</p>
-                                            </div>
-                                            <div class="text-right">
-                                                <p class="text-sm font-medium {{ $deadline->due_date->isToday() ? 'text-red-600' : ($deadline->due_date->diffInDays() <= 3 ? 'text-orange-600' : 'text-slate-900') }}">
-                                                    {{ $deadline->due_date->format('M j') }}
-                                                </p>
-                                                <p class="text-xs text-slate-500">{{ $deadline->due_date->diffForHumans() }}</p>
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <div class="text-center py-4">
-                                    <i data-lucide="calendar-check" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
-                                    <p class="text-sm text-slate-500">No upcoming deadlines</p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
+                  
 
                     <!-- Student Information -->
                     <div class="bg-white rounded-xl border border-slate-200 shadow-sm">

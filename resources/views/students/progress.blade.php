@@ -107,8 +107,7 @@
                         $moduleCompleted = $assessments->whereIn('status', ['graded', 'passed', 'failed'])->count();
                         $modulePassRate = $moduleCompleted > 0 ? round(($assessments->where('status', 'passed')->count() / $moduleCompleted) * 100, 1) : 0;
                         $moduleProgress = $moduleTotal > 0 ? round(($moduleCompleted / $moduleTotal) * 100, 1) : 0;
-                        
-                        // Calculate final grade if available
+
                         $finalGrade = null;
                         if ($moduleEnrolment->final_grade) {
                             $finalGrade = $moduleEnrolment->final_grade;
@@ -127,7 +126,7 @@
                             }
                         }
                     @endphp
-                    
+
                     <div class="border border-gray-200 rounded-lg p-6">
                         <!-- Module Header -->
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
@@ -138,7 +137,7 @@
                                     <p class="text-sm text-gray-600">Cohort: {{ $moduleEnrolment->moduleInstance->cohort->name }}</p>
                                 @endif
                             </div>
-                            
+
                             <div class="mt-3 lg:mt-0 flex items-center space-x-4">
                                 @if($finalGrade)
                                     <div class="text-center">
@@ -148,12 +147,12 @@
                                         </p>
                                     </div>
                                 @endif
-                                
+
                                 <div class="text-center">
                                     <p class="text-sm text-gray-500">Progress</p>
                                     <p class="text-lg font-semibold text-toc-600">{{ $moduleProgress }}%</p>
                                 </div>
-                                
+
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
                                     {{ $moduleEnrolment->status === 'completed' ? 'bg-green-100 text-green-800' : '' }}
                                     {{ $moduleEnrolment->status === 'active' ? 'bg-blue-100 text-blue-800' : '' }}
@@ -163,14 +162,14 @@
                                 </span>
                             </div>
                         </div>
-                        
+
                         <!-- Progress Bar -->
                         <div class="mb-4">
                             <div class="w-full bg-gray-200 rounded-full h-2">
                                 <div class="bg-toc-600 h-2 rounded-full transition-all duration-300" style="width: {{ $moduleProgress }}%"></div>
                             </div>
                         </div>
-                        
+
                         <!-- Assessment Grid -->
                         @if($assessments->count() > 0)
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -182,26 +181,50 @@
                                         <p class="text-sm text-gray-500">{{ $assessment->assessmentComponent->weight }}% of final grade</p>
                                         <p class="text-sm text-gray-500">Due: {{ $assessment->due_date->format('d M Y') }}</p>
                                     </div>
-                                    
+
                                     <div class="ml-3 text-right">
-                                        @if($assessment->grade !== null)
+                                        @if($assessment->grade !== null && $assessment->isVisibleToStudent())
                                             <p class="text-lg font-bold {{ $assessment->grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
                                                 {{ $assessment->grade }}%
                                             </p>
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                                {{ $assessment->status === 'passed' ? 'bg-green-100 text-green-700' : '' }}
+                                                {{ $assessment->status === 'failed' ? 'bg-red-100 text-red-700' : '' }}">
+                                                {{ $assessment->grade >= 40 ? 'PASS' : 'FAIL' }}
+                                            </span>
+                                        @elseif($assessment->grade !== null && !$assessment->isVisibleToStudent())
+                                            <p class="text-sm text-gray-500">
+                                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                                </svg>
+                                                Graded
+                                            </p>
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                                Results Pending
+                                            </span>
+                                        @elseif($assessment->status === 'submitted')
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                                Submitted
+                                            </span>
+                                        @elseif($assessment->status === 'pending')
+                                            @if($assessment->due_date->isPast())
+                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">
+                                                    Overdue
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                                    Pending
+                                                </span>
+                                            @endif
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                                {{ ucfirst($assessment->status) }}
+                                            </span>
                                         @endif
-                                        
-                                        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
-                                            {{ $assessment->status === 'passed' ? 'bg-green-100 text-green-700' : '' }}
-                                            {{ $assessment->status === 'failed' ? 'bg-red-100 text-red-700' : '' }}
-                                            {{ $assessment->status === 'submitted' ? 'bg-yellow-100 text-yellow-700' : '' }}
-                                            {{ $assessment->status === 'pending' ? 'bg-gray-100 text-gray-700' : '' }}
-                                            {{ $assessment->status === 'graded' ? 'bg-blue-100 text-blue-700' : '' }}">
-                                            {{ ucfirst($assessment->status) }}
-                                        </span>
                                     </div>
                                 </div>
-                                
-                                @if($assessment->feedback)
+
+                                @if($assessment->feedback && $assessment->isVisibleToStudent())
                                 <div class="mt-3 pt-3 border-t border-gray-100">
                                     <p class="text-sm text-gray-600"><strong>Feedback:</strong></p>
                                     <p class="text-sm text-gray-700 mt-1">{{ Str::limit($assessment->feedback, 100) }}</p>
@@ -210,21 +233,10 @@
                             </div>
                             @endforeach
                         </div>
-                        @else
-                        <p class="text-gray-500 text-center py-4">No assessments available for this module yet.</p>
                         @endif
                     </div>
                     @endforeach
                 </div>
-            </div>
-            @else
-            <!-- No Modules State -->
-            <div class="bg-white shadow-soft rounded-xl p-8 text-center">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                <h3 class="mt-2 text-lg font-medium text-gray-900">No modules yet</h3>
-                <p class="mt-1 text-gray-500">You haven't been enrolled in any modules yet. Contact Student Services if you think this is an error.</p>
             </div>
             @endif
 

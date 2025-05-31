@@ -134,60 +134,67 @@
                     </div>
 
                     <!-- Recent Results -->
-                    <div class="bg-white shadow-soft rounded-xl p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h2 class="text-xl font-semibold text-gray-900">Recent Results</h2>
-                        </div>
+                <!-- Recent Results -->
+<div class="bg-white shadow-soft rounded-xl p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">Recent Results</h2>
+    </div>
+    
+    @php
+        // Filter recent results to only show visible grades
+        $visibleResults = $recentResults->filter(function($assessment) {
+            return $assessment->isVisibleToStudent();
+        });
+    @endphp
+    
+    @if($visibleResults->count() > 0)
+        <div class="space-y-4">
+            @foreach($visibleResults->take(5) as $assessment)
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">{{ $assessment->assessmentComponent->name }}</h3>
+                        <p class="text-sm text-gray-600">{{ $assessment->studentModuleEnrolment->moduleInstance->module->title }}</p>
+                        <p class="text-sm text-gray-500">
+                            Graded: {{ $assessment->graded_date ? $assessment->graded_date->format('d M Y') : 'Recently' }}
+                        </p>
                         
-                        @if($recentResults->count() > 0)
-                            <div class="space-y-4">
-                                @foreach($recentResults->take(5) as $assessment)
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <h3 class="font-semibold text-gray-900">{{ $assessment->assessmentComponent->name }}</h3>
-                                            <p class="text-sm text-gray-600">{{ $assessment->studentModuleEnrolment->moduleInstance->module->title }}</p>
-                                            <p class="text-sm text-gray-500">
-                                                Graded: {{ $assessment->graded_date ? $assessment->graded_date->format('d M Y') : 'Recently' }}
-                                            </p>
-                                            
-                                            @if($assessment->feedback)
-                                                <div class="mt-2 p-2 bg-gray-50 rounded text-sm">
-                                                    <p class="font-medium text-gray-700">Feedback:</p>
-                                                    <p class="text-gray-600">{{ Str::limit($assessment->feedback, 150) }}</p>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        
-                                        <div class="ml-4 text-right">
-                                            @if($assessment->grade !== null)
-                                                <p class="text-2xl font-bold {{ $assessment->grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
-                                                    {{ $assessment->grade }}%
-                                                </p>
-                                            @endif
-                                            
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                                {{ $assessment->status === 'passed' ? 'bg-green-100 text-green-800' : '' }}
-                                                {{ $assessment->status === 'failed' ? 'bg-red-100 text-red-800' : '' }}
-                                                {{ $assessment->status === 'graded' ? 'bg-blue-100 text-blue-800' : '' }}">
-                                                {{ $assessment->grade >= 40 ? 'PASS' : 'FAIL' }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </div>
-                        @else
-                            <div class="text-center py-8">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                </svg>
-                                <h3 class="mt-2 text-lg font-medium text-gray-900">No results yet</h3>
-                                <p class="mt-1 text-gray-500">Your assessment results will appear here once graded.</p>
+                        @if($assessment->feedback)
+                            <div class="mt-2 p-2 bg-gray-50 rounded text-sm">
+                                <p class="font-medium text-gray-700">Feedback:</p>
+                                <p class="text-gray-600">{{ Str::limit($assessment->feedback, 150) }}</p>
                             </div>
                         @endif
                     </div>
+                    
+                    <div class="ml-4 text-right">
+                        @if($assessment->grade !== null)
+                            <p class="text-2xl font-bold {{ $assessment->grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
+                                {{ $assessment->grade }}%
+                            </p>
+                        @endif
+                        
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {{ $assessment->status === 'passed' ? 'bg-green-100 text-green-800' : '' }}
+                            {{ $assessment->status === 'failed' ? 'bg-red-100 text-red-800' : '' }}
+                            {{ $assessment->status === 'graded' ? 'bg-blue-100 text-blue-800' : '' }}">
+                            {{ $assessment->grade >= 40 ? 'PASS' : 'FAIL' }}
+                        </span>
+                    </div>
                 </div>
+            </div>
+            @endforeach
+        </div>
+    @else
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            <h3 class="mt-2 text-lg font-medium text-gray-900">No results available</h3>
+            <p class="mt-1 text-gray-500">Your assessment results will appear here once they are released.</p>
+        </div>
+    @endif
+</div>
 
                 <!-- Sidebar -->
                 <div class="space-y-6">

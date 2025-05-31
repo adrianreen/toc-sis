@@ -217,7 +217,214 @@
                             @enderror
                             <p class="mt-1 text-xs text-gray-500">This feedback will be visible to the student</p>
                         </div>
+{{-- This replaces the bottom section of resources/views/assessments/grade.blade.php --}}
+{{-- Add this after the feedback textarea and before the action buttons --}}
 
+                        <!-- Visibility Controls Section -->
+                        <div class="mt-8 border-t pt-6">
+                            <h4 class="text-lg font-medium text-gray-900 mb-4">Student Visibility Settings</h4>
+                            
+                            @php
+                                $visibilityStatus = $studentAssessment->getVisibilityStatus();
+                            @endphp
+                            
+                            <!-- Current Status Display -->
+                            <div class="mb-6 p-4 rounded-lg border 
+                                {{ $visibilityStatus['visible'] ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200' }}">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        @if($visibilityStatus['visible'])
+                                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                                            </svg>
+                                        @else
+                                            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/>
+                                                <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/>
+                                            </svg>
+                                        @endif
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium {{ $visibilityStatus['visible'] ? 'text-green-800' : 'text-yellow-800' }}">
+                                            Status: {{ $visibilityStatus['visible'] ? 'Visible to Student' : 'Hidden from Student' }}
+                                        </p>
+                                        <p class="text-sm {{ $visibilityStatus['visible'] ? 'text-green-700' : 'text-yellow-700' }}">
+                                            {{ $visibilityStatus['message'] }}
+                                            @if(isset($visibilityStatus['released_by']))
+                                                by {{ $visibilityStatus['released_by'] }}
+                                            @endif
+                                            @if(isset($visibilityStatus['released_at']))
+                                                on {{ $visibilityStatus['released_at']->format('d M Y H:i') }}
+                                            @elseif(isset($visibilityStatus['release_date']))
+                                                - will be released {{ $visibilityStatus['release_date']->format('d M Y H:i') }}
+                                            @endif
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Visibility Control Options -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                
+                                <!-- Manual Visibility Toggle -->
+                                <div class="space-y-4">
+                                    <h5 class="text-md font-medium text-gray-900">Manual Control</h5>
+                                    
+                                    <div class="space-y-3">
+                                        <label class="flex items-center">
+                                            <input type="radio" 
+                                                   name="visibility_control" 
+                                                   value="show_now" 
+                                                   class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                                                   {{ $studentAssessment->is_visible_to_student ? 'checked' : '' }}>
+                                            <span class="ml-2 text-sm text-gray-700">
+                                                <strong>Show to student immediately</strong>
+                                                <br><span class="text-gray-500">Student can see grade and feedback now</span>
+                                            </span>
+                                        </label>
+                                        
+                                        <label class="flex items-center">
+                                            <input type="radio" 
+                                                   name="visibility_control" 
+                                                   value="hide" 
+                                                   class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300"
+                                                   {{ !$studentAssessment->is_visible_to_student && !$studentAssessment->release_date ? 'checked' : '' }}>
+                                            <span class="ml-2 text-sm text-gray-700">
+                                                <strong>Hide from student</strong>
+                                                <br><span class="text-gray-500">Keep grade hidden until manually released</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Scheduled Release -->
+                                <div class="space-y-4">
+                                    <h5 class="text-md font-medium text-gray-900">Scheduled Release</h5>
+                                    
+                                    <label class="flex items-start">
+                                        <input type="radio" 
+                                               name="visibility_control" 
+                                               value="schedule" 
+                                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-1"
+                                               {{ $studentAssessment->release_date && !$studentAssessment->is_visible_to_student ? 'checked' : '' }}>
+                                        <div class="ml-2 flex-1">
+                                            <span class="text-sm text-gray-700 font-medium">Schedule automatic release</span>
+                                            <div class="mt-2">
+                                                <input type="datetime-local" 
+                                                       name="release_date" 
+                                                       id="release_date"
+                                                       value="{{ old('release_date', $studentAssessment->release_date?->format('Y-m-d\TH:i')) }}"
+                                                       min="{{ now()->format('Y-m-d\TH:i') }}"
+                                                       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm">
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                Grade will automatically become visible at this date/time
+                                            </p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Release Notes -->
+                            <div class="mt-6">
+                                <label for="release_notes" class="block text-sm font-medium text-gray-700">
+                                    Release Notes <span class="text-gray-500">(optional)</span>
+                                </label>
+                                <textarea name="release_notes" 
+                                          id="release_notes" 
+                                          rows="2"
+                                          placeholder="Internal notes about this visibility change (not visible to student)"
+                                          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">{{ old('release_notes', $studentAssessment->release_notes) }}</textarea>
+                                @error('release_notes')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Quick Actions (if grade already exists) -->
+                            @if($studentAssessment->grade !== null)
+                                <div class="mt-6 flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">Quick Actions</p>
+                                        <p class="text-sm text-gray-600">Apply visibility changes without updating grade</p>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        @if(!$studentAssessment->isVisibleToStudent())
+                                            <button type="button" 
+                                                    onclick="quickVisibilityAction('show')"
+                                                    class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">
+                                                Show Now
+                                            </button>
+                                        @endif
+                                        
+                                        @if($studentAssessment->isVisibleToStudent())
+                                            <button type="button" 
+                                                    onclick="quickVisibilityAction('hide')"
+                                                    class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm">
+                                                Hide Now
+                                            </button>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+
+<script>
+// Handle visibility control radio button interactions
+document.addEventListener('DOMContentLoaded', function() {
+    const visibilityRadios = document.querySelectorAll('input[name="visibility_control"]');
+    const releaseDateInput = document.getElementById('release_date');
+    
+    visibilityRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'schedule') {
+                releaseDateInput.disabled = false;
+                releaseDateInput.required = true;
+                releaseDateInput.focus();
+            } else {
+                releaseDateInput.disabled = true;
+                releaseDateInput.required = false;
+            }
+        });
+    });
+    
+    // Initialize on page load
+    const checkedRadio = document.querySelector('input[name="visibility_control"]:checked');
+    if (checkedRadio && checkedRadio.value !== 'schedule') {
+        releaseDateInput.disabled = true;
+        releaseDateInput.required = false;
+    }
+});
+
+// Quick visibility actions
+function quickVisibilityAction(action) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ route("assessments.quick-visibility", $studentAssessment) }}';
+    
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = '_token';
+    csrfToken.value = '{{ csrf_token() }}';
+    
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'PATCH';
+    
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = action;
+    
+    form.appendChild(csrfToken);
+    form.appendChild(methodInput);
+    form.appendChild(actionInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
                         <!-- Grade Impact Preview -->
                         @php
                             $otherAssessments = $studentAssessment->studentModuleEnrolment->studentAssessments

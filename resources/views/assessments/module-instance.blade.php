@@ -260,7 +260,7 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div class="flex flex-col space-y-1">
-                                                    <a href="{{ route('assessments.student-progress', $enrolment->student) }}" 
+                                                    <a href="{{ route('admin.student-progress', $enrolment->student) }}" 
                                                        class="text-indigo-600 hover:text-indigo-900 text-xs">
                                                         View Progress
                                                     </a>
