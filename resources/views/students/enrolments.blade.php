@@ -11,7 +11,7 @@
                 </p>
             </div>
             <div class="mt-4 sm:mt-0 flex items-center space-x-3">
-                <a href="{{ route('student.progress') }}" 
+                <a href="{{ route('students.progress') }}" 
                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-sm">
                     📊 View My Progress
                 </a>
@@ -207,7 +207,7 @@
                                     <!-- Action Buttons -->
                                     <div class="flex-shrink-0 mt-4 lg:mt-0 lg:ml-6">
                                         <div class="flex flex-col space-y-2">
-                                            <a href="{{ route('student.progress') }}" 
+                                            <a href="{{ route('students.progress') }}" 
                                                class="inline-flex items-center justify-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors duration-200">
                                                 <i data-lucide="bar-chart-3" class="w-4 h-4 mr-2"></i>
                                                 View Progress

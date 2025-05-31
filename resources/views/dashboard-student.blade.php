@@ -36,7 +36,7 @@
                 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- View My Progress -->
-                    <a href="{{ route('student.progress') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="{{ route('students.progress') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="font-semibold text-lg text-white">My Progress</h3>
@@ -49,7 +49,7 @@
                     </a>
 
                     <!-- View My Enrolments -->
-                    <a href="{{ route('student.enrolments') }}" class="group bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="{{ route('students.enrolments') }}" class="group bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="font-semibold text-lg text-white">My Programmes</h3>
@@ -62,7 +62,7 @@
                     </a>
 
                     <!-- My Profile -->
-                    <a href="{{ route('student.profile') }}" class="group bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="{{ route('students.profile') }}" class="group bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="font-semibold text-lg text-white">My Profile</h3>
@@ -97,7 +97,7 @@
                         <div class="p-6 border-b border-slate-200">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-slate-900">My Current Programmes</h3>
-                                <a href="{{ route('student.enrolments') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                                <a href="{{ route('students.enrolments') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                                     View all →
                                 </a>
                             </div>
@@ -150,7 +150,7 @@
                         <div class="p-6 border-b border-slate-200">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-slate-900">Recent Progress</h3>
-                                <a href="{{ route('student.progress') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                                <a href="{{ route('students.progress') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                                     View detailed progress →
                                 </a>
                             </div>

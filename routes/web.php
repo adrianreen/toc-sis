@@ -15,6 +15,7 @@ use App\Http\Controllers\AssessmentComponentController;
 use App\Http\Controllers\StudentAssessmentController;
 use App\Http\Controllers\DevRoleController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 // Public routes
 Route::get('/', function () {
@@ -28,42 +29,88 @@ Route::post('/logout', [AzureController::class, 'logout'])->name('logout');
 
 // Protected routes
 Route::middleware(['auth'])->group(function () {
+    
     // Dashboard - role-based routing
-// In your routes/web.php, replace the dashboard route with this:
-
-Route::get('/dashboard', function () {
-    if (Auth::user()->role === 'student') {
-        // Check if user has a linked student record
-        if (!Auth::user()->student) {
-            return view('dashboard-student-error', [
-                'user' => Auth::user(),
-                'message' => 'No student record found. Please contact Student Services.'
-            ]);
+    Route::get('/dashboard', function () {
+        if (Auth::user()->role === 'student') {
+            // Check if user has a linked student record
+            if (!Auth::user()->student) {
+                return view('dashboard-student-error', [
+                    'user' => Auth::user(),
+                    'message' => 'No student record found. Please contact Student Services.'
+                ]);
+            }
+            return view('dashboard-student');
         }
-        return view('dashboard-student');
-    }
+        
+        return view('dashboard');
+    })->name('dashboard');
     
-    return view('dashboard');
-})->name('dashboard');
-    
-    // Student-only routes - cleaner with middleware
+    // =================================================================
+    // STUDENT-ONLY ROUTES - Simplified, direct access
+    // =================================================================
     Route::middleware(['role:student'])->group(function () {
+        
         Route::get('/my-enrolments', function () {
             $student = Auth::user()->student;
+            if (!$student) {
+                abort(404, 'Student record not found');
+            }
             $enrolments = $student->enrolments()->with(['programme', 'cohort'])->get();
-            return view('student.enrolments', compact('student', 'enrolments'));
-        })->name('student.enrolments');
+            return view('students.enrolments', compact('student', 'enrolments'));
+        })->name('students.enrolments');
         
         Route::get('/my-profile', function () {
-            return redirect()->route('students.show', Auth::user()->student);
-        })->name('student.profile');
-        
+            $student = Auth::user()->student;
+            if (!$student) {
+                abort(404, 'Student record not found');
+            }
+            $student->load(['enrolments.programme', 'enrolments.cohort']);
+            return view('students.profile', compact('student')); // Simple student view
+        })->name('students.profile');
+
         Route::get('/my-progress', function () {
-            return redirect()->route('assessments.student-progress', Auth::user()->student);
-        })->name('student.progress');
+            $student = Auth::user()->student;
+            if (!$student) {
+                abort(404, 'Student record not found');
+            }
+            
+            // Load basic progress data
+            $student->load([
+                'studentModuleEnrolments.moduleInstance.module',
+                'studentModuleEnrolments.studentAssessments.assessmentComponent'
+            ]);
+            
+            return view('students.progress', compact('student')); // Simple progress view
+        })->name('students.progress');
+        
+        Route::get('/my-assessments', function () {
+            $student = Auth::user()->student;
+            if (!$student) {
+                abort(404, 'Student record not found');
+            }
+            
+            // Get upcoming and recent assessments
+            $upcomingAssessments = $student->studentModuleEnrolments
+                ->flatMap->studentAssessments
+                ->where('status', 'pending')
+                ->where('due_date', '>=', now())
+                ->sortBy('due_date')
+                ->take(5);
+                
+            $recentAssessments = $student->studentModuleEnrolments
+                ->flatMap->studentAssessments
+                ->whereIn('status', ['graded', 'passed', 'failed'])
+                ->sortByDesc('graded_date')
+                ->take(10);
+            
+            return view('students.assessments', compact('student', 'upcomingAssessments', 'recentAssessments'));
+        })->name('students.assessments');
     });
     
-    // Manager & Student Services only
+    // =================================================================
+    // MANAGER & STUDENT SERVICES ROUTES - Administrative access
+    // =================================================================
     Route::middleware(['role:manager,student_services'])->group(function () {
         Route::resource('students', StudentController::class);
         
@@ -80,7 +127,9 @@ Route::get('/dashboard', function () {
         Route::patch('deferrals/{deferral}/process-return', [DeferralController::class, 'processReturn'])->name('deferrals.process-return');
     });
     
-    // Manager, Student Services, and Teachers
+    // =================================================================
+    // MANAGER, STUDENT SERVICES, AND TEACHERS - Assessment management
+    // =================================================================
     Route::middleware(['role:manager,student_services,teacher'])->group(function () {
         // Extension routes
         Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');
@@ -104,11 +153,15 @@ Route::get('/dashboard', function () {
         Route::patch('assessments/{studentAssessment}/submit', [StudentAssessmentController::class, 'markSubmitted'])->name('assessments.mark-submitted');
         Route::get('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'bulkGradeForm'])->name('assessments.bulk-grade-form');
         Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'storeBulkGrades'])->name('assessments.bulk-grade');
-        Route::get('assessments/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('assessments.student-progress');
+        
+        // Admin view of student progress (separate from student's own view)
+        Route::get('admin/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('admin.student-progress');
         Route::get('assessments/module-instances/{moduleInstance}/export', [StudentAssessmentController::class, 'exportGrades'])->name('assessments.export');
     });
     
-    // Manager-only routes
+    // =================================================================
+    // MANAGER-ONLY ROUTES - System administration
+    // =================================================================
     Route::middleware(['role:manager'])->group(function () {
         // Programme routes
         Route::resource('programmes', ProgrammeController::class);
@@ -138,6 +191,8 @@ Route::get('/dashboard', function () {
         Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
     });
 
-    // WARNING: DEVELOPMENT ONLY ROUTE - REMOVE BEFORE DEPLOYMENT
+    // =================================================================
+    // DEVELOPMENT ROUTE - REMOVE BEFORE PRODUCTION!
+    // =================================================================
     Route::post('/dev/super-secret-role-switcher-path', [DevRoleController::class, 'switchRole'])->name('dev.switch-role');
 });

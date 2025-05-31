@@ -19,6 +19,7 @@ class User extends Authenticatable
         'role',
         'azure_groups',
         'last_login_at',
+        'student_id',
     ];
 
     protected $hidden = [
