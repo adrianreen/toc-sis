@@ -100,4 +100,8 @@ public function repeatAssessments(): HasMany
 {
     return $this->hasMany(RepeatAssessment::class);
 }
+public function user()
+{
+    return $this->hasOne(User::class);
+}
 }

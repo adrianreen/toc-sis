@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Student; // ADD THIS LINE
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -24,6 +25,7 @@ class AzureController extends Controller
 
     /**
      * Handle Azure AD callback and authenticate user
+     * ENHANCED: Now includes student matching functionality
      */
     public function callback()
     {
@@ -42,10 +44,31 @@ class AzureController extends Controller
             // Determine user role based on group membership
             $role = $this->determineUserRole($groups);
             
+            // ENHANCED: If role is 'student', try to find matching student record
+            $studentRecord = null;
+            if ($role === 'student') {
+                $studentRecord = $this->findMatchingStudent($azureUser->getEmail());
+                
+                if ($studentRecord) {
+                    Log::info('Found matching student record', [
+                        'student_id' => $studentRecord->id,
+                        'student_number' => $studentRecord->student_number,
+                        'azure_email' => $azureUser->getEmail(),
+                        'student_email' => $studentRecord->email
+                    ]);
+                } else {
+                    Log::warning('No matching student record found', [
+                        'azure_email' => $azureUser->getEmail(),
+                        'will_create_unlinked_account' => true
+                    ]);
+                }
+            }
+            
             Log::info('User role determined', [
                 'role' => $role,
                 'groups_found' => $groups,
-                'email' => $azureUser->getEmail()
+                'email' => $azureUser->getEmail(),
+                'linked_to_student' => $studentRecord ? $studentRecord->student_number : null
             ]);
 
             // Create or update user record
@@ -57,8 +80,19 @@ class AzureController extends Controller
                     'role' => $role,
                     'azure_groups' => $groups,
                     'last_login_at' => now(),
+                    'student_id' => $studentRecord ? $studentRecord->id : null, // ENHANCED: Store student relationship
                 ]
             );
+
+            // ENHANCED: Log successful student linking
+            if ($studentRecord && $role === 'student') {
+                Log::info('Student account successfully linked', [
+                    'user_id' => $user->id,
+                    'student_id' => $studentRecord->id,
+                    'student_number' => $studentRecord->student_number,
+                    'relationship_stored' => true
+                ]);
+            }
 
             // Log the user in
             Auth::login($user);
@@ -66,7 +100,8 @@ class AzureController extends Controller
             Log::info('User authenticated successfully', [
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'role' => $user->role
+                'role' => $user->role,
+                'linked_student' => $user->student_id
             ]);
 
             return redirect()->intended('/dashboard');
@@ -78,6 +113,77 @@ class AzureController extends Controller
             ]);
 
             return redirect('/')->with('error', 'Authentication failed. Please try again.');
+        }
+    }
+
+    /**
+     * ENHANCED: NEW METHOD - Find matching student record by email
+     * Handles domain switching between @theopencollege.com and @student.theopencollege.com
+     */
+    private function findMatchingStudent($azureEmail)
+    {
+        try {
+            Log::info('Searching for matching student record', ['azure_email' => $azureEmail]);
+            
+            // First, try direct email match
+            $student = Student::where('email', $azureEmail)->first();
+            
+            if ($student) {
+                Log::info('Found direct email match', [
+                    'student_id' => $student->id,
+                    'student_number' => $student->student_number
+                ]);
+                return $student;
+            }
+            
+            // Handle domain switching - try alternate domain
+            $alternateEmail = null;
+            
+            if (str_ends_with($azureEmail, '@student.theopencollege.com')) {
+                // Azure email uses new domain, try old domain in student record
+                $alternateEmail = str_replace('@student.theopencollege.com', '@theopencollege.com', $azureEmail);
+            } elseif (str_ends_with($azureEmail, '@theopencollege.com')) {
+                // Azure email uses old domain, try new domain in student record
+                $alternateEmail = str_replace('@theopencollege.com', '@student.theopencollege.com', $azureEmail);
+            }
+            
+            if ($alternateEmail) {
+                Log::info('Trying alternate domain', [
+                    'original_email' => $azureEmail,
+                    'alternate_email' => $alternateEmail
+                ]);
+                
+                $student = Student::where('email', $alternateEmail)->first();
+                
+                if ($student) {
+                    Log::info('Found student with alternate domain', [
+                        'student_id' => $student->id,
+                        'student_number' => $student->student_number,
+                        'student_email' => $student->email,
+                        'azure_email' => $azureEmail
+                    ]);
+                    
+                    // OPTIONAL: Update student email to match Azure email
+                    // Uncomment next line if you want to sync the emails:
+                    // $student->update(['email' => $azureEmail]);
+                    
+                    return $student;
+                }
+            }
+            
+            Log::info('No matching student record found', [
+                'azure_email' => $azureEmail,
+                'alternate_tried' => $alternateEmail
+            ]);
+            
+            return null;
+            
+        } catch (\Exception $e) {
+            Log::error('Error finding matching student', [
+                'azure_email' => $azureEmail,
+                'error' => $e->getMessage()
+            ]);
+            return null;
         }
     }
 
