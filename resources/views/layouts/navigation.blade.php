@@ -154,15 +154,17 @@
             @if(Auth::check())
             <div class="flex items-center space-x-6">
                 <!-- Notifications -->
-                <button class="relative p-2 rounded-full text-gray-400 hover:text-gray-300 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white transition-all duration-200">
+                <a href="{{ route('notifications.index') }}" class="relative p-2 rounded-full text-gray-400 hover:text-gray-300 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-white transition-all duration-200">
                     <span class="sr-only">View notifications</span>
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                         <path d="m13.73 21a2 2 0 0 1-3.46 0"/>
                     </svg>
                     <!-- Notification badge -->
+                    @if(Auth::user()->getUnreadNotificationCount() > 0)
                     <span class="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                </button>
+                    @endif
+                </a>
 
                 <!-- Profile dropdown -->
                 <div class="relative" x-data="{ open: false }">

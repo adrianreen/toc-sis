@@ -8,6 +8,7 @@ use App\Models\StudentModuleEnrolment;
 use App\Models\ModuleInstance;
 use App\Models\AssessmentComponent;
 use App\Models\Student;
+use App\Services\NotificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,11 @@ use Carbon\Carbon;
 
 class StudentAssessmentController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {
+    }
+
     /**
      * Show teacher's assigned modules and assessment overview
      */
@@ -174,6 +180,13 @@ class StudentAssessmentController extends Controller
             ->log('Assessment graded: ' . $studentAssessment->assessmentComponent->name . ' - ' . $validated['grade'] . '% (' . $validated['visibility_control'] . ')');
     });
 
+    // Send notification if grade was made visible immediately
+    if ($validated['visibility_control'] === 'show_now') {
+        // Refresh the model to get updated data
+        $studentAssessment->refresh();
+        $this->notificationService->notifyGradeReleased($studentAssessment);
+    }
+
     return redirect()
         ->route('assessments.module-instance', $studentAssessment->studentModuleEnrolment->moduleInstance)
         ->with('success', 'Grade and visibility settings saved successfully.');
@@ -197,6 +210,11 @@ public function quickVisibility(Request $request, StudentAssessment $studentAsse
     DB::transaction(function () use ($validated, $studentAssessment) {
         if ($validated['action'] === 'show') {
             $studentAssessment->showToStudent($validated['notes'] ?? 'Quick action: Made visible');
+            
+            // Send grade release notification if assessment was made visible
+            if ($studentAssessment->grade !== null && $studentAssessment->isVisibleToStudent()) {
+                $this->notificationService->notifyGradeReleased($studentAssessment);
+            }
         } else {
             $studentAssessment->hideFromStudent($validated['notes'] ?? 'Quick action: Hidden');
         }
@@ -237,6 +255,12 @@ public function bulkVisibility(Request $request, ModuleInstance $moduleInstance,
             switch ($validated['action']) {
                 case 'show_all':
                     $assessment->showToStudent($validated['notes'] ?? 'Bulk action: Show all');
+                    
+                    // Send grade release notification if assessment was made visible
+                    if ($assessment->grade !== null && $assessment->isVisibleToStudent()) {
+                        $this->notificationService->notifyGradeReleased($assessment);
+                    }
+                    
                     $updatedCount++;
                     break;
                     

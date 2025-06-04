@@ -54,7 +54,27 @@ class User extends Authenticatable
         return $this->role === 'student';
     }
     public function student()
-{
-    return $this->belongsTo(Student::class);
-}
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    public function notificationPreferences()
+    {
+        return $this->hasMany(NotificationPreference::class);
+    }
+
+    public function unreadNotifications()
+    {
+        return $this->notifications()->unread();
+    }
+
+    public function getUnreadNotificationCount(): int
+    {
+        return $this->unreadNotifications()->count();
+    }
 }

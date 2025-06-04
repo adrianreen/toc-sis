@@ -14,6 +14,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentComponentController;
 use App\Http\Controllers\StudentAssessmentController;
 use App\Http\Controllers\DevRoleController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -215,6 +216,19 @@ Route::get('/my-progress', function () {
         Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
         Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
         Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
+    });
+
+    // =================================================================
+    // NOTIFICATION ROUTES - All authenticated users
+    // =================================================================
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::patch('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    
+    // Manager-only notification routes
+    Route::middleware(['role:manager'])->group(function () {
+        Route::get('admin/notifications', [NotificationController::class, 'adminDashboard'])->name('notifications.admin');
+        Route::match(['get', 'post'], 'admin/notifications/announcement', [NotificationController::class, 'createAnnouncement'])->name('notifications.announcement');
     });
 
     // =================================================================

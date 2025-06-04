@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\StudentAssessment;
+use App\Services\NotificationService;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
 
@@ -18,6 +19,12 @@ class ReleaseScheduledAssessments extends Command
      * The console command description.
      */
     protected $description = 'Release assessments that are scheduled for automatic release';
+
+    public function __construct(
+        private NotificationService $notificationService
+    ) {
+        parent::__construct();
+    }
 
     /**
      * Execute the console command.
@@ -68,6 +75,9 @@ class ReleaseScheduledAssessments extends Command
                 activity()
                     ->performedOn($assessment)
                     ->log('Assessment auto-released on schedule');
+
+                // Send grade release notification
+                $this->notificationService->notifyGradeReleased($assessment);
 
                 $releasedCount++;
             }

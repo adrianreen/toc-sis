@@ -452,17 +452,7 @@ function quickVisibilityAction(action) {
                         <!-- Action Buttons -->
                         <div class="mt-6 flex justify-between">
                             <div>
-                                @if($studentAssessment->status === 'pending' && !$studentAssessment->isSubmitted())
-                                    <form action="{{ route('assessments.mark-submitted', $studentAssessment) }}" method="POST" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" 
-                                                onclick="return confirm('Mark this assessment as submitted? This will notify that the student has completed their work.')"
-                                                class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
-                                            Mark as Submitted
-                                        </button>
-                                    </form>
-                                @endif
+                                <!-- Placeholder for external form button -->
                             </div>
                             
                             <div class="space-x-2">
@@ -476,6 +466,19 @@ function quickVisibilityAction(action) {
                             </div>
                         </div>
                     </form>
+
+                    <!-- Mark as Submitted Form (outside main form) -->
+                    @if($studentAssessment->status === 'pending' && !$studentAssessment->isSubmitted())
+                        <form action="{{ route('assessments.mark-submitted', $studentAssessment) }}" method="POST" class="mt-4">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" 
+                                    onclick="return confirm('Mark this assessment as submitted? This will notify that the student has completed their work.')"
+                                    class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                                Mark as Submitted
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
 
