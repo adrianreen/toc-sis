@@ -246,6 +246,7 @@ public function bulkVisibility(Request $request, ModuleInstance $moduleInstance,
         })
         ->where('assessment_component_id', $assessmentComponent->id)
         ->whereNotNull('grade')
+        ->with(['studentModuleEnrolment.student', 'assessmentComponent'])
         ->get();
 
     $updatedCount = 0;
@@ -305,6 +306,7 @@ public function processScheduledReleases()
         ->whereNotNull('release_date')
         ->where('release_date', '<=', now())
         ->whereNotNull('grade')
+        ->with(['studentModuleEnrolment.student', 'assessmentComponent'])
         ->get();
 
     $releasedCount = 0;
@@ -341,9 +343,9 @@ public function bulkGradeForm(ModuleInstance $moduleInstance, AssessmentComponen
                 $query->where('module_instance_id', $moduleInstance->id);
             })
             ->where('assessment_component_id', $assessmentComponent->id)
-            ->with(['studentModuleEnrolment.student'])
+            ->with(['studentModuleEnrolment.student', 'assessmentComponent'])
             ->orderBy('id')
-            ->get();
+            ->paginate(50);
 
         return view('assessments.bulk-grade', compact('moduleInstance', 'assessmentComponent', 'studentAssessments'));
     }

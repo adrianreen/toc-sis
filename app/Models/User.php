@@ -75,6 +75,8 @@ class User extends Authenticatable
 
     public function getUnreadNotificationCount(): int
     {
-        return $this->unreadNotifications()->count();
+        return \Cache::remember("unread_notifications_{$this->id}", 300, function() {
+            return $this->unreadNotifications()->count();
+        });
     }
 }

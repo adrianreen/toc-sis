@@ -93,6 +93,7 @@
 
                     <!-- Dropdown Menu -->
                     <div x-show="open" 
+                         x-cloak
                          x-transition:enter="transition ease-out duration-100"
                          x-transition:enter-start="transform opacity-0 scale-95"
                          x-transition:enter-end="transform opacity-100 scale-100"
@@ -185,6 +186,7 @@
 
                     <!-- Profile Dropdown -->
                     <div x-show="open" 
+                         x-cloak
                          x-transition:enter="transition ease-out duration-200"
                          x-transition:enter-start="transform opacity-0 scale-95"
                          x-transition:enter-end="transform opacity-100 scale-100"
@@ -270,7 +272,7 @@
     </div>
 
     <!-- Mobile menu -->
-    <div x-show="open" class="lg:hidden">
+    <div x-show="open" x-cloak class="lg:hidden">
         <div class="px-4 pt-4 pb-6 space-y-2 bg-gray-800 border-t border-gray-700">
             <a href="{{ route('dashboard') }}" 
                class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('dashboard') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }}">

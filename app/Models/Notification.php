@@ -11,6 +11,21 @@ class Notification extends Model
 {
     use LogsActivity;
 
+    protected static function booted(): void
+    {
+        static::created(function (Notification $notification) {
+            // Clear notification count cache when new notification is created
+            \Cache::forget("unread_notifications_{$notification->user_id}");
+        });
+
+        static::updated(function (Notification $notification) {
+            // Clear notification count cache when notification is updated (e.g., marked as read)
+            if ($notification->isDirty('is_read')) {
+                \Cache::forget("unread_notifications_{$notification->user_id}");
+            }
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'type',
@@ -52,6 +67,9 @@ class Notification extends Model
                 'is_read' => true,
                 'read_at' => now()
             ]);
+            
+            // Clear notification count cache for this user
+            \Cache::forget("unread_notifications_{$this->user_id}");
         }
     }
 

@@ -10,7 +10,13 @@ class ProgrammeController extends Controller
 {
     public function index()
     {
-        $programmes = Programme::with('cohorts')->get();
+        $programmes = Programme::with(['cohorts' => function ($query) {
+            $query->withCount('enrolments');
+        }])
+        ->withCount('enrolments')
+        ->orderBy('code')
+        ->paginate(20);
+        
         return view('programmes.index', compact('programmes'));
     }
 
