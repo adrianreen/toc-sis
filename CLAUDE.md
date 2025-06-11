@@ -175,3 +175,107 @@ php artisan tinker --execute="
 - **Assessment deadline reminders** may not be needed since students submit via Moodle
 - **Core notification system** is fully functional for grade releases and announcements
 - **Extension/Deferral workflows** need to be implemented before testing those notification types
+
+## CSV/Excel Import Implementation Plan
+
+### Overview
+Future implementation of bulk student import functionality to complement the existing "Add New Student" workflow.
+
+### Critical Challenges Identified
+
+#### 1. Email Uniqueness Constraint
+- **Issue**: `email` field has unique constraint across students table
+- **Impact**: Import fails if duplicates exist within file or against existing records
+- **Solution**: Pre-process file for duplicate detection, offer merge/skip options
+
+#### 2. Student Number Generation
+- **Issue**: `Student::generateStudentNumber()` creates sequential YYYY### format
+- **Impact**: Bulk imports could create gaps/conflicts with concurrent imports
+- **Solution**: Use database transactions and proper locking mechanisms
+
+#### 3. User Account Linking
+- **Issue**: Students can link to User accounts via `student_id` field
+- **Impact**: Import needs to handle automatic user account creation
+- **Solution**: Add optional "create_user_account" column or separate workflow
+
+### Implementation Requirements
+
+#### Dependencies Needed
+```bash
+# Required package for CSV/Excel processing
+composer require maatwebsite/excel
+```
+
+#### CSV Template Structure
+```csv
+first_name,last_name,email,phone,address,city,county,eircode,date_of_birth,status,notes
+Emma,Murphy,emma.murphy@student.ie,0851234567,123 Main Street,Dublin,Dublin,D01 X123,1990-05-15,enquiry,New student enquiry
+```
+
+#### Validation Rules to Apply
+```php
+'first_name' => 'required|string|max:255',
+'last_name' => 'required|string|max:255', 
+'email' => 'required|email|unique:students,email',
+'date_of_birth' => 'nullable|date|before:today',
+'status' => 'required|in:enquiry,enrolled,active,deferred,completed,cancelled'
+```
+
+### Technical Considerations
+
+#### Memory Management
+- **Challenge**: Large CSV files (1000+ students) exceed PHP memory limits
+- **Solution**: Use Laravel Excel's `chunk()` method for batch processing
+
+#### Activity Logging Overhead
+- **Challenge**: Spatie ActivityLog creates audit records for every student
+- **Solution**: Optimize logging or batch log entries for large imports
+
+#### File Upload Security
+- **Requirements**: 
+  - File type validation (CSV, XLSX only)
+  - Size limits (recommend 10MB max)
+  - Temporary file storage and cleanup
+
+### Recommended Implementation Phases
+
+#### Phase 1: Basic CSV Import
+1. Install Laravel Excel package
+2. Create upload form component (button placeholder already exists)
+3. Implement basic validation and import
+4. Add error handling and reporting
+
+#### Phase 2: Enhanced Features  
+1. Excel (XLSX) support
+2. Preview functionality before import
+3. Batch processing for large files
+4. Progress tracking with background queues
+
+#### Phase 3: Advanced Features
+1. User account creation integration
+2. Enrollment workflow automation via `EnrolmentService`
+3. Duplicate detection and merging
+4. Import history and rollback capability
+
+### User Experience Flow
+**Recommended Workflow**: Upload → Preview → Validate → Import → Results
+
+### Key Risks & Mitigations
+- **Data corruption**: Use database transactions
+- **Performance issues**: Implement chunked processing  
+- **Memory exhaustion**: Set PHP limits, use streaming
+- **Duplicate students**: Pre-validation and merge options
+- **Invalid data**: Comprehensive validation with clear error messages
+
+### Integration Points
+- **EnrolmentService**: Use for complex enrollment workflows
+- **Activity Logging**: Maintain audit compliance
+- **Role-Based Access**: Restrict import to appropriate roles (manager, student_services)
+- **Notification System**: Consider notifications for import completion
+
+### Testing Strategy
+- Start with small imports (10-50 students)
+- Test various CSV formats and edge cases
+- Validate memory usage with large datasets
+- Ensure transactional integrity
+- Test error recovery scenarios

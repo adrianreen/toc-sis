@@ -10,13 +10,73 @@ use Carbon\Carbon;
 
 class CohortController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cohorts = Cohort::with('programme')
-            ->orderBy('start_date', 'desc')
-            ->paginate(20);
+        $query = Cohort::with('programme');
+
+        // Apply filters
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%")
+                  ->orWhereHas('programme', function($programme) use ($search) {
+                      $programme->where('title', 'like', "%{$search}%")
+                               ->orWhere('code', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        if ($request->filled('programme_id')) {
+            $query->where('programme_id', $request->get('programme_id'));
+        }
+
+        if ($request->filled('year')) {
+            $year = $request->get('year');
+            $query->whereYear('start_date', $year);
+        }
+
+        $cohorts = $query->orderBy('start_date', 'desc')->paginate(20);
+        
+        // Get data for filter dropdowns
+        $programmes = Programme::where('enrolment_type', 'cohort')
+            ->where('is_active', true)
+            ->orderBy('title')
+            ->get();
             
-        return view('cohorts.index', compact('cohorts'));
+        $years = Cohort::selectRaw('YEAR(start_date) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
+        // Prepare cohort data for client-side filtering (all cohorts for live filtering)
+        $allCohorts = Cohort::with('programme')
+            ->get()
+            ->map(function($cohort) {
+                return [
+                    'id' => $cohort->id,
+                    'code' => $cohort->code,
+                    'name' => $cohort->name,
+                    'full_name' => $cohort->full_name,
+                    'display_name' => $cohort->display_name,
+                    'status' => $cohort->status,
+                    'start_date' => $cohort->start_date->format('d M Y'),
+                    'end_date' => $cohort->end_date ? $cohort->end_date->format('d M Y') : null,
+                    'start_year' => $cohort->start_date->format('Y'),
+                    'students_count' => $cohort->enrolments_count ?? 0,
+                    'programme' => [
+                        'id' => $cohort->programme->id,
+                        'code' => $cohort->programme->code,
+                        'title' => $cohort->programme->title,
+                    ]
+                ];
+            });
+            
+        return view('cohorts.index', compact('cohorts', 'programmes', 'years', 'allCohorts'));
     }
 
     public function create()

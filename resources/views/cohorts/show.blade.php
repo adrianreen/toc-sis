@@ -3,7 +3,7 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Cohort: {{ $cohort->code }} - {{ $cohort->name }}
+                Cohort: {{ $cohort->display_name }}
             </h2>
             <div class="space-x-2">
                 @if(Auth::user()->role === 'manager')

@@ -31,8 +31,24 @@ class Cohort extends Model
         return $this->belongsTo(Programme::class);
     }
     public function enrolments()
-{
-    return $this->hasMany(Enrolment::class);
-}
+    {
+        return $this->hasMany(Enrolment::class);
+    }
+
+    /**
+     * Get the full cohort name with programme code prefix
+     */
+    public function getFullNameAttribute()
+    {
+        return $this->programme->code . ' - ' . $this->name;
+    }
+
+    /**
+     * Get a display-friendly version of the cohort name
+     */
+    public function getDisplayNameAttribute()
+    {
+        return $this->programme->code . ' - ' . $this->name . ' (' . $this->code . ')';
+    }
 
 }
