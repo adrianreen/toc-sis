@@ -89,7 +89,7 @@ class StudentController extends Controller
         ]);
 
         // Generate student number
-        $validated['student_number'] = $this->generateStudentNumber();
+        $validated['student_number'] = Student::generateStudentNumber();
         $validated['created_by'] = Auth::id();
         $validated['updated_by'] = Auth::id();
 
@@ -251,30 +251,6 @@ class StudentController extends Controller
     }
     */
 
-    /**
-     * Generate a unique student number
-     */
-    private function generateStudentNumber()
-    {
-        $year = date('Y');
-        
-        // Get the last student number for this year
-        $lastStudent = Student::where('student_number', 'like', $year . '%')
-            ->orderBy('student_number', 'desc')
-            ->first();
-        
-        if ($lastStudent) {
-            // Extract the sequence number and increment
-            $lastSequence = (int) substr($lastStudent->student_number, 4);
-            $nextSequence = $lastSequence + 1;
-        } else {
-            // First student of the year
-            $nextSequence = 1;
-        }
-        
-        // Format: YYYY001, YYYY002, etc.
-        return $year . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
-    }
 
     /**
      * Bulk operations (for future implementation)

@@ -26,6 +26,15 @@
                 </a>
 
                 @if(Auth::check() && in_array(Auth::user()->role, ['manager', 'student_services']))
+                <!-- Enquiries -->
+                <a href="{{ route('enquiries.index') }}" 
+                   class="group flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {{ request()->routeIs('enquiries.*') ? 'bg-gray-800 text-white shadow-md' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                    <svg class="w-4 h-4 mr-3 {{ request()->routeIs('enquiries.*') ? 'text-purple-400' : 'text-gray-400 group-hover:text-gray-300' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Enquiries
+                </a>
+
                 <!-- Students -->
                 <a href="{{ route('students.index') }}" 
                    class="group flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 {{ request()->routeIs('students.*') ? 'bg-gray-800 text-white shadow-md' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
@@ -284,6 +293,14 @@
             </a>
 
             @if(Auth::check() && in_array(Auth::user()->role, ['manager', 'student_services']))
+            <a href="{{ route('enquiries.index') }}" 
+               class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('enquiries.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }}">
+                <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Enquiries
+            </a>
+            
             <a href="{{ route('students.index') }}" 
                class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('students.*') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' }}">
                 <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

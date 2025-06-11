@@ -80,7 +80,6 @@
         </footer>
 
         {{-- WARNING: DEVELOPMENT ONLY - REMOVE THIS LINE BEFORE DEPLOYMENT --}}
-        <x-dev-role-switcher />
     </div>
 
     <!-- Loading Overlay Template -->

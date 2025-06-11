@@ -102,6 +102,6 @@ public function repeatAssessments(): HasMany
 }
 public function user()
 {
-    return $this->hasOne(User::class);
+    return $this->hasOne(User::class, 'student_id');
 }
 }

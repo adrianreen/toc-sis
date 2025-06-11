@@ -13,8 +13,8 @@ use App\Http\Controllers\RepeatAssessmentController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentComponentController;
 use App\Http\Controllers\StudentAssessmentController;
-use App\Http\Controllers\DevRoleController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\EnquiryController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -132,6 +132,10 @@ Route::get('/my-progress', function () {
     // MANAGER & STUDENT SERVICES ROUTES - Administrative access
     // =================================================================
     Route::middleware(['role:manager,student_services'])->group(function () {
+        // Enquiry routes
+        Route::resource('enquiries', EnquiryController::class);
+        Route::post('enquiries/{enquiry}/convert', [EnquiryController::class, 'convertToStudent'])->name('enquiries.convert');
+        
         Route::resource('students', StudentController::class);
         
         // Enrolment routes
@@ -231,8 +235,4 @@ Route::get('/my-progress', function () {
         Route::match(['get', 'post'], 'admin/notifications/announcement', [NotificationController::class, 'createAnnouncement'])->name('notifications.announcement');
     });
 
-    // =================================================================
-    // DEVELOPMENT ROUTE - REMOVE BEFORE PRODUCTION!
-    // =================================================================
-    Route::post('/dev/super-secret-role-switcher-path', [DevRoleController::class, 'switchRole'])->name('dev.switch-role');
 });

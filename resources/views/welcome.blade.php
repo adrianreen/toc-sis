@@ -165,7 +165,7 @@
                                 You're successfully logged in to the system.
                             </p>
                             <a href="{{ route('dashboard') }}" 
-                               class="w-full bg-gradient-to-r from-toc-500 to-toc-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-toc-600 hover:to-toc-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group">
+                               class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2 group">
                                 <span>Go to Dashboard</span>
                                 <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />

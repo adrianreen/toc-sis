@@ -24,7 +24,7 @@
     </x-slot>
 
     <div class="py-12" x-data="studentIndex()">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-screen-2xl mx-auto sm:px-6 lg:px-8">
             @if (session('success'))
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
                     {{ session('success') }}
@@ -109,7 +109,7 @@
             <button 
                 x-show="search || statusFilter || programmeFilter"
                 @click="clearFilters()"
-                class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-colors duration-200"
             >
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -134,26 +134,28 @@
                             </svg>
                         </div>
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Contact
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Status
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Programmes
                     </th>
-                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" class="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                         Joined
                     </th>
-                    <th scope="col" class="relative px-6 py-4">
+                    <th scope="col" class="relative px-4 py-4 w-32">
                         <span class="sr-only">Actions</span>
                     </th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
                 <template x-for="student in filteredStudents" :key="student.id">
-                    <tr class="hover:bg-gray-50 transition-colors duration-200 group">
+                    <tr class="hover:bg-blue-50 hover:shadow-sm transition-all duration-200 group cursor-pointer" 
+                        @click="window.location.href = `/students/${student.id}`"
+                        title="Click to view student details">
                         <!-- Student Info with Avatar -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -171,13 +173,13 @@
                         </td>
 
                         <!-- Contact -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900" x-text="student.email"></div>
                             <div class="text-sm text-gray-500">Email</div>
                         </td>
 
                         <!-- Enhanced Status Badge -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-4 whitespace-nowrap">
                             <span 
                                 class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-inset"
                                 :class="{
@@ -206,7 +208,7 @@
                         </td>
 
                         <!-- Enhanced Programme Tags -->
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-4">
                             <div class="flex flex-wrap gap-1 max-w-xs">
                                 <template x-for="programme in student.programmes" :key="programme">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
@@ -220,34 +222,24 @@
                         </td>
 
                         <!-- Joined Date -->
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div x-text="student.created_at"></div>
                         </td>
 
                         <!-- Enhanced Actions -->
-<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-    <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+<td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium" @click.stop>
+    <div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
         <a :href="`/admin/students/${student.id}/progress`" 
-           class="inline-flex items-center px-3 py-1.5 border border-purple-300 shadow-sm text-xs font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+           class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors duration-200"
            title="View detailed progress">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-            </svg>
             Progress
         </a>
         <a :href="`/students/${student.id}`" 
-           class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            </svg>
+           class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
             View
         </a>
         <a :href="`/students/${student.id}/edit`" 
-           class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-            </svg>
+           class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors duration-200">
             Edit
         </a>
     </div>
