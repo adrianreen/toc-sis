@@ -80,6 +80,10 @@ class Student extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function extensionRequests(): HasMany
+    {
+        return $this->hasMany(ExtensionRequest::class);
+    }
 
 public function studentModuleEnrolments(): HasMany
 {

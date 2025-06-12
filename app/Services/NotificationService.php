@@ -40,20 +40,28 @@ class NotificationService
 
     public function sendNotification(Notification $notification): void
     {
-        $user = $notification->user;
-        $preferences = $this->getUserPreferences($user, $notification->type);
+        try {
+            $user = $notification->user;
+            $preferences = $this->getUserPreferences($user, $notification->type);
 
-        // Send email notification if enabled
-        if ($preferences['email_enabled'] && !$notification->email_sent) {
-            $this->sendEmailNotification($notification);
+            // Send email notification if enabled
+            if ($preferences['email_enabled'] && !$notification->email_sent) {
+                $this->sendEmailNotification($notification);
+            }
+
+            // Log the notification creation
+            Log::info('Notification created', [
+                'user_id' => $user->id,
+                'type' => $notification->type,
+                'title' => $notification->title
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send notification', [
+                'notification_id' => $notification->id,
+                'error' => $e->getMessage()
+            ]);
+            // Don't re-throw - notification failures shouldn't break the app
         }
-
-        // Log the notification creation
-        Log::info('Notification created', [
-            'user_id' => $user->id,
-            'type' => $notification->type,
-            'title' => $notification->title
-        ]);
     }
 
     public function notifyAssessmentDue(StudentAssessment $assessment, int $daysBeforeDue = 3): void
@@ -191,8 +199,16 @@ class NotificationService
 
         $processed = 0;
         foreach ($scheduledNotifications as $notification) {
-            $this->sendNotification($notification);
-            $processed++;
+            try {
+                $this->sendNotification($notification);
+                $processed++;
+            } catch (\Exception $e) {
+                Log::error('Failed to process scheduled notification', [
+                    'notification_id' => $notification->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Continue processing other notifications
+            }
         }
 
         return $processed;
@@ -240,6 +256,26 @@ class NotificationService
             ]);
         }
     }
+
+    public function notifyCourseExtensionApproved(User $user, string $courseName, \DateTime $newCompletionDate): void
+    {
+        $title = "Extension Request Approved";
+        $message = "Your extension request for '{$courseName}' has been approved. New completion date: " . $newCompletionDate->format('F j, Y');
+        $actionUrl = route('extension-requests.index');
+
+        $this->createNotification(
+            $user,
+            'extension_approved',
+            $title,
+            $message,
+            $actionUrl,
+            [
+                'course_name' => $courseName,
+                'new_completion_date' => $newCompletionDate->format('Y-m-d')
+            ]
+        );
+    }
+
 
     public function initializeUserPreferences(User $user): void
     {

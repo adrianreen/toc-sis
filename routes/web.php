@@ -14,6 +14,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentComponentController;
 use App\Http\Controllers\StudentAssessmentController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\EnquiryController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -126,6 +127,13 @@ Route::get('/my-progress', function () {
         'awaitingGrading'
     ));
 })->name('students.assessments');
+        
+        // Extension Request routes for students
+        Route::get('my-extensions', [ExtensionRequestController::class, 'index'])->name('extension-requests.index');
+        Route::get('my-extensions/create', [ExtensionRequestController::class, 'create'])->name('extension-requests.create');
+        Route::post('my-extensions', [ExtensionRequestController::class, 'store'])->name('extension-requests.store');
+        Route::get('my-extensions/{extensionRequest}', [ExtensionRequestController::class, 'show'])->name('extension-requests.show');
+        Route::get('my-extensions/{extensionRequest}/medical-certificate', [ExtensionRequestController::class, 'downloadMedicalCertificate'])->name('extension-requests.medical-certificate');
     });
     
     // =================================================================
@@ -155,12 +163,19 @@ Route::get('/my-progress', function () {
     // MANAGER, STUDENT SERVICES, AND TEACHERS - Assessment management
     // =================================================================
     Route::middleware(['role:manager,student_services,teacher'])->group(function () {
-        // Extension routes
+        // Extension routes (legacy - keeping for compatibility)
         Route::get('extensions', [ExtensionController::class, 'index'])->name('extensions.index');
         Route::get('students/{student}/extensions/create', [ExtensionController::class, 'create'])->name('extensions.create');
         Route::post('students/{student}/extensions', [ExtensionController::class, 'store'])->name('extensions.store');
         Route::patch('extensions/{extension}/approve', [ExtensionController::class, 'approve'])->name('extensions.approve');
         Route::patch('extensions/{extension}/reject', [ExtensionController::class, 'reject'])->name('extensions.reject');
+        
+        // Extension Request routes for staff (reviewing student requests)
+        Route::get('extension-requests', [ExtensionRequestController::class, 'index'])->name('extension-requests.staff-index');
+        Route::get('extension-requests/{extensionRequest}', [ExtensionRequestController::class, 'show'])->name('extension-requests.staff-show');
+        Route::get('extension-requests/{extensionRequest}/review', [ExtensionRequestController::class, 'edit'])->name('extension-requests.review');
+        Route::put('extension-requests/{extensionRequest}', [ExtensionRequestController::class, 'update'])->name('extension-requests.update');
+        Route::get('extension-requests/{extensionRequest}/medical-certificate', [ExtensionRequestController::class, 'downloadMedicalCertificate'])->name('extension-requests.staff-medical-certificate');
         
         // Repeat Assessment routes
         Route::get('repeat-assessments', [RepeatAssessmentController::class, 'index'])->name('repeat-assessments.index');

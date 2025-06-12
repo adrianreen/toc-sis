@@ -123,73 +123,87 @@ class StudentAssessmentController extends Controller
         'release_notes' => 'nullable|string|max:500',
     ]);
 
-    DB::transaction(function () use ($validated, $studentAssessment) {
-        // Update the assessment grade and feedback
-        $updateData = [
-            'grade' => $validated['grade'],
-            'status' => $validated['grade'] >= 40 ? 'passed' : 'failed',
-            'feedback' => $validated['feedback'],
-            'submission_date' => $validated['submission_date'] ?? now(),
-            'graded_date' => now(),
-            'graded_by' => auth()->id(),
-        ];
+    try {
+        DB::transaction(function () use ($validated, $studentAssessment) {
+            // Update the assessment grade and feedback
+            $updateData = [
+                'grade' => $validated['grade'],
+                'status' => $validated['grade'] >= 40 ? 'passed' : 'failed',
+                'feedback' => $validated['feedback'],
+                'submission_date' => $validated['submission_date'] ?? now(),
+                'graded_date' => now(),
+                'graded_by' => auth()->id(),
+            ];
 
-        // Handle visibility settings
-        switch ($validated['visibility_control']) {
-            case 'show_now':
-                $updateData['is_visible_to_student'] = true;
-                $updateData['release_date'] = null;
-                $updateData['visibility_changed_by'] = auth()->id();
-                $updateData['visibility_changed_at'] = now();
-                $updateData['release_notes'] = $validated['release_notes'];
-                break;
-                
-            case 'hide':
-                $updateData['is_visible_to_student'] = false;
-                $updateData['release_date'] = null;
-                $updateData['visibility_changed_by'] = auth()->id();
-                $updateData['visibility_changed_at'] = now();
-                $updateData['release_notes'] = $validated['release_notes'];
-                break;
-                
-            case 'schedule':
-                $updateData['is_visible_to_student'] = false;
-                $updateData['release_date'] = $validated['release_date'];
-                $updateData['visibility_changed_by'] = auth()->id();
-                $updateData['visibility_changed_at'] = now();
-                $updateData['release_notes'] = $validated['release_notes'];
-                break;
+            // Handle visibility settings
+            switch ($validated['visibility_control']) {
+                case 'show_now':
+                    $updateData['is_visible_to_student'] = true;
+                    $updateData['release_date'] = null;
+                    $updateData['visibility_changed_by'] = auth()->id();
+                    $updateData['visibility_changed_at'] = now();
+                    $updateData['release_notes'] = $validated['release_notes'];
+                    break;
+                    
+                case 'hide':
+                    $updateData['is_visible_to_student'] = false;
+                    $updateData['release_date'] = null;
+                    $updateData['visibility_changed_by'] = auth()->id();
+                    $updateData['visibility_changed_at'] = now();
+                    $updateData['release_notes'] = $validated['release_notes'];
+                    break;
+                    
+                case 'schedule':
+                    $updateData['is_visible_to_student'] = false;
+                    $updateData['release_date'] = $validated['release_date'];
+                    $updateData['visibility_changed_by'] = auth()->id();
+                    $updateData['visibility_changed_at'] = now();
+                    $updateData['release_notes'] = $validated['release_notes'];
+                    break;
+            }
+
+            $studentAssessment->update($updateData);
+
+            // Update the parent student module enrolment
+            $studentAssessment->studentModuleEnrolment->updateStatus();
+
+            // Log the activity
+            activity()
+                ->performedOn($studentAssessment->studentModuleEnrolment->student)
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'module' => $studentAssessment->studentModuleEnrolment->moduleInstance->module->code,
+                    'assessment' => $studentAssessment->assessmentComponent->name,
+                    'grade' => $validated['grade'],
+                    'visibility_control' => $validated['visibility_control'],
+                    'release_date' => $validated['release_date'] ?? null,
+                ])
+                ->log('Assessment graded: ' . $studentAssessment->assessmentComponent->name . ' - ' . $validated['grade'] . '% (' . $validated['visibility_control'] . ')');
+        });
+
+        // Send notification if grade was made visible immediately
+        if ($validated['visibility_control'] === 'show_now') {
+            // Refresh the model to get updated data
+            $studentAssessment->refresh();
+            $this->notificationService->notifyGradeReleased($studentAssessment);
         }
 
-        $studentAssessment->update($updateData);
-
-        // Update the parent student module enrolment
-        $studentAssessment->studentModuleEnrolment->updateStatus();
-
-        // Log the activity
-        activity()
-            ->performedOn($studentAssessment->studentModuleEnrolment->student)
-            ->causedBy(auth()->user())
-            ->withProperties([
-                'module' => $studentAssessment->studentModuleEnrolment->moduleInstance->module->code,
-                'assessment' => $studentAssessment->assessmentComponent->name,
-                'grade' => $validated['grade'],
-                'visibility_control' => $validated['visibility_control'],
-                'release_date' => $validated['release_date'] ?? null,
-            ])
-            ->log('Assessment graded: ' . $studentAssessment->assessmentComponent->name . ' - ' . $validated['grade'] . '% (' . $validated['visibility_control'] . ')');
-    });
-
-    // Send notification if grade was made visible immediately
-    if ($validated['visibility_control'] === 'show_now') {
-        // Refresh the model to get updated data
-        $studentAssessment->refresh();
-        $this->notificationService->notifyGradeReleased($studentAssessment);
+        return redirect()
+            ->route('assessments.module-instance', $studentAssessment->studentModuleEnrolment->moduleInstance)
+            ->with('success', 'Grade and visibility settings saved successfully.');
+            
+    } catch (\Exception $e) {
+        \Log::error('Failed to save grade', [
+            'assessment_id' => $studentAssessment->id,
+            'user_id' => auth()->id(),
+            'error' => $e->getMessage()
+        ]);
+        
+        return redirect()
+            ->back()
+            ->withInput()
+            ->withErrors(['error' => 'Failed to save grade. Please try again.']);
     }
-
-    return redirect()
-        ->route('assessments.module-instance', $studentAssessment->studentModuleEnrolment->moduleInstance)
-        ->with('success', 'Grade and visibility settings saved successfully.');
 }
 /**
  * Quick visibility action without changing grade

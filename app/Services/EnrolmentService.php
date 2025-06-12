@@ -19,34 +19,43 @@ class EnrolmentService
      */
     public function enrolStudent(Student $student, array $enrolmentData): Enrolment
     {
-        return DB::transaction(function () use ($student, $enrolmentData) {
-            // Create the main programme enrolment
-            $enrolment = Enrolment::create([
+        try {
+            return DB::transaction(function () use ($student, $enrolmentData) {
+                // Create the main programme enrolment
+                $enrolment = Enrolment::create([
+                    'student_id' => $student->id,
+                    'programme_id' => $enrolmentData['programme_id'],
+                    'cohort_id' => $enrolmentData['cohort_id'] ?? null,
+                    'enrolment_date' => $enrolmentData['enrolment_date'],
+                    'status' => 'active',
+                ]);
+
+                // If this is a cohort-based programme, enrol in module instances
+                if ($enrolment->cohort_id) {
+                    $this->enrolInModuleInstances($student, $enrolment);
+                }
+
+                // Update student status to active if not already
+                if ($student->status === 'enquiry' || $student->status === 'enrolled') {
+                    $student->update(['status' => 'active']);
+                }
+
+                Log::info('Student enrolled successfully', [
+                    'student_id' => $student->id,
+                    'programme_id' => $enrolmentData['programme_id'],
+                    'cohort_id' => $enrolmentData['cohort_id'],
+                ]);
+
+                return $enrolment;
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to enroll student', [
                 'student_id' => $student->id,
-                'programme_id' => $enrolmentData['programme_id'],
-                'cohort_id' => $enrolmentData['cohort_id'] ?? null,
-                'enrolment_date' => $enrolmentData['enrolment_date'],
-                'status' => 'active',
+                'programme_id' => $enrolmentData['programme_id'] ?? null,
+                'error' => $e->getMessage()
             ]);
-
-            // If this is a cohort-based programme, enrol in module instances
-            if ($enrolment->cohort_id) {
-                $this->enrolInModuleInstances($student, $enrolment);
-            }
-
-            // Update student status to active if not already
-            if ($student->status === 'enquiry' || $student->status === 'enrolled') {
-                $student->update(['status' => 'active']);
-            }
-
-            Log::info('Student enrolled successfully', [
-                'student_id' => $student->id,
-                'programme_id' => $enrolmentData['programme_id'],
-                'cohort_id' => $enrolmentData['cohort_id'],
-            ]);
-
-            return $enrolment;
-        });
+            throw $e; // Re-throw to let controller handle user feedback
+        }
     }
 
     /**

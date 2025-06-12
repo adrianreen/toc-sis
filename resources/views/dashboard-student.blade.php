@@ -34,7 +34,7 @@
             <div class="mb-8">
                 <h2 class="text-xl font-semibold text-slate-900 mb-6">Quick Actions</h2>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                     <!-- View My Progress -->
                     <a href="{{ route('students.progress') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-between">
@@ -57,6 +57,19 @@
                             </div>
                             <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                                 <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- Extension Requests -->
+                    <a href="{{ route('extension-requests.index') }}" class="group bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-6 text-white hover:from-orange-700 hover:to-orange-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold text-lg text-white">Extensions</h3>
+                                <p class="text-orange-100 text-sm mt-1">Request course extension</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="calendar-plus" class="w-6 h-6 text-white"></i>
                             </div>
                         </div>
                     </a>
