@@ -7,10 +7,7 @@
                 <div class="flex-shrink-0">
                     <a href="{{ route('dashboard') }}" class="flex items-center group transition-all duration-300 hover:scale-105">
                         <img src="{{ asset('images/logo-gold.png') }}" alt="TOC SIS Logo" class="h-11 w-auto filter drop-shadow-lg transition-all duration-300 group-hover:drop-shadow-xl">
-                        <div class="hidden sm:block ml-3">
-                            <div class="text-gray-900 font-bold text-lg tracking-tight">TOC SIS</div>
-                            <div class="text-gray-700 text-xs font-medium">Student Portal</div>
-                        </div>
+
                     </a>
                 </div>
             </div>
@@ -59,17 +56,17 @@
                      @mouseleave="open = false">
                     <button @click="open = !open" 
                             class="group relative flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                                   {{ request()->routeIs('enquiries.*', 'deferrals.*') 
+                                   {{ request()->routeIs('enquiries.*', 'deferrals.*', 'students.recycle-bin') 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200' 
                                       : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' }}"
-                            :class="{ 'bg-gray-100': open && !{{ request()->routeIs('enquiries.*', 'deferrals.*') ? 'true' : 'false' }} }">
+                            :class="{ 'bg-gray-100': open && !{{ request()->routeIs('enquiries.*', 'deferrals.*', 'students.recycle-bin') ? 'true' : 'false' }} }">
                         
                         <!-- Active state glow -->
-                        @if(request()->routeIs('enquiries.*', 'deferrals.*'))
+                        @if(request()->routeIs('enquiries.*', 'deferrals.*', 'students.recycle-bin'))
                             <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 blur-sm"></div>
                         @endif
                         
-                        <svg class="w-4 h-4 mr-3 {{ request()->routeIs('enquiries.*', 'deferrals.*') ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 mr-3 {{ request()->routeIs('enquiries.*', 'deferrals.*', 'students.recycle-bin') ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
                             <path d="m22 21-3-3m0 0a2 2 0 0 0 0-4 2 2 0 0 0 0 4z"/>
@@ -115,6 +112,22 @@
                                     </svg>
                                 </div>
                                 Deferrals
+                            </a>
+                            <a href="{{ route('students.recycle-bin') }}" 
+                               class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                                      {{ request()->routeIs('students.recycle-bin') 
+                                         ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                         : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' }}">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ request()->routeIs('students.recycle-bin') ? 'bg-blue-100' : 'bg-red-100 group-hover:bg-red-200' }} mr-3">
+                                    <svg class="w-4 h-4 {{ request()->routeIs('students.recycle-bin') ? 'text-blue-600' : 'text-red-600' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M3 6h18"/>
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c0-1 1-2 2-2v2"/>
+                                        <line x1="10" x2="10" y1="11" y2="17"/>
+                                        <line x1="14" x2="14" y1="11" y2="17"/>
+                                    </svg>
+                                </div>
+                                Student Recycle Bin
                             </a>
                         </div>
                     </div>
@@ -471,13 +484,25 @@
             </a>
             
             <a href="{{ route('students.index') }}" 
-               class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('students.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+               class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('students.*') && !request()->routeIs('students.recycle-bin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                 <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="m22 21-3-3m0 0a2 2 0 0 0 0-4 2 2 0 0 0 0 4z"/>
                 </svg>
                 Students
+            </a>
+            
+            <a href="{{ route('students.recycle-bin') }}" 
+               class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('students.recycle-bin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c0-1 1-2 2-2v2"/>
+                    <line x1="10" x2="10" y1="11" y2="17"/>
+                    <line x1="14" x2="14" y1="11" y2="17"/>
+                </svg>
+                🗑️ Recycle Bin
             </a>
             @endif
 

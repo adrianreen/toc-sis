@@ -8,6 +8,11 @@
         <x-button variant="secondary" size="sm">
             Export (QHub XML)
         </x-button> --}}
+        @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+            <x-button href="{{ route('students.recycle-bin') }}" variant="secondary" size="sm">
+                🗑️ Recycle Bin
+            </x-button>
+        @endif
         <x-button href="{{ route('students.create') }}" variant="primary">
             Add New Student
         </x-button>
@@ -190,6 +195,15 @@
                                         >
                                             Edit
                                         </x-button>
+                                        @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                                            <button 
+                                                x-bind:onclick="`confirmDelete('${student.full_name}', '/students/${student.id}')`"
+                                                class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                                title="Delete student"
+                                            >
+                                                🗑️
+                                            </button>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -215,6 +229,59 @@
                 </div>
             </div>
         </x-card>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 z-50 hidden">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onclick="closeDeleteModal()"></div>
+        
+        <!-- Modal content -->
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full relative">
+                <div class="p-6">
+                    <!-- Icon -->
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                    </div>
+                    
+                    <!-- Title -->
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 text-center mb-2">
+                        Delete Student
+                    </h3>
+                    
+                    <!-- Message -->
+                    <p class="text-sm text-gray-500 text-center mb-6">
+                        Are you sure you want to delete <strong id="studentName"></strong>? 
+                        This will move them to the recycle bin where they can be restored later.
+                    </p>
+                    
+                    <!-- Buttons -->
+                    <div class="flex justify-center space-x-3">
+                        <button 
+                            type="button" 
+                            onclick="closeDeleteModal()"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                        >
+                            Cancel
+                        </button>
+                        
+                        <form id="deleteForm" method="POST" style="display: inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button 
+                                type="submit"
+                                class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                                Move to Recycle Bin
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -246,5 +313,34 @@
                 }
             }
         }
+
+        // Delete confirmation functions
+        function confirmDelete(studentName, deleteUrl) {
+            const studentNameEl = document.getElementById('studentName');
+            const deleteFormEl = document.getElementById('deleteForm');
+            const deleteModalEl = document.getElementById('deleteModal');
+            
+            if (!studentNameEl || !deleteFormEl || !deleteModalEl) {
+                return;
+            }
+            
+            studentNameEl.textContent = studentName;
+            deleteFormEl.action = deleteUrl;
+            deleteModalEl.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            const deleteModalEl = document.getElementById('deleteModal');
+            if (deleteModalEl) {
+                deleteModalEl.classList.add('hidden');
+            }
+        }
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDeleteModal();
+            }
+        });
     </script>
 </x-wide-layout>

@@ -48,6 +48,12 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard');
     })->name('dashboard');
     
+    // API routes for dashboard search
+    Route::middleware(['role:manager,student_services,teacher'])->group(function () {
+        Route::get('/api/students/search', [StudentController::class, 'search'])->name('students.search');
+    });
+    
+    
     // =================================================================
     // STUDENT-ONLY ROUTES - Simplified, direct access
     // =================================================================
@@ -145,6 +151,11 @@ Route::get('/my-progress', function () {
         Route::post('enquiries/{enquiry}/convert', [EnquiryController::class, 'convertToStudent'])->name('enquiries.convert');
         
         Route::resource('students', StudentController::class);
+        
+        // Student recycle bin routes
+        Route::get('students-recycle-bin', [StudentController::class, 'recycleBin'])->name('students.recycle-bin');
+        Route::patch('students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
+        Route::delete('students/{id}/force-delete', [StudentController::class, 'forceDelete'])->name('students.force-delete');
         
         // Enrolment routes
         Route::get('students/{student}/enrol', [EnrolmentController::class, 'create'])->name('enrolments.create');

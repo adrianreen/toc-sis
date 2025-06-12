@@ -179,35 +179,113 @@ class StudentController extends Controller
      */
     public function destroy(Student $student)
     {
-        // Check if student has any enrolments
-        if ($student->enrolments()->exists()) {
+        // Check if student has any active enrolments
+        $activeEnrolments = $student->enrolments()->whereIn('status', ['active', 'deferred'])->count();
+        
+        if ($activeEnrolments > 0) {
+            // Determine where to redirect back to
+            $redirectRoute = request()->header('referer') && str_contains(request()->header('referer'), '/students/' . $student->id) 
+                ? 'students.show' 
+                : 'students.index';
+                
+            if ($redirectRoute === 'students.show') {
+                return redirect()->route('students.show', $student)
+                    ->with('error', "Cannot delete student with {$activeEnrolments} active enrolment(s). Please complete or cancel their enrolments first.");
+            }
+            
             return redirect()->route('students.index')
-                ->with('error', 'Cannot delete student with existing enrolments.');
+                ->with('error', "Cannot delete {$student->full_name} - they have {$activeEnrolments} active enrolment(s). Please complete or cancel their enrolments first.");
         }
 
+        // Store student name for success message
+        $studentName = $student->full_name;
+        
         // Log the activity before deletion
         activity()
             ->causedBy(Auth::user())
             ->performedOn($student)
-            ->log('Student deleted');
+            ->log('Student moved to recycle bin');
 
+        // Perform soft delete
         $student->delete();
 
+        // Determine where to redirect back to
+        $redirectRoute = request()->header('referer') && str_contains(request()->header('referer'), '/students/' . $student->id) 
+            ? 'students.index'  // Always redirect to index if coming from show page (since student page no longer exists)
+            : 'students.index';
+
         return redirect()->route('students.index')
-            ->with('success', 'Student deleted successfully.');
+            ->with('success', "Student {$studentName} moved to recycle bin successfully. You can restore them from the recycle bin if needed.");
     }
 
     /**
-     * Search students (for future AJAX implementation)
-     * Uncomment and use when you want server-side search for performance
+     * Show deleted students (recycle bin)
      */
-    /*
+    public function recycleBin()
+    {
+        $deletedStudents = Student::onlyTrashed()
+            ->with(['enrolments.programme', 'createdBy', 'updatedBy'])
+            ->orderBy('deleted_at', 'desc')
+            ->paginate(25);
+
+        return view('students.recycle-bin', compact('deletedStudents'));
+    }
+
+    /**
+     * Restore a soft-deleted student
+     */
+    public function restore($id)
+    {
+        $student = Student::onlyTrashed()->findOrFail($id);
+
+        // Log the activity before restoration
+        activity()
+            ->causedBy(Auth::user())
+            ->performedOn($student)
+            ->log('Student restored from recycle bin');
+
+        $student->restore();
+
+        return redirect()->route('students.recycle-bin')
+            ->with('success', "Student {$student->full_name} restored successfully.");
+    }
+
+    /**
+     * Permanently delete a student
+     */
+    public function forceDelete($id)
+    {
+        $student = Student::onlyTrashed()->findOrFail($id);
+
+        // Check if student has any enrolments (should never happen, but safety check)
+        if ($student->enrolments()->exists()) {
+            return redirect()->route('students.recycle-bin')
+                ->with('error', 'Cannot permanently delete student with existing enrolments.');
+        }
+
+        // Log the activity before permanent deletion
+        activity()
+            ->causedBy(Auth::user())
+            ->performedOn($student)
+            ->log('Student permanently deleted');
+
+        $student->forceDelete();
+
+        return redirect()->route('students.recycle-bin')
+            ->with('success', 'Student permanently deleted.');
+    }
+
+    /**
+     * Search students for dashboard AJAX search
+     */
     public function search(Request $request)
     {
         $query = Student::with(['enrolments.programme']);
         
-        if ($request->filled('search')) {
-            $search = $request->get('search');
+        // Get search term from either 'search' or 'q' parameter
+        $search = $request->get('search') ?: $request->get('q');
+        
+        if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('student_number', 'like', "%{$search}%")
                   ->orWhere('first_name', 'like', "%{$search}%")
@@ -226,11 +304,13 @@ class StudentController extends Controller
             });
         }
         
+        // Limit results for dashboard search (top 20 matches)
         $students = $query->orderBy('created_at', 'desc')
-            ->paginate(25);
+            ->limit(20)
+            ->get();
             
         return response()->json([
-            'students' => $students->getCollection()->map(function ($student) {
+            'students' => $students->map(function ($student) {
                 return [
                     'id' => $student->id,
                     'student_number' => $student->student_number,
@@ -241,15 +321,9 @@ class StudentController extends Controller
                     'created_at' => $student->created_at->format('d M Y'),
                 ];
             }),
-            'pagination' => [
-                'current_page' => $students->currentPage(),
-                'last_page' => $students->lastPage(),
-                'per_page' => $students->perPage(),
-                'total' => $students->total(),
-            ]
+            'total' => $students->count()
         ]);
     }
-    */
 
 
     /**
