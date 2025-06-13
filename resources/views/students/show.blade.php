@@ -5,24 +5,11 @@
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
             Student Details: {{ $student->full_name }}
         </h2>
-        <div class="space-x-2">
-            <a href="{{ route('admin.student-progress', $student) }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
-                📊 View Progress
+        <div class="hidden sm:block">
+            <a href="{{ route('admin.student-progress', $student) }}" 
+               class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                View Progress
             </a>
-            <a href="{{ route('students.edit', $student) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Edit Student
-            </a>
-            <a href="{{ route('enrolments.create', $student) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                Enrol in Programme
-            </a>
-            @if(in_array(Auth::user()->role, ['manager', 'student_services']))
-                <button 
-                    onclick="confirmDelete('{{ $student->full_name }}', '{{ route('students.destroy', $student) }}')"
-                    class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                >
-                    🗑️ Delete Student
-                </button>
-            @endif
         </div>
     </div>
 </x-slot>
@@ -35,12 +22,14 @@
                 </div>
             @endif
 
-            <!-- Student Information -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6">
-                    <h3 class="text-lg font-semibold mb-4">Student Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+            <!-- Student Information and Quick Actions -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+                <!-- Student Information -->
+                <div class="lg:col-span-3 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold mb-4">Student Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
                             <p class="text-sm text-gray-600">Student Number</p>
                             <p class="font-medium">{{ $student->student_number }}</p>
                         </div>
@@ -89,6 +78,48 @@
                             <p class="font-medium">{{ $student->notes }}</p>
                         </div>
                     @endif
+                    </div>
+                </div>
+
+                <!-- Quick Actions Sidebar -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-4">
+                            <h3 class="text-base font-semibold mb-4">Quick Actions</h3>
+                            
+                            <!-- Mobile Progress Button -->
+                            <div class="sm:hidden mb-3">
+                                <a href="{{ route('admin.student-progress', $student) }}" 
+                                   class="w-full inline-flex justify-center items-center px-3 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                                    View Progress
+                                </a>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="space-y-2">
+                                <a href="{{ route('transcripts.download', $student) }}" 
+                                   class="w-full inline-flex items-center justify-center px-3 py-2 border border-orange-300 rounded-md shadow-sm bg-orange-50 text-sm font-medium text-orange-700 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition duration-150 ease-in-out">
+                                    Download Transcript
+                                </a>
+                                <a href="{{ route('enrolments.create', $student) }}" 
+                                   class="w-full inline-flex items-center justify-center px-3 py-2 border border-emerald-300 rounded-md shadow-sm bg-emerald-50 text-sm font-medium text-emerald-700 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition duration-150 ease-in-out">
+                                    Enrol in Programme
+                                </a>
+                                <a href="{{ route('students.edit', $student) }}" 
+                                   class="w-full inline-flex items-center justify-center px-3 py-2 border border-blue-300 rounded-md shadow-sm bg-blue-50 text-sm font-medium text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                                    Edit Details
+                                </a>
+                                @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                                    <button 
+                                        onclick="confirmDelete('{{ $student->full_name }}', '{{ route('students.destroy', $student) }}')"
+                                        class="w-full inline-flex items-center justify-center px-3 py-2 border border-red-300 rounded-md shadow-sm bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150 ease-in-out cursor-pointer"
+                                    >
+                                        Delete Student
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
