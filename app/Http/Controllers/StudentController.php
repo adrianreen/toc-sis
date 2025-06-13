@@ -15,40 +15,96 @@ class StudentController extends Controller
      */
     public function index(Request $request)
     {
-        // Start with base query
-        $query = Student::with(['enrolments.programme', 'createdBy', 'updatedBy']);
+        // Start with optimized base query
+        $query = Student::with(['enrolments.programme:id,code,title']);
         
-        // Apply server-side filters if needed (optional - you can keep client-side for now)
+        // Enhanced search with better performance
         if ($request->filled('search')) {
-            $search = $request->get('search');
+            $search = trim($request->get('search'));
             $query->where(function($q) use ($search) {
-                $q->where('student_number', 'like', "%{$search}%")
-                  ->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                // Split search terms for better matching
+                $terms = array_filter(explode(' ', $search));
+                
+                foreach ($terms as $term) {
+                    $q->where(function($subQuery) use ($term) {
+                        $subQuery->where('student_number', 'like', "%{$term}%")
+                                ->orWhere('first_name', 'like', "%{$term}%")
+                                ->orWhere('last_name', 'like', "%{$term}%")
+                                ->orWhere('email', 'like', "%{$term}%")
+                                ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$term}%"]);
+                    });
+                }
             });
         }
         
+        // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->get('status'));
         }
         
+        // Programme filter with better performance
         if ($request->filled('programme')) {
             $query->whereHas('enrolments.programme', function($q) use ($request) {
                 $q->where('code', $request->get('programme'));
             });
         }
         
-        // Order by most recent first
-        $query->orderBy('created_at', 'desc');
+        // Smart ordering - relevance for search, recent for browsing
+        if ($request->filled('search')) {
+            $search = trim($request->get('search'));
+            $query->orderByRaw("
+                CASE 
+                    WHEN student_number = ? THEN 1
+                    WHEN student_number LIKE ? THEN 2
+                    WHEN CONCAT(first_name, ' ', last_name) = ? THEN 3
+                    WHEN CONCAT(first_name, ' ', last_name) LIKE ? THEN 4
+                    WHEN email = ? THEN 5
+                    WHEN email LIKE ? THEN 6
+                    ELSE 7
+                END
+            ", [$search, $search.'%', $search, $search.'%', $search, $search.'%']);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
         
-        // Paginate results
-        $students = $query->paginate(25);
+        // Paginate with preserved parameters
+        $students = $query->paginate(25)->withQueryString();
         
-        // No longer need client-side data transformation since we're using server-side search
+        // Get programmes for filter dropdown with counts
+        $programmes = Programme::select('code', 'title')
+            ->withCount('enrolments')
+            ->orderBy('code')
+            ->get();
         
-        // Get programmes for filter dropdown
-        $programmes = Programme::select('code', 'title')->orderBy('code')->get();
+        // Return JSON for AJAX requests
+        if ($request->wantsJson()) {
+            return response()->json([
+                'students' => $students->items()->map(function($student) {
+                    return [
+                        'id' => $student->id,
+                        'full_name' => $student->full_name,
+                        'student_number' => $student->student_number,
+                        'email' => $student->email,
+                        'status' => $student->status,
+                        'created_at' => $student->created_at->toISOString(),
+                        'programmes' => $student->enrolments->pluck('programme.code')->unique()->values()->all()
+                    ];
+                }),
+                'pagination' => [
+                    'current_page' => $students->currentPage(),
+                    'last_page' => $students->lastPage(),
+                    'per_page' => $students->perPage(),
+                    'total' => $students->total(),
+                    'from' => $students->firstItem(),
+                    'to' => $students->lastItem(),
+                ],
+                'filters' => [
+                    'search' => $request->get('search'),
+                    'status' => $request->get('status'),
+                    'programme' => $request->get('programme'),
+                ]
+            ]);
+        }
         
         return view('students.index', [
             'students' => $students,
@@ -298,10 +354,30 @@ class StudentController extends Controller
             });
         }
         
-        // Limit results for dashboard search (top 20 matches)
-        $students = $query->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get();
+        // Smart result limiting based on use case
+        $limit = $request->get('limit', 50); // Default 50, max 200
+        $limit = min($limit, 200);
+        
+        // Better ordering - relevance for search, recent for browsing
+        if ($search) {
+            $query->orderByRaw("
+                CASE 
+                    WHEN student_number = ? THEN 1
+                    WHEN student_number LIKE ? THEN 2
+                    WHEN CONCAT(first_name, ' ', last_name) = ? THEN 3
+                    WHEN CONCAT(first_name, ' ', last_name) LIKE ? THEN 4
+                    WHEN email = ? THEN 5
+                    WHEN email LIKE ? THEN 6
+                    ELSE 7
+                END, created_at DESC
+            ", [$search, $search.'%', $search, $search.'%', $search, $search.'%']);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+        
+        // Get total count before applying limit for better UX
+        $totalCount = $query->count();
+        $students = $query->limit($limit)->get();
             
         return response()->json([
             'students' => $students->map(function ($student) {
@@ -315,7 +391,10 @@ class StudentController extends Controller
                     'created_at' => $student->created_at->format('d M Y'),
                 ];
             }),
-            'total' => $students->count()
+            'total' => $totalCount,
+            'showing' => $students->count(),
+            'limit' => $limit,
+            'has_more' => $totalCount > $limit
         ]);
     }
 

@@ -49,8 +49,8 @@
         <!-- Page Header -->
         @if($title || $subtitle || $actions)
         <header class="bg-white shadow-sm border-b border-slate-200">
-            <div class="max-w-none mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                <div class="flex justify-between items-start">
+            <div class="mx-auto px-6 py-4">
+                <div class="flex justify-between items-center">
                     <div>
                         @if($title)
                             <h1 class="text-2xl font-bold text-slate-900">{{ $title }}</h1>
