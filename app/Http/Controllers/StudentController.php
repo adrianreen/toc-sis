@@ -33,31 +33,25 @@ class StudentController extends Controller
             $query->where('status', $request->get('status'));
         }
         
+        if ($request->filled('programme')) {
+            $query->whereHas('enrolments.programme', function($q) use ($request) {
+                $q->where('code', $request->get('programme'));
+            });
+        }
+        
         // Order by most recent first
         $query->orderBy('created_at', 'desc');
         
         // Paginate results
         $students = $query->paginate(25);
         
-        // Transform data for Alpine.js (keep your existing client-side filtering working)
-        $studentsData = $students->getCollection()->map(function ($student) {
-            return [
-                'id' => $student->id,
-                'student_number' => $student->student_number,
-                'full_name' => $student->full_name,
-                'email' => $student->email,
-                'status' => $student->status,
-                'programmes' => $student->enrolments->pluck('programme.code')->unique()->values(),
-                'created_at' => $student->created_at->format('d M Y'),
-            ];
-        });
+        // No longer need client-side data transformation since we're using server-side search
         
         // Get programmes for filter dropdown
         $programmes = Programme::select('code', 'title')->orderBy('code')->get();
         
         return view('students.index', [
             'students' => $students,
-            'studentsData' => $studentsData,
             'programmes' => $programmes,
         ]);
     }

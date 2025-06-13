@@ -16,6 +16,9 @@ use App\Http\Controllers\StudentAssessmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\EnquiryController;
+use App\Http\Controllers\TranscriptController;
+use App\Http\Controllers\EmailTemplateController;
+use App\Http\Controllers\StudentEmailController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -246,6 +249,45 @@ Route::get('/my-progress', function () {
         Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
         Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
         Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
+    });
+
+    // =================================================================
+    // TRANSCRIPT ROUTES - Authenticated users with permissions
+    // =================================================================
+    Route::get('students/{student}/transcript/download', [TranscriptController::class, 'download'])->name('transcripts.download');
+    Route::middleware(['role:manager,student_services,teacher'])->group(function () {
+        Route::get('students/{student}/transcript/preview', [TranscriptController::class, 'preview'])->name('transcripts.preview');
+    });
+
+    // =================================================================
+    // EMAIL TEMPLATE ROUTES - Manager and Student Services only
+    // =================================================================
+    Route::middleware(['role:manager,student_services'])->group(function () {
+        Route::resource('admin/email-templates', EmailTemplateController::class, [
+            'as' => 'admin',
+            'names' => [
+                'index' => 'admin.email-templates.index',
+                'create' => 'admin.email-templates.create',
+                'store' => 'admin.email-templates.store',
+                'show' => 'admin.email-templates.show',
+                'edit' => 'admin.email-templates.edit',
+                'update' => 'admin.email-templates.update',
+                'destroy' => 'admin.email-templates.destroy',
+            ]
+        ]);
+        Route::get('admin/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview'])->name('admin.email-templates.preview');
+        Route::post('admin/email-templates/{emailTemplate}/duplicate', [EmailTemplateController::class, 'duplicate'])->name('admin.email-templates.duplicate');
+    });
+
+    // =================================================================
+    // STUDENT EMAIL ROUTES - Manager, Student Services, and Teachers
+    // =================================================================
+    Route::middleware(['role:manager,student_services,teacher'])->group(function () {
+        Route::get('students/{student}/emails', [StudentEmailController::class, 'index'])->name('student-emails.index');
+        Route::get('students/{student}/emails/compose', [StudentEmailController::class, 'compose'])->name('student-emails.compose');
+        Route::post('students/{student}/emails/preview', [StudentEmailController::class, 'preview'])->name('student-emails.preview');
+        Route::post('students/{student}/emails/send', [StudentEmailController::class, 'send'])->name('student-emails.send');
+        Route::post('students/{student}/emails/quick-send', [StudentEmailController::class, 'quickSend'])->name('student-emails.quick-send');
     });
 
     // =================================================================

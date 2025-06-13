@@ -18,71 +18,87 @@
         </x-button>
     </x-slot>
 
-    <div x-data="studentIndex()">
+    <div>
         <!-- Search and Filters Section -->
         <x-card class="mb-6">
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <!-- Enhanced Search Input -->
-                <div class="lg:col-span-2">
-                    <x-form.input 
-                        name="search" 
-                        label="Search Students" 
-                        placeholder="Search by name, student number, or email..."
-                        x-model="search"
-                    />
-                </div>
+            <form method="GET" action="{{ route('students.index') }}">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Enhanced Search Input -->
+                    <div class="lg:col-span-2">
+                        <x-form.input 
+                            name="search" 
+                            label="Search Students" 
+                            placeholder="Search by name, student number, or email..."
+                            value="{{ request('search') }}"
+                            x-data="{ 
+                                searchTimeout: null,
+                                handleInput(event) {
+                                    clearTimeout(this.searchTimeout);
+                                    this.searchTimeout = setTimeout(() => {
+                                        event.target.form.submit();
+                                    }, 500);
+                                }
+                            }"
+                            x-on:input="handleInput($event)"
+                        />
+                    </div>
 
-                <!-- Status Filter -->
-                <div>
-                    <x-form.select 
-                        name="status_filter" 
-                        label="Status Filter" 
-                        placeholder="All Statuses"
-                        x-model="statusFilter"
-                    >
-                        <option value="active">Active</option>
-                        <option value="deferred">Deferred</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="enrolled">Enrolled</option>
-                    </x-form.select>
-                </div>
+                    <!-- Status Filter -->
+                    <div>
+                        <x-form.select 
+                            name="status" 
+                            label="Status Filter" 
+                            placeholder="All Statuses"
+                            x-on:change="$el.form.submit()"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="deferred" {{ request('status') === 'deferred' ? 'selected' : '' }}>Deferred</option>
+                            <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
+                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            <option value="enrolled" {{ request('status') === 'enrolled' ? 'selected' : '' }}>Enrolled</option>
+                        </x-form.select>
+                    </div>
 
                 <!-- Programme Filter -->
                 <div>
                     <x-form.select 
-                        name="programme_filter" 
+                        name="programme" 
                         label="Programme Filter" 
                         placeholder="All Programmes"
-                        x-model="programmeFilter"
+                        x-on:change="$el.form.submit()"
                     >
+                        <option value="">All Programmes</option>
                         @foreach($programmes as $programme)
-                            <option value="{{ $programme->code }}">{{ $programme->code }}</option>
+                            <option value="{{ $programme->code }}" {{ request('programme') === $programme->code ? 'selected' : '' }}>{{ $programme->code }}</option>
                         @endforeach
                     </x-form.select>
                 </div>
-            </div>
-
-            <!-- Filter Summary and Clear Button -->
-            <div class="mt-6 flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div class="text-sm font-medium text-slate-900">
-                        <span x-text="filteredStudents.length"></span> of <span x-text="allStudents.length"></span> students
-                    </div>
-                    <span x-show="search || statusFilter || programmeFilter" 
-                          class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-toc-100 text-toc-800">
-                        Filtered
-                    </span>
                 </div>
-                <x-button 
-                    x-show="search || statusFilter || programmeFilter"
-                    @click="clearFilters()"
-                    variant="ghost" 
-                    size="sm"
-                >
-                    Clear filters
-                </x-button>
-            </div>
+
+                <!-- Filter Summary and Clear Button -->
+                <div class="mt-6 flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="text-sm font-medium text-slate-900">
+                            {{ $students->total() }} students
+                            @if(request()->hasAny(['search', 'status', 'programme']))
+                                (filtered from {{ \App\Models\Student::count() }} total)
+                            @endif
+                        </div>
+                        @if(request()->hasAny(['search', 'status', 'programme']))
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-toc-100 text-toc-800">
+                                Filtered
+                            </span>
+                        @endif
+                    </div>
+                    @if(request()->hasAny(['search', 'status', 'programme']))
+                        <a href="{{ route('students.index') }}" 
+                           class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500">
+                            Clear filters
+                        </a>
+                    @endif
+                </div>
+            </form>
         </x-card>
 
         <!-- Students Table -->
@@ -117,79 +133,89 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-100">
-                        <template x-for="student in filteredStudents" :key="student.id">
+                        @forelse($students as $student)
                             <tr class="hover:bg-slate-50 transition-colors duration-200 group">
                                 <!-- Student Info with Avatar -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <!-- Avatar with initials -->
                                         <div class="flex-shrink-0 h-10 w-10">
-                                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-toc-400 to-toc-600 flex items-center justify-center text-white font-semibold text-sm"
-                                                 x-text="student.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)">
+                                            <div class="h-10 w-10 rounded-full bg-gradient-to-br from-toc-400 to-toc-600 flex items-center justify-center text-white font-semibold text-sm">
+                                                {{ collect(explode(' ', $student->full_name))->map(fn($n) => $n[0])->take(2)->implode('') }}
                                             </div>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-semibold text-slate-900" x-text="student.full_name"></div>
-                                            <div class="text-sm text-slate-500 font-mono" x-text="student.student_number"></div>
+                                            <div class="text-sm font-semibold text-slate-900">{{ $student->full_name }}</div>
+                                            <div class="text-sm text-slate-500 font-mono">{{ $student->student_number }}</div>
                                         </div>
                                     </div>
                                 </td>
 
                                 <!-- Contact -->
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-slate-900" x-text="student.email"></div>
+                                    <div class="text-sm text-slate-900">{{ $student->email }}</div>
                                     <div class="text-sm text-slate-500">Email</div>
                                 </td>
 
                                 <!-- Status Badge using our component -->
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <x-status-badge 
-                                        x-bind:status="student.status" 
+                                        :status="$student->status" 
                                         variant="dot" 
                                         size="sm"
-                                        x-text="student.status.charAt(0).toUpperCase() + student.status.slice(1)"
-                                    />
+                                    >
+                                        {{ ucfirst($student->status) }}
+                                    </x-status-badge>
                                 </td>
 
                                 <!-- Programme Tags -->
                                 <td class="px-6 py-4">
                                     <div class="flex flex-wrap gap-1 max-w-xs">
-                                        <template x-for="programme in student.programmes" :key="programme">
+                                        @forelse($student->enrolments->pluck('programme.code')->unique() as $programme)
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-toc-100 text-toc-800 border border-toc-200">
-                                                <span x-text="programme"></span>
+                                                {{ $programme }}
                                             </span>
-                                        </template>
-                                        <span x-show="student.programmes.length === 0" class="text-slate-400 text-xs italic">
-                                            No enrolments
-                                        </span>
+                                        @empty
+                                            <span class="text-slate-400 text-xs italic">
+                                                No enrolments
+                                            </span>
+                                        @endforelse
                                     </div>
                                 </td>
 
                                 <!-- Joined Date -->
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                    <div x-text="student.created_at"></div>
+                                    <div>{{ $student->created_at->format('d M Y') }}</div>
                                 </td>
 
                                 <!-- Actions using our button components -->
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                         <x-button 
-                                            x-bind:href="`/admin/students/${student.id}/progress`"
+                                            href="{{ route('student.transcript.download', $student) }}"
+                                            variant="secondary" 
+                                            size="xs"
+                                            title="Download transcript"
+                                        >
+                                            📄
+                                        </x-button>
+                                        <x-button 
+                                            href="{{ route('admin.students.progress', $student) }}"
                                             variant="secondary" 
                                             size="xs"
                                             title="View detailed progress"
                                         >
-                                            Progress
+                                            📊
                                         </x-button>
                                         <x-button 
-                                            x-bind:href="`/students/${student.id}`"
+                                            href="{{ route('students.show', $student) }}"
                                             variant="ghost" 
                                             size="xs"
                                         >
                                             View
                                         </x-button>
                                         <x-button 
-                                            x-bind:href="`/students/${student.id}/edit`"
+                                            href="{{ route('students.edit', $student) }}"
                                             variant="primary" 
                                             size="xs"
                                         >
@@ -197,8 +223,8 @@
                                         </x-button>
                                         @if(in_array(Auth::user()->role, ['manager', 'student_services']))
                                             <button 
-                                                x-bind:onclick="`confirmDelete('${student.full_name}', '/students/${student.id}')`"
-                                                class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                                onclick="confirmDelete('{{ $student->full_name }}', '{{ route('students.destroy', $student) }}')"
+                                                class="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 cursor-pointer"
                                                 title="Delete student"
                                             >
                                                 🗑️
@@ -207,28 +233,42 @@
                                     </div>
                                 </td>
                             </tr>
-                        </template>
+                        @empty
+                            <tr>
+                                <td colspan="6" class="px-6 py-12 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                    </svg>
+                                    <h3 class="mt-2 text-sm font-medium text-slate-900">No students found</h3>
+                                    <p class="mt-1 text-sm text-slate-500">
+                                        @if(request()->hasAny(['search', 'status', 'programme']))
+                                            Try adjusting your search or filters.
+                                        @else
+                                            Get started by adding a new student.
+                                        @endif
+                                    </p>
+                                    @if(!request()->hasAny(['search', 'status', 'programme']))
+                                        <div class="mt-6">
+                                            <x-button href="{{ route('students.create') }}" variant="primary">
+                                                Add New Student
+                                            </x-button>
+                                        </div>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
 
-                <!-- Empty State -->
-                <div x-show="filteredStudents.length === 0" class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-slate-900">No students found</h3>
-                    <p class="mt-1 text-sm text-slate-500">
-                        <span x-show="search || statusFilter || programmeFilter">Try adjusting your search or filters.</span>
-                        <span x-show="!search && !statusFilter && !programmeFilter">Get started by adding a new student.</span>
-                    </p>
-                    <div class="mt-6" x-show="!search && !statusFilter && !programmeFilter">
-                        <x-button href="{{ route('students.create') }}" variant="primary">
-                            Add New Student
-                        </x-button>
-                    </div>
-                </div>
             </div>
         </x-card>
+
+        <!-- Pagination -->
+        @if($students->hasPages())
+            <div class="mt-6">
+                {{ $students->appends(request()->query())->links() }}
+            </div>
+        @endif
     </div>
 
     <!-- Delete Confirmation Modal -->
@@ -285,34 +325,7 @@
     </div>
 
     <script>
-        function studentIndex() {
-            return {
-                search: '',
-                statusFilter: '',
-                programmeFilter: '',
-                allStudents: @json($studentsData),
-                
-                get filteredStudents() {
-                    return this.allStudents.filter(student => {
-                        const matchesSearch = !this.search || 
-                            student.full_name.toLowerCase().includes(this.search.toLowerCase()) ||
-                            student.student_number.toLowerCase().includes(this.search.toLowerCase()) ||
-                            student.email.toLowerCase().includes(this.search.toLowerCase());
-                        
-                        const matchesStatus = !this.statusFilter || student.status === this.statusFilter;
-                        const matchesProgramme = !this.programmeFilter || student.programmes.includes(this.programmeFilter);
-                        
-                        return matchesSearch && matchesStatus && matchesProgramme;
-                    });
-                },
-                
-                clearFilters() {
-                    this.search = '';
-                    this.statusFilter = '';
-                    this.programmeFilter = '';
-                }
-            }
-        }
+        // Server-side search is now handled by the form submission
 
         // Delete confirmation functions
         function confirmDelete(studentName, deleteUrl) {

@@ -105,6 +105,11 @@ public function repeatAssessments(): HasMany
 {
     return $this->hasMany(RepeatAssessment::class);
 }
+
+public function emailLogs(): HasMany
+{
+    return $this->hasMany(EmailLog::class);
+}
 public function user()
 {
     return $this->hasOne(User::class, 'student_id');

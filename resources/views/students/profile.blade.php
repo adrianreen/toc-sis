@@ -86,6 +86,12 @@
                     <div class="bg-white shadow-soft rounded-xl p-6">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
                         <div class="space-y-3">
+                            <a href="{{ route('transcripts.download', $student) }}" 
+                               class="block p-3 text-sm bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors border-2 border-orange-200"
+                               style="cursor: pointer; text-decoration: none;">
+                                <span class="text-orange-700 font-medium">📄 Download My Transcript</span>
+                            </a>
+
                             <a href="{{ route('students.progress') }}" 
                                class="flex items-center justify-between p-3 text-sm bg-toc-50 hover:bg-toc-100 rounded-lg transition-colors group">
                                 <span class="text-toc-700 font-medium">View My Progress</span>

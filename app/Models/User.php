@@ -68,6 +68,16 @@ class User extends Authenticatable
         return $this->hasMany(NotificationPreference::class);
     }
 
+    public function createdEmailTemplates()
+    {
+        return $this->hasMany(EmailTemplate::class, 'created_by');
+    }
+
+    public function sentEmails()
+    {
+        return $this->hasMany(EmailLog::class, 'sent_by');
+    }
+
     public function unreadNotifications()
     {
         return $this->notifications()->unread();

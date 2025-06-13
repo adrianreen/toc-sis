@@ -118,6 +118,45 @@
                                     </button>
                                 @endif
                             </div>
+
+                            <!-- Email Actions Section -->
+                            <div class="mt-6 pt-4 border-t border-gray-200">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">Email Actions</h4>
+                                <div class="space-y-2">
+                                    <!-- Quick Send Buttons -->
+                                    <form method="POST" action="{{ route('student-emails.quick-send', $student) }}">
+                                        @csrf
+                                        <input type="hidden" name="action" value="results_transcript">
+                                        <button type="submit" 
+                                                class="w-full inline-flex items-center justify-center px-3 py-2 border border-purple-300 rounded-md shadow-sm bg-purple-50 text-sm font-medium text-purple-700 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out cursor-pointer">
+                                            Send Results & Transcript
+                                        </button>
+                                    </form>
+
+                                    @if($student->status === 'enquiry')
+                                        <form method="POST" action="{{ route('student-emails.quick-send', $student) }}">
+                                            @csrf
+                                            <input type="hidden" name="action" value="welcome">
+                                            <button type="submit" 
+                                                    class="w-full inline-flex items-center justify-center px-3 py-2 border border-green-300 rounded-md shadow-sm bg-green-50 text-sm font-medium text-green-700 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out cursor-pointer">
+                                                Send Welcome Email
+                                            </button>
+                                        </form>
+                                    @endif
+
+                                    <!-- Custom Email Compose -->
+                                    <a href="{{ route('student-emails.compose', $student) }}" 
+                                       class="w-full inline-flex items-center justify-center px-3 py-2 border border-indigo-300 rounded-md shadow-sm bg-indigo-50 text-sm font-medium text-indigo-700 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                                        Compose Custom Email
+                                    </a>
+
+                                    <!-- Email History -->
+                                    <a href="{{ route('student-emails.index', $student) }}" 
+                                       class="w-full inline-flex items-center justify-center px-3 py-2 border border-slate-300 rounded-md shadow-sm bg-slate-50 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition duration-150 ease-in-out">
+                                        View Email History
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

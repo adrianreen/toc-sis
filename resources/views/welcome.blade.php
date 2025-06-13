@@ -62,9 +62,9 @@
                     <!-- Logo -->
                     <div class="mb-8">
                         <a href="{{ url('https://www.theopencollege.com') }}">
-                            <img src="{{ asset('images/logo.png') }}"
+                            <img src="{{ asset('images/logo-white.png') }}"
                                  alt="My Company Logo"
-                                 class="h-32 w-auto">
+                                 class="h-38 w-auto">
                         </a>
                     </div>
                     
