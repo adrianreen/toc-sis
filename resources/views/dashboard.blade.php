@@ -108,78 +108,133 @@
                     </span>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @if(in_array(Auth::user()->role, ['manager', 'student_services']))
-                        <!-- Add Student - Fixed darker background -->
-                        <a href="{{ route('students.create') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-semibold text-lg text-white">Add Student</h3>
-                                    <p class="text-blue-100 text-sm mt-1">Create new student record</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Primary Action: View Students (Most Used) -->
+                    <a href="{{ route('students.index') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                                <i data-lucide="users" class="w-5 h-5 text-slate-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-slate-900 text-sm">Students</h3>
+                                <p class="text-slate-500 text-xs">View & manage</p>
+                            </div>
+                        </div>
+                    </a>
+
+                    @if(in_array(Auth::user()->role, ['manager', 'teacher', 'student_services']))
+                        <!-- Primary Action: Assessments/Grading -->
+                        <a href="{{ route('assessments.index') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                    <i data-lucide="clipboard-check" class="w-5 h-5 text-blue-600"></i>
                                 </div>
-                                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                    <i data-lucide="user-plus" class="w-6 h-6 text-white"></i>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900 text-sm">Assessments</h3>
+                                    <p class="text-slate-500 text-xs">Grading & results</p>
+                                </div>
+                            </div>
+                        </a>
+                    @endif
+
+                    @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                        <!-- Secondary Action: Add Student -->
+                        <a href="{{ route('students.create') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center group-hover:bg-green-100 transition-colors">
+                                    <i data-lucide="user-plus" class="w-5 h-5 text-green-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900 text-sm">Add Student</h3>
+                                    <p class="text-slate-500 text-xs">Create new record</p>
                                 </div>
                             </div>
                         </a>
 
-                        <!-- Recycle Bin -->
-                        <a href="{{ route('students.recycle-bin') }}" class="group bg-gradient-to-br from-red-600 to-red-700 rounded-xl p-6 text-white hover:from-red-700 hover:to-red-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-semibold text-lg text-white">Recycle Bin</h3>
-                                    <p class="text-red-100 text-sm mt-1">Restore deleted students</p>
+                        <!-- Secondary Action: Enquiries -->
+                        <a href="{{ route('enquiries.index') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                                    <i data-lucide="mail" class="w-5 h-5 text-amber-600"></i>
                                 </div>
-                                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                    <i data-lucide="trash-2" class="w-6 h-6 text-white"></i>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900 text-sm">Enquiries</h3>
+                                    <p class="text-slate-500 text-xs">Manage leads</p>
                                 </div>
                             </div>
                         </a>
                     @endif
 
                     @if(in_array(Auth::user()->role, ['manager', 'teacher', 'student_services']))
-                        <!-- View Results/Assessments -->
-                        <a href="{{ route('assessments.index') }}" class="group bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-semibold text-lg text-white">View Results</h3>
-                                    <p class="text-emerald-100 text-sm mt-1">Assessment & grading</p>
+                        <!-- Extension Requests -->
+                        <a href="{{ route('extension-requests.staff-index') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+                                    <i data-lucide="clock" class="w-5 h-5 text-orange-600"></i>
                                 </div>
-                                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                    <i data-lucide="clipboard-check" class="w-6 h-6 text-white"></i>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900 text-sm">Extensions</h3>
+                                    <p class="text-slate-500 text-xs">Review requests</p>
                                 </div>
                             </div>
                         </a>
                     @endif
 
                     @if(Auth::user()->role === 'manager')
-                        <!-- View Reports -->
-                        <a href="{{ route('reports.dashboard') }}" class="group bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h3 class="font-semibold text-lg text-white">View Reports</h3>
-                                    <p class="text-purple-100 text-sm mt-1">System analytics</p>
+                        <!-- Manager-Only: Reports -->
+                        <a href="{{ route('reports.dashboard') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                                    <i data-lucide="bar-chart-3" class="w-5 h-5 text-purple-600"></i>
                                 </div>
-                                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                    <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900 text-sm">Reports</h3>
+                                    <p class="text-slate-500 text-xs">Analytics</p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <!-- Manager-Only: Notifications -->
+                        <a href="{{ route('notifications.admin') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                                    <i data-lucide="bell" class="w-5 h-5 text-indigo-600"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-slate-900 text-sm">Notifications</h3>
+                                    <p class="text-slate-500 text-xs">Admin panel</p>
                                 </div>
                             </div>
                         </a>
                     @endif
-
-                    <!-- Common action for all roles -->
-                    <a href="{{ route('students.index') }}" class="group bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-6 text-white hover:from-slate-700 hover:to-slate-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold text-lg text-white">View Students</h3>
-                                <p class="text-slate-100 text-sm mt-1">Browse all records</p>
-                            </div>
-                            <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                <i data-lucide="users" class="w-6 h-6 text-white"></i>
-                            </div>
-                        </div>
-                    </a>
                 </div>
+                
+                <!-- Less Important Actions - Subtle Secondary Section -->
+                @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                    <div class="mt-6 pt-6 border-t border-slate-200">
+                        <h3 class="text-sm font-medium text-slate-600 mb-3">Administrative Tools</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <a href="{{ route('students.recycle-bin') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                <i data-lucide="trash-2" class="w-3 h-3 mr-1.5"></i>
+                                Recycle Bin
+                            </a>
+                            @if(Auth::user()->role === 'manager')
+                                <a href="{{ route('programmes.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                    <i data-lucide="book" class="w-3 h-3 mr-1.5"></i>
+                                    Programmes
+                                </a>
+                                <a href="{{ route('modules.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                    <i data-lucide="layers" class="w-3 h-3 mr-1.5"></i>
+                                    Modules
+                                </a>
+                                <a href="{{ route('cohorts.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                    <i data-lucide="users-2" class="w-3 h-3 mr-1.5"></i>
+                                    Cohorts
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
                 <!-- Recent Activity -->
                 <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -282,4 +337,69 @@
             }
         }
     </script>
+
+    <!-- Help Bubble -->
+    <x-help-bubble title="Dashboard Help">
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-medium text-slate-900 mb-2">Quick Actions</h4>
+                <p class="text-sm text-slate-600 mb-3">Access your most frequently used features from the dashboard.</p>
+                
+                <!-- ScribeHow Link Example -->
+                <a href="#" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
+                    Watch: How to Add a New Student
+                </a>
+            </div>
+            
+            <div class="border-t border-slate-200 pt-4">
+                <h4 class="font-medium text-slate-900 mb-2">Student Search</h4>
+                <p class="text-sm text-slate-600 mb-3">Search for students by name, student number, or email address.</p>
+                
+                <a href="#" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
+                    Watch: Advanced Student Search
+                </a>
+            </div>
+            
+            <div class="border-t border-slate-200 pt-4">
+                <h4 class="font-medium text-slate-900 mb-2">Assessment Management</h4>
+                <p class="text-sm text-slate-600 mb-3">Grade assessments and manage result visibility.</p>
+                
+                <a href="#" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
+                    Watch: Grading Workflow
+                </a>
+            </div>
+            
+            <!-- ScribeHow Embed Example -->
+            <div class="border-t border-slate-200 pt-4">
+                <h4 class="font-medium text-slate-900 mb-2">Getting Started</h4>
+                <div class="bg-slate-50 rounded-lg p-3">
+                    <p class="text-xs text-slate-500 mb-2">Interactive Tutorial</p>
+                    <!-- Placeholder for ScribeHow embed -->
+                    <div class="bg-slate-100 rounded border-2 border-dashed border-slate-300 p-4 text-center">
+                        <i data-lucide="video" class="w-6 h-6 text-slate-400 mx-auto mb-2"></i>
+                        <p class="text-xs text-slate-500">ScribeHow Tutorial Embed</p>
+                        <p class="text-xs text-slate-400 mt-1">Replace with actual embed code</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-200 pt-4">
+                <h4 class="font-medium text-slate-900 mb-2">Need More Help?</h4>
+                <div class="space-y-2">
+                    <a href="#" class="block text-sm text-slate-600 hover:text-slate-900">
+                        📧 Contact Support
+                    </a>
+                    <a href="#" class="block text-sm text-slate-600 hover:text-slate-900">
+                        📚 Documentation
+                    </a>
+                    <a href="#" class="block text-sm text-slate-600 hover:text-slate-900">
+                        💬 Live Chat
+                    </a>
+                </div>
+            </div>
+        </div>
+    </x-help-bubble>
 </x-app-layout>

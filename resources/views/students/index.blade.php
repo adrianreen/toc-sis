@@ -97,7 +97,7 @@
                                 name="status"
                                 x-model="statusFilter"
                                 @change="performFilter()"
-                                class="block w-full py-3 pl-4 pr-10 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-gray-400"
+                                class="block w-full py-3 pl-4 pr-10 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-gray-400 appearance-none"
                             >
                                 <option value="">All Statuses</option>
                                 <option value="active">✅ Active</option>
@@ -130,7 +130,7 @@
                                 name="programme"
                                 x-model="programmeFilter"
                                 @change="performFilter()"
-                                class="block w-full py-3 pl-4 pr-10 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-gray-400"
+                                class="block w-full py-3 pl-4 pr-10 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-gray-400 appearance-none"
                             >
                                 <option value="">All Programmes</option>
                                 @foreach($programmes as $programme)
