@@ -345,44 +345,70 @@
                 <h4 class="font-medium text-slate-900 mb-2">Quick Actions</h4>
                 <p class="text-sm text-slate-600 mb-3">Access your most frequently used features from the dashboard.</p>
                 
-                <!-- ScribeHow Link Example -->
-                <a href="#" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
-                    Watch: How to Add a New Student
+                <a href="{{ route('students.create') }}" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <i data-lucide="user-plus" class="w-4 h-4 mr-1.5"></i>
+                    How to Add a New Student
                 </a>
+            </div>
+            
+            <div class="border-t border-slate-200 pt-4">
+                <h4 class="font-medium text-slate-900 mb-2">Moodle Integration</h4>
+                <p class="text-sm text-slate-600 mb-3">Learn how to manage assessments and extensions in Moodle.</p>
+                
+                <div class="space-y-2">
+                    <a href="https://scribehow.com/shared/Granting_extensions_in_Moodle__NDUZcYS5Rh20B-nZsYM4dA?referrer=documents" target="_blank" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
+                        Watch: Granting Extensions in Moodle
+                    </a>
+                    
+                    <a href="https://scribehow.com/shared/Setting_up_a_repeat_resubmission__MZSCzNc8QNm_wcrE8VQuUA?referrer=documents" target="_blank" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
+                        Watch: Setting up Repeat Resubmission
+                    </a>
+                </div>
             </div>
             
             <div class="border-t border-slate-200 pt-4">
                 <h4 class="font-medium text-slate-900 mb-2">Student Search</h4>
-                <p class="text-sm text-slate-600 mb-3">Search for students by name, student number, or email address.</p>
+                <p class="text-sm text-slate-600 mb-3">Use the search bar above to quickly find students by name, number, or email.</p>
                 
-                <a href="#" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
-                    Watch: Advanced Student Search
-                </a>
+                <div class="bg-blue-50 rounded-lg p-3 mt-2">
+                    <p class="text-xs text-blue-700 font-medium">💡 Tip</p>
+                    <p class="text-xs text-blue-600 mt-1">Type at least 2 characters to start searching. Results update as you type!</p>
+                </div>
+            </div>
+            
+            <!-- ScribeHow Embed -->
+            <div class="border-t border-slate-200 pt-4">
+                <h4 class="font-medium text-slate-900 mb-2">Deleting Assignment Submissions</h4>
+                <p class="text-sm text-slate-600 mb-3">Interactive tutorial for removing assignment submissions from Moodle.</p>
+                
+                <div class="bg-slate-50 rounded-lg p-2">
+                    <iframe 
+                        src="https://scribehow.com/embed/Deleting_an_assignment_submission_from_Moodle__KrFfAM2qTW2hfkf8a9Qx2g" 
+                        width="100%" 
+                        height="400" 
+                        allow="fullscreen" 
+                        style="aspect-ratio: 1 / 1; border: 0; min-height: 320px; max-height: 400px;" 
+                        class="rounded-md"
+                    ></iframe>
+                </div>
             </div>
             
             <div class="border-t border-slate-200 pt-4">
                 <h4 class="font-medium text-slate-900 mb-2">Assessment Management</h4>
-                <p class="text-sm text-slate-600 mb-3">Grade assessments and manage result visibility.</p>
+                <p class="text-sm text-slate-600 mb-3">Learn about grading, result visibility, and student progress tracking.</p>
                 
-                <a href="#" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    <i data-lucide="play-circle" class="w-4 h-4 mr-1.5"></i>
-                    Watch: Grading Workflow
-                </a>
-            </div>
-            
-            <!-- ScribeHow Embed Example -->
-            <div class="border-t border-slate-200 pt-4">
-                <h4 class="font-medium text-slate-900 mb-2">Getting Started</h4>
-                <div class="bg-slate-50 rounded-lg p-3">
-                    <p class="text-xs text-slate-500 mb-2">Interactive Tutorial</p>
-                    <!-- Placeholder for ScribeHow embed -->
-                    <div class="bg-slate-100 rounded border-2 border-dashed border-slate-300 p-4 text-center">
-                        <i data-lucide="video" class="w-6 h-6 text-slate-400 mx-auto mb-2"></i>
-                        <p class="text-xs text-slate-500">ScribeHow Tutorial Embed</p>
-                        <p class="text-xs text-slate-400 mt-1">Replace with actual embed code</p>
-                    </div>
+                <div class="space-y-2">
+                    <a href="{{ route('assessments.index') }}" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <i data-lucide="clipboard-check" class="w-4 h-4 mr-1.5"></i>
+                        Go to Assessments
+                    </a>
+                    
+                    <a href="{{ route('extension-requests.staff-index') }}" class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <i data-lucide="clock" class="w-4 h-4 mr-1.5"></i>
+                        Review Extension Requests
+                    </a>
                 </div>
             </div>
             

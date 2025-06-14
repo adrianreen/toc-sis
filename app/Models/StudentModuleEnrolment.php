@@ -67,7 +67,8 @@ class StudentModuleEnrolment extends Model
     {
         $assessments = $this->studentAssessments()
             ->with('assessmentComponent')
-            ->where('status', 'graded')
+            ->whereIn('status', ['graded', 'passed', 'failed'])
+            ->whereNotNull('grade')
             ->get();
 
         $totalGrade = 0;
@@ -85,7 +86,7 @@ class StudentModuleEnrolment extends Model
     public function updateStatus(): void
     {
         $allAssessments = $this->studentAssessments()->count();
-        $gradedAssessments = $this->studentAssessments()->where('status', 'graded')->count();
+        $gradedAssessments = $this->studentAssessments()->whereIn('status', ['graded', 'passed', 'failed'])->count();
         
         if ($allAssessments === 0) {
             $this->status = 'enrolled';

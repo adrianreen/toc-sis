@@ -90,7 +90,7 @@
                                               rows="3"
                                               placeholder="Add any personal message here..."
                                               class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">{{ old('custom_message') }}</textarea>
-                                    <p class="mt-1 text-xs text-gray-500">This will be added to the template as {{ '{{custom_message}}' }}</p>
+                                    <p class="mt-1 text-xs text-gray-500">This will be added to the template as @{{ '{{' }}custom_message@{{ '}}' }}</p>
                                 </div>
                             </div>
                         </div>
