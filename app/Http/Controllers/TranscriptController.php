@@ -179,6 +179,15 @@ class TranscriptController extends Controller
      */
     private function calculateModuleGrade($moduleEnrolment)
     {
+        // Check if final grade is visible to student
+        if (!($moduleEnrolment->is_final_grade_visible ?? true)) {
+            return [
+                'grade' => null,
+                'status' => 'In Progress',
+                'completion_date' => null
+            ];
+        }
+
         $assessments = $moduleEnrolment->studentAssessments->filter(function($assessment) {
             return $assessment->isVisibleToStudent();
         });

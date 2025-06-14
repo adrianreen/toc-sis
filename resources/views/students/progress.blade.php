@@ -9,11 +9,17 @@
             </div>
 
             @php
-                // Calculate overall statistics
+                // Calculate overall statistics (only from visible assessments and final grades)
                 $totalAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->count();
                 $completedAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->whereIn('status', ['graded', 'passed', 'failed'])->count();
                 $passedAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->where('status', 'passed')->count();
-                $overallAverage = $student->studentModuleEnrolments->flatMap->studentAssessments->whereNotNull('grade')->avg('grade');
+                
+                // Only include visible assessment grades in overall average
+                $visibleAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->filter(function($assessment) {
+                    return $assessment->grade !== null && $assessment->isVisibleToStudent();
+                });
+                $overallAverage = $visibleAssessments->count() > 0 ? $visibleAssessments->avg('grade') : null;
+                
                 $completionPercentage = $totalAssessments > 0 ? round(($completedAssessments / $totalAssessments) * 100, 1) : 0;
                 $passRate = $completedAssessments > 0 ? round(($passedAssessments / $completedAssessments) * 100, 1) : 0;
             @endphp
@@ -139,11 +145,21 @@
                             </div>
 
                             <div class="mt-3 lg:mt-0 flex items-center space-x-4">
-                                @if($finalGrade)
+                                @if($finalGrade && ($moduleEnrolment->is_final_grade_visible ?? true))
                                     <div class="text-center">
                                         <p class="text-sm text-gray-500">Final Grade</p>
                                         <p class="text-2xl font-bold {{ $finalGrade >= 40 ? 'text-green-600' : 'text-red-600' }}">
                                             {{ $finalGrade }}%
+                                        </p>
+                                    </div>
+                                @elseif($finalGrade && !($moduleEnrolment->is_final_grade_visible ?? true))
+                                    <div class="text-center">
+                                        <p class="text-sm text-gray-500">Final Grade</p>
+                                        <p class="text-lg text-gray-400">
+                                            <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                                            </svg>
+                                            Pending
                                         </p>
                                     </div>
                                 @endif

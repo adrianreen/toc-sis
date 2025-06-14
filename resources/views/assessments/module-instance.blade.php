@@ -208,6 +208,14 @@
                                                             <div class="text-xs text-gray-500">
                                                                 {{ $assessment->status === 'passed' ? 'Passed' : ($assessment->status === 'failed' ? 'Failed' : ucfirst($assessment->status)) }}
                                                             </div>
+                                                            <!-- Visibility Toggle Icon -->
+                                                            <div class="mt-1">
+                                                                <button onclick="toggleAssessmentVisibility({{ $assessment->id }}, {{ $assessment->isVisibleToStudent() ? 'false' : 'true' }}, this)"
+                                                                        class="p-1 rounded transition-colors duration-200 cursor-pointer {{ $assessment->isVisibleToStudent() ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50' }}"
+                                                                        title="{{ $assessment->isVisibleToStudent() ? 'Hide from student' : 'Show to student' }}">
+                                                                    <i data-lucide="{{ $assessment->isVisibleToStudent() ? 'eye' : 'eye-off' }}" class="w-3 h-3"></i>
+                                                                </button>
+                                                            </div>
                                                         @elseif($assessment->status === 'submitted')
                                                             <div class="text-sm font-medium text-orange-600">
                                                                 Submitted
@@ -253,6 +261,14 @@
                                                     </div>
                                                     <div class="text-xs {{ $enrolment->final_grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
                                                         {{ $enrolment->final_grade >= 40 ? 'PASS' : 'FAIL' }}
+                                                    </div>
+                                                    <!-- Final Grade Visibility Toggle -->
+                                                    <div class="mt-1">
+                                                        <button onclick="toggleFinalGradeVisibility({{ $enrolment->id }}, {{ $enrolment->is_final_grade_visible ?? 'true' ? 'false' : 'true' }}, this)"
+                                                                class="p-1 rounded transition-colors duration-200 cursor-pointer {{ $enrolment->is_final_grade_visible ?? true ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50' }}"
+                                                                title="{{ $enrolment->is_final_grade_visible ?? true ? 'Hide final grade from student' : 'Show final grade to student' }}">
+                                                            <i data-lucide="{{ $enrolment->is_final_grade_visible ?? true ? 'eye' : 'eye-off' }}" class="w-3 h-3"></i>
+                                                        </button>
                                                     </div>
                                                 @else
                                                     <span class="text-gray-400">-</span>
@@ -313,4 +329,101 @@
             </div>
         </div>
     </div>
+
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Visibility Toggle JavaScript -->
+    <script>
+        // Initialize Lucide Icons
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+
+        // Toggle assessment visibility
+        async function toggleAssessmentVisibility(assessmentId, newVisibility, buttonElement) {
+            try {
+                const formData = new FormData();
+                formData.append('action', newVisibility ? 'show' : 'hide');
+                formData.append('notes', 'Quick visibility toggle');
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+                formData.append('_method', 'PATCH');
+                
+                const response = await fetch(`/assessments/${assessmentId}/quick-visibility`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const isVisible = newVisibility;
+                    
+                    // Update button innerHTML with new icon
+                    buttonElement.innerHTML = `<i data-lucide="${isVisible ? 'eye' : 'eye-off'}" class="w-3 h-3"></i>`;
+                    
+                    // Update button classes and title
+                    buttonElement.className = `p-1 rounded transition-colors duration-200 cursor-pointer ${isVisible ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`;
+                    buttonElement.title = isVisible ? 'Hide from student' : 'Show to student';
+                    
+                    // Update onclick for next toggle
+                    buttonElement.setAttribute('onclick', `toggleAssessmentVisibility(${assessmentId}, ${!isVisible}, this)`);
+                    
+                    // Reinitialize Lucide icons to render the new icon
+                    lucide.createIcons();
+                } else {
+                    console.error('Request failed with status:', response.status);
+                    alert(`Failed to update visibility. Status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Toggle visibility error:', error);
+                alert('Failed to update visibility. Please try again.');
+            }
+        }
+
+        // Toggle final grade visibility
+        async function toggleFinalGradeVisibility(enrolmentId, newVisibility, buttonElement) {
+            try {
+                const formData = new FormData();
+                formData.append('action', newVisibility ? 'show' : 'hide');
+                formData.append('notes', 'Quick final grade visibility toggle');
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+                formData.append('_method', 'PATCH');
+                
+                const response = await fetch(`/student-module-enrolments/${enrolmentId}/final-grade-visibility`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const isVisible = newVisibility;
+                    
+                    // Update button innerHTML with new icon
+                    buttonElement.innerHTML = `<i data-lucide="${isVisible ? 'eye' : 'eye-off'}" class="w-3 h-3"></i>`;
+                    
+                    // Update button classes and title
+                    buttonElement.className = `p-1 rounded transition-colors duration-200 cursor-pointer ${isVisible ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50'}`;
+                    buttonElement.title = isVisible ? 'Hide final grade from student' : 'Show final grade to student';
+                    
+                    // Update onclick for next toggle
+                    buttonElement.setAttribute('onclick', `toggleFinalGradeVisibility(${enrolmentId}, ${!isVisible}, this)`);
+                    
+                    // Reinitialize Lucide icons to render the new icon
+                    lucide.createIcons();
+                } else {
+                    alert('Failed to update final grade visibility. Please try again.');
+                }
+            } catch (error) {
+                console.error('Toggle final grade visibility error:', error);
+                alert('Failed to update final grade visibility. Please try again.');
+            }
+        }
+
+    </script>
 </x-app-layout>

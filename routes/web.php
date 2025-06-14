@@ -210,6 +210,7 @@ Route::get('/my-progress', function () {
             // Visibility control routes
     Route::patch('assessments/{studentAssessment}/quick-visibility', [StudentAssessmentController::class, 'quickVisibility'])->name('assessments.quick-visibility');
     Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-visibility', [StudentAssessmentController::class, 'bulkVisibility'])->name('assessments.bulk-visibility');
+    Route::patch('student-module-enrolments/{studentModuleEnrolment}/final-grade-visibility', [StudentAssessmentController::class, 'toggleFinalGradeVisibility'])->name('student-module-enrolments.final-grade-visibility');
 
         // Admin view of student progress (separate from student's own view)
         Route::get('admin/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('admin.student-progress');

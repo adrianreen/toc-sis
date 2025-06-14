@@ -22,17 +22,19 @@ class StudentModuleEnrolment extends Model
         'attempt_number',
         'final_grade',
         'completion_date',
+        'is_final_grade_visible',
     ];
 
     protected $casts = [
         'completion_date' => 'date',
         'final_grade' => 'decimal:2',
+        'is_final_grade_visible' => 'boolean',
     ];
 
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['status', 'final_grade', 'completion_date'])
+            ->logOnly(['status', 'final_grade', 'completion_date', 'is_final_grade_visible'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
     }

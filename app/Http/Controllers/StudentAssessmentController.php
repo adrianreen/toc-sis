@@ -236,6 +236,56 @@ public function quickVisibility(Request $request, StudentAssessment $studentAsse
 
     $message = $validated['action'] === 'show' ? 'Assessment made visible to student' : 'Assessment hidden from student';
     
+    // Return JSON for AJAX requests
+    if (request()->wantsJson() || request()->ajax()) {
+        return response()->json(['success' => true, 'message' => $message]);
+    }
+    
+    return redirect()->back()->with('success', $message);
+}
+
+/**
+ * Toggle final grade visibility for student module enrolment
+ */
+public function toggleFinalGradeVisibility(Request $request, StudentModuleEnrolment $studentModuleEnrolment)
+{
+    // Check permission
+    $moduleInstance = $studentModuleEnrolment->moduleInstance;
+    if (auth()->user()->role === 'teacher' && auth()->id() !== $moduleInstance->teacher_id) {
+        abort(403);
+    }
+
+    $validated = $request->validate([
+        'action' => 'required|in:show,hide',
+        'notes' => 'nullable|string|max:500',
+    ]);
+
+    DB::transaction(function () use ($validated, $studentModuleEnrolment) {
+        if ($validated['action'] === 'show') {
+            $studentModuleEnrolment->update(['is_final_grade_visible' => true]);
+        } else {
+            $studentModuleEnrolment->update(['is_final_grade_visible' => false]);
+        }
+
+        // Log the activity
+        activity()
+            ->performedOn($studentModuleEnrolment->student)
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'module' => $studentModuleEnrolment->moduleInstance->module->code,
+                'action' => $validated['action'],
+                'final_grade' => $studentModuleEnrolment->final_grade,
+            ])
+            ->log('Final grade visibility ' . $validated['action'] . ': ' . $studentModuleEnrolment->moduleInstance->module->code);
+    });
+
+    $message = $validated['action'] === 'show' ? 'Final grade made visible to student' : 'Final grade hidden from student';
+    
+    // Return JSON for AJAX requests
+    if (request()->wantsJson() || request()->ajax()) {
+        return response()->json(['success' => true, 'message' => $message]);
+    }
+    
     return redirect()->back()->with('success', $message);
 }
 
