@@ -224,13 +224,13 @@
                      @mouseleave="open = false">
                     <button @click="open = !open" 
                             class="group relative flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                                   {{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*') 
+                                   {{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'moodle.*') 
                                       ? 'bg-blue-50 text-blue-700 border border-blue-200' 
                                       : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50' }}"
-                            :class="{ 'bg-gray-100': open && !{{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*') ? 'true' : 'false' }} }">
+                            :class="{ 'bg-gray-100': open && !{{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'moodle.*') ? 'true' : 'false' }} }">
                         
                         
-                        <svg class="w-4 h-4 mr-3 {{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*') ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 mr-3 {{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'moodle.*') ? 'text-blue-600' : 'text-gray-500 group-hover:text-gray-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
                             <circle cx="12" cy="13" r="1"/>
                         </svg>
@@ -348,6 +348,22 @@
                                 </div>
                                 Reports & Analytics
                             </a>
+                            @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                                <a href="{{ route('moodle.index') }}" 
+                                   class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                                          {{ request()->routeIs('moodle.*') 
+                                             ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                             : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' }}">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ request()->routeIs('moodle.*') ? 'bg-blue-100' : 'bg-indigo-100 group-hover:bg-indigo-200' }} mr-3">
+                                        <svg class="w-4 h-4 {{ request()->routeIs('moodle.*') ? 'text-blue-600' : 'text-indigo-600' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                            <path d="m2 17 10 5 10-5"/>
+                                            <path d="m2 12 10 5 10-5"/>
+                                        </svg>
+                                    </div>
+                                    Moodle Integration
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>

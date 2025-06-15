@@ -27,6 +27,7 @@ class Student extends Model
         'first_name',
         'last_name',
         'email',
+        'moodle_user_id',
         'phone',
         'address',
         'city',

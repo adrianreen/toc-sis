@@ -304,4 +304,21 @@ Route::get('/my-progress', function () {
         Route::match(['get', 'post'], 'admin/notifications/announcement', [NotificationController::class, 'createAnnouncement'])->name('notifications.announcement');
     });
 
+    // =================================================================
+    // MOODLE INTEGRATION ROUTES - Manager and Student Services
+    // =================================================================
+    Route::middleware(['role:manager,student_services'])->group(function () {
+        Route::get('admin/moodle', [App\Http\Controllers\Admin\MoodleController::class, 'index'])->name('moodle.index');
+        Route::get('admin/moodle/test-connection', [App\Http\Controllers\Admin\MoodleController::class, 'testConnection'])->name('moodle.test-connection');
+        Route::post('admin/moodle/sync-all-courses', [App\Http\Controllers\Admin\MoodleController::class, 'syncAllCourses'])->name('moodle.sync-all-courses');
+        
+        // Course management
+        Route::post('admin/moodle/courses/{moduleInstance}/create', [App\Http\Controllers\Admin\MoodleController::class, 'createCourse'])->name('moodle.create-course');
+        Route::get('admin/moodle/courses/{moduleInstance}', [App\Http\Controllers\Admin\MoodleController::class, 'showCourse'])->name('moodle.show-course');
+        
+        // Student enrollment
+        Route::post('admin/moodle/courses/{moduleInstance}/enroll/{student}', [App\Http\Controllers\Admin\MoodleController::class, 'enrollStudent'])->name('moodle.enroll-student');
+        Route::post('admin/moodle/courses/{moduleInstance}/bulk-enroll', [App\Http\Controllers\Admin\MoodleController::class, 'bulkEnrollCohort'])->name('moodle.bulk-enroll');
+    });
+
 });

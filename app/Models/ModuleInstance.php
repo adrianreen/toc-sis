@@ -21,6 +21,7 @@ class ModuleInstance extends Model
         'teacher_id',
         'status',
         'settings',
+        'moodle_course_id',
     ];
 
     protected $casts = [
@@ -52,5 +53,13 @@ class ModuleInstance extends Model
     public static function generateInstanceCode($moduleCode, $cohortCode)
     {
         return $moduleCode . '-' . $cohortCode;
+    }
+
+    /**
+     * Get the full course name for Moodle
+     */
+    public function getFullCourseName(): string
+    {
+        return $this->module->name . ' (' . $this->cohort->name . ')';
     }
 }
