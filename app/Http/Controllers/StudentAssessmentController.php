@@ -315,7 +315,7 @@ public function bulkVisibility(Request $request, ModuleInstance $moduleInstance,
 
     $updatedCount = 0;
 
-    DB::transaction(function () use ($validated, $assessments, &$updatedCount) {
+    DB::transaction(function () use ($validated, $assessments, &$updatedCount, $assessmentComponent, $moduleInstance) {
         foreach ($assessments as $assessment) {
             switch ($validated['action']) {
                 case 'show_all':
@@ -356,6 +356,15 @@ public function bulkVisibility(Request $request, ModuleInstance $moduleInstance,
             ->log("Bulk visibility action: {$validated['action']} applied to {$updatedCount} assessments");
     });
 
+    // Return JSON response for AJAX requests
+    if (request()->wantsJson() || request()->ajax()) {
+        return response()->json([
+            'success' => true,
+            'message' => "Visibility updated for {$updatedCount} assessments.",
+            'updated_count' => $updatedCount
+        ]);
+    }
+    
     return redirect()
         ->route('assessments.module-instance', $moduleInstance)
         ->with('success', "Visibility updated for {$updatedCount} assessments.");
@@ -403,16 +412,28 @@ public function bulkGradeForm(ModuleInstance $moduleInstance, AssessmentComponen
         abort(403);
     }
 
-        $studentAssessments = StudentAssessment::whereHas('studentModuleEnrolment', function($query) use ($moduleInstance) {
-                $query->where('module_instance_id', $moduleInstance->id);
-            })
-            ->where('assessment_component_id', $assessmentComponent->id)
-            ->with(['studentModuleEnrolment.student', 'assessmentComponent'])
-            ->orderBy('id')
-            ->paginate(50);
+    // Optimized query with eager loading to prevent N+1 issues
+    $studentAssessments = StudentAssessment::whereHas('studentModuleEnrolment', function($query) use ($moduleInstance) {
+            $query->where('module_instance_id', $moduleInstance->id);
+        })
+        ->where('assessment_component_id', $assessmentComponent->id)
+        ->with([
+            'studentModuleEnrolment.student:id,student_number,first_name,last_name',
+            'assessmentComponent:id,name,type,weight',
+            'gradedBy:id,name'
+        ])
+        ->orderBy('id')
+        ->paginate(50);
 
-        return view('assessments.bulk-grade', compact('moduleInstance', 'assessmentComponent', 'studentAssessments'));
-    }
+    // Eager load the module instance relationships to avoid additional queries
+    $moduleInstance->load([
+        'module:id,code,title',
+        'cohort:id,code,name',
+        'teacher:id,name'
+    ]);
+
+    return view('assessments.bulk-grade', compact('moduleInstance', 'assessmentComponent', 'studentAssessments'));
+}
 
     /**
      * Store bulk grades
@@ -429,39 +450,66 @@ public function bulkGradeForm(ModuleInstance $moduleInstance, AssessmentComponen
             'grades.*.assessment_id' => 'required|exists:student_assessments,id',
             'grades.*.grade' => 'nullable|numeric|min:0|max:100',
             'grades.*.feedback' => 'nullable|string|max:1000',
+            '_draft' => 'nullable|string', // For draft saves
         ]);
 
-        DB::transaction(function () use ($validated, $assessmentComponent) {
+        $isDraft = $request->has('_draft');
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($validated, $assessmentComponent, $isDraft, &$updatedCount) {
             foreach ($validated['grades'] as $gradeData) {
                 if (!empty($gradeData['grade'])) {
                     $assessment = StudentAssessment::find($gradeData['assessment_id']);
                     
-                    $assessment->update([
+                    $updateData = [
                         'grade' => $gradeData['grade'],
                         'status' => $gradeData['grade'] >= 40 ? 'passed' : 'failed',
                         'feedback' => $gradeData['feedback'],
-                        'graded_date' => now(),
-                        'graded_by' => auth()->id(),
-                    ]);
+                    ];
+                    
+                    // Only update graded_date and graded_by for final saves, not drafts
+                    if (!$isDraft) {
+                        $updateData['graded_date'] = now();
+                        $updateData['graded_by'] = auth()->id();
+                    }
+                    
+                    $assessment->update($updateData);
 
-                    // Update parent module enrolment
-                    $assessment->studentModuleEnrolment->updateStatus();
+                    // Only update parent module enrolment for final saves
+                    if (!$isDraft) {
+                        $assessment->studentModuleEnrolment->updateStatus();
+                    }
+                    
+                    $updatedCount++;
                 }
             }
 
-            // Log bulk grading activity
-            activity()
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'assessment_component' => $assessmentComponent->name,
-                    'grades_entered' => collect($validated['grades'])->whereNotNull('grade')->count(),
-                ])
-                ->log('Bulk grades entered for ' . $assessmentComponent->name);
+            // Log bulk grading activity (only for final saves)
+            if (!$isDraft) {
+                activity()
+                    ->causedBy(auth()->user())
+                    ->withProperties([
+                        'assessment_component' => $assessmentComponent->name,
+                        'grades_entered' => $updatedCount,
+                    ])
+                    ->log('Bulk grades entered for ' . $assessmentComponent->name);
+            }
         });
 
+        // Return JSON response for AJAX draft saves
+        if ($isDraft && $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Draft saved successfully',
+                'updated_count' => $updatedCount
+            ]);
+        }
+
+        $message = $isDraft ? 'Draft saved successfully.' : 'Bulk grades saved successfully.';
+        
         return redirect()
             ->route('assessments.module-instance', $moduleInstance)
-            ->with('success', 'Bulk grades saved successfully.');
+            ->with('success', $message);
     }
 
 /**

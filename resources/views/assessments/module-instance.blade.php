@@ -66,10 +66,11 @@
                 </div>
             </div>
 
+
             <!-- Assessment Components Overview -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6">
-                    <h3 class="text-lg font-semibold mb-4">Assessment Components</h3>
+                    <h3 class="text-lg font-semibold mb-4">Assessment Components Detail</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         @foreach($moduleInstance->module->assessmentComponents as $component)
                             @php
@@ -119,11 +120,55 @@
                                     @endif
                                 </div>
                                 
-                                <div class="mt-3">
+                                <div class="mt-3 space-y-2">
                                     <a href="{{ route('assessments.bulk-grade-form', [$moduleInstance, $component]) }}" 
-                                       class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm text-center block">
-                                        Bulk Grade
+                                       class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-sm text-center block flex items-center justify-center">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                        </svg>
+                                        Bulk Grade (Recommended)
                                     </a>
+                                    @if($submittedCount > 0)
+                                        <div class="text-xs text-center text-orange-600 font-medium">
+                                            {{ $submittedCount }} awaiting grades
+                                        </div>
+                                    @endif
+                                    
+                                    <!-- Bulk Visibility Controls -->
+                                    @if($gradedCount > 0)
+                                        @php
+                                            $componentId = $component->id;
+                                            $visibleCount = $moduleInstance->studentEnrolments->sum(function($enrolment) use ($componentId) {
+                                                return $enrolment->studentAssessments
+                                                    ->where('assessment_component_id', $componentId)
+                                                    ->where('is_visible_to_student', true)
+                                                    ->count();
+                                            });
+                                        @endphp
+                                        <div class="pt-2 border-t border-gray-200">
+                                            <div class="text-xs text-gray-600 mb-2 text-center">
+                                                Visibility: {{ $visibleCount }}/{{ $gradedCount }} visible to students
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-1">
+                                                <button onclick="bulkVisibilityAction({{ $moduleInstance->id }}, {{ $component->id }}, 'show_all')" 
+                                                        class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-xs transition-colors flex items-center justify-center">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                        <circle cx="12" cy="12" r="3"/>
+                                                    </svg>
+                                                    Show All
+                                                </button>
+                                                <button onclick="bulkVisibilityAction({{ $moduleInstance->id }}, {{ $component->id }}, 'hide_all')" 
+                                                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs transition-colors flex items-center justify-center">
+                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                                    </svg>
+                                                    Hide All
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         @endforeach
@@ -134,7 +179,12 @@
             <!-- Student List with Assessments -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <h3 class="text-lg font-semibold mb-4">Student Assessments</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Student Assessments Overview</h3>
+                        <div class="text-sm text-gray-600">
+                            Individual grading links below are for <strong>detailed feedback</strong> - use <strong>Bulk Grading</strong> above for efficiency
+                        </div>
+                    </div>
                     
                     @if($moduleInstance->studentEnrolments->count() > 0)
                         <div class="overflow-x-auto">
@@ -224,7 +274,11 @@
                                                                 {{ $assessment->submission_date?->format('d M') }}
                                                             </div>
                                                             <a href="{{ route('assessments.grade', $assessment) }}" 
-                                                               class="text-xs bg-orange-500 hover:bg-orange-700 text-white px-2 py-1 rounded mt-1 inline-block">
+                                                               class="text-xs bg-orange-500 hover:bg-orange-700 text-white px-2 py-1 rounded mt-1 inline-flex items-center">
+                                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                                </svg>
                                                                 Grade Now
                                                             </a>
                                                         @elseif($assessment->due_date->isPast())
@@ -245,8 +299,19 @@
                                                         
                                                         @if($assessment->status !== 'submitted' || $assessment->grade !== null)
                                                             <a href="{{ route('assessments.grade', $assessment) }}" 
-                                                               class="text-xs bg-blue-500 hover:bg-blue-700 text-white px-2 py-1 rounded mt-1 inline-block">
-                                                                {{ $assessment->grade !== null ? 'Edit' : 'Grade' }}
+                                                               class="text-xs bg-gray-500 hover:bg-gray-700 text-white px-2 py-1 rounded mt-1 inline-flex items-center">
+                                                                @if($assessment->grade !== null)
+                                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                                    </svg>
+                                                                    Edit Details
+                                                                @else
+                                                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                                                    </svg>
+                                                                    Individual Grade
+                                                                @endif
                                                             </a>
                                                         @endif
                                                     @else
@@ -422,6 +487,89 @@
             } catch (error) {
                 console.error('Toggle final grade visibility error:', error);
                 alert('Failed to update final grade visibility. Please try again.');
+            }
+        }
+
+        // Bulk visibility action
+        async function bulkVisibilityAction(moduleInstanceId, assessmentComponentId, action) {
+            const actionText = action === 'show_all' ? 'show all grades' : 'hide all grades';
+            if (!confirm(`Are you sure you want to ${actionText} for this assessment? This will affect all graded students.`)) {
+                return;
+            }
+
+            // Find the button that was clicked and add loading state
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = `
+                <svg class="w-3 h-3 mr-1 animate-spin" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Processing...
+            `;
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || 
+                             document.querySelector('input[name="_token"]')?.value;
+            
+            if (!csrfToken) {
+                alert('Security token not found. Please refresh the page and try again.');
+                button.disabled = false;
+                button.innerHTML = originalContent;
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('action', action);
+                formData.append('notes', `Bulk visibility action: ${action}`);
+                formData.append('_token', csrfToken);
+                
+                const response = await fetch(`/assessments/module-instances/${moduleInstanceId}/components/${assessmentComponentId}/bulk-visibility`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success || response.status === 200) {
+                        // Success - show temporary feedback then reload
+                        button.innerHTML = `
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Success!
+                        `;
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        throw new Error(result.message || 'Failed to update visibility');
+                    }
+                } else {
+                    let errorMessage = 'Failed to update visibility. Please try again.';
+                    try {
+                        const errorResult = await response.json();
+                        errorMessage = errorResult.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = `Error ${response.status}: ${response.statusText}`;
+                    }
+                    throw new Error(errorMessage);
+                }
+            } catch (error) {
+                console.error('Bulk visibility action error:', error);
+                console.error('Request URL:', `/assessments/module-instances/${moduleInstanceId}/components/${assessmentComponentId}/bulk-visibility`);
+                console.error('Assessment Component ID:', assessmentComponentId);
+                alert(error.message || 'Network error occurred. Please check your connection and try again.');
+                
+                // Restore button state
+                button.disabled = false;
+                button.innerHTML = originalContent;
             }
         }
 

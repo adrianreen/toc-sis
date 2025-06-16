@@ -292,8 +292,9 @@
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-blue-700">
-                                <strong>Quick Help:</strong> Click "Grade Students" to access the detailed grading interface for each module. 
-                                You can grade individual assessments or use bulk grading for efficiency. Students will automatically 
+                                <strong>Quick Help:</strong> Click "Grade Students" to access the grading interface for each module. 
+                                <strong>Use Bulk Grading (recommended)</strong> for efficient grading of multiple students at once, 
+                                or use individual grading when you need detailed feedback. Students will automatically 
                                 see their results and final grades once you complete grading.
                             </p>
                         </div>

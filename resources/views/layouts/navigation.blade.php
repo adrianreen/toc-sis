@@ -497,7 +497,8 @@
 
     <!-- Mobile menu -->
     <div x-show="open" x-cloak class="lg:hidden">
-        <div class="px-4 pt-4 pb-6 space-y-3 bg-white border-t border-gray-200">
+        <div class="px-4 pt-4 pb-6 space-y-2 bg-white border-t border-gray-200 max-h-[70vh] overflow-y-auto">
+            <!-- Dashboard -->
             <a href="{{ route('dashboard') }}" 
                class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('dashboard') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                 <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -508,38 +509,217 @@
             </a>
 
             @if(Auth::check() && in_array(Auth::user()->role, ['manager', 'student_services']))
-            <a href="{{ route('enquiries.index') }}" 
-               class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('enquiries.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
-                <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Enquiries
-            </a>
-            
+            <!-- Students -->
             <a href="{{ route('students.index') }}" 
                class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('students.*') && !request()->routeIs('students.recycle-bin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
                 <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
-                    <path d="m22 21-3-3m0 0a2 2 0 0 0 0-4 2 2 0 0 0 0 4z"/>
                 </svg>
                 Students
             </a>
-            
-            <a href="{{ route('students.recycle-bin') }}" 
-               class="flex items-center px-4 py-3 rounded-lg text-base font-medium transition-colors duration-200 {{ request()->routeIs('students.recycle-bin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
-                <svg class="w-5 h-5 mr-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M3 6h18"/>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c0-1 1-2 2-2v2"/>
-                    <line x1="10" x2="10" y1="11" y2="17"/>
-                    <line x1="14" x2="14" y1="11" y2="17"/>
-                </svg>
-                🗑️ Recycle Bin
-            </a>
+
+            <!-- Student Services Section -->
+            <div class="border-l-2 border-purple-200 pl-4 ml-2 space-y-1">
+                <div class="text-xs font-semibold text-purple-600 uppercase tracking-wide px-4 py-2">Student Services</div>
+                
+                <a href="{{ route('enquiries.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('enquiries.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Enquiries
+                </a>
+                
+                <a href="{{ route('deferrals.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('deferrals.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12,6 12,12 16,14"/>
+                    </svg>
+                    Deferrals
+                </a>
+                
+                <a href="{{ route('students.recycle-bin') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('students.recycle-bin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c0-1 1-2 2-2v2"/>
+                        <line x1="10" x2="10" y1="11" y2="17"/>
+                        <line x1="14" x2="14" y1="11" y2="17"/>
+                    </svg>
+                    Student Recycle Bin
+                </a>
+            </div>
             @endif
 
-            <!-- Add more mobile items as needed -->
+            @if(Auth::check() && in_array(Auth::user()->role, ['manager','student_services', 'teacher']))
+            <!-- Assessment Management Section -->
+            <div class="border-l-2 border-green-200 pl-4 ml-2 space-y-1 mt-4">
+                <div class="text-xs font-semibold text-green-600 uppercase tracking-wide px-4 py-2">Assessment Management</div>
+                
+                <a href="{{ route('assessments.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('assessments.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                        <path d="m9 14 2 2 4-4"/>
+                    </svg>
+                    Grade Management
+                </a>
+                
+                <a href="{{ route('extensions.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('extensions.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M8 2v4"/>
+                        <path d="M16 2v4"/>
+                        <rect width="18" height="18" x="3" y="4" rx="2"/>
+                        <path d="M3 10h18"/>
+                        <path d="m9 16 2 2 4-4"/>
+                    </svg>
+                    Extensions (Legacy)
+                </a>
+                
+                <a href="{{ route('extension-requests.staff-index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('extension-requests.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        <path d="M12 6v6m0 0v6"/>
+                    </svg>
+                    Extension Requests
+                </a>
+            </div>
+            @endif
+
+            @if(Auth::check() && Auth::user()->role === 'manager')
+            <!-- Administration Section -->
+            <div class="border-l-2 border-indigo-200 pl-4 ml-2 space-y-1 mt-4">
+                <div class="text-xs font-semibold text-indigo-600 uppercase tracking-wide px-4 py-2">Administration</div>
+                
+                <a href="{{ route('programmes.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('programmes.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                    </svg>
+                    Programmes
+                </a>
+                
+                <a href="{{ route('cohorts.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('cohorts.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 21a8 8 0 0 0-16 0"/>
+                        <circle cx="10" cy="8" r="5"/>
+                        <path d="m21 8-2 2-1.5-1.5L21 8z"/>
+                    </svg>
+                    Cohorts
+                </a>
+                
+                <a href="{{ route('modules.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('modules.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    Modules
+                </a>
+                
+                <a href="{{ route('module-instances.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('module-instances.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/>
+                        <path d="M22 17.65c0 .42-.2.8-.53 1.05L12.83 22a2 2 0 0 1-1.66 0L2.53 18.7A1.33 1.33 0 0 1 2 17.65"/>
+                        <path d="M22 12.65c0 .42-.2.8-.53 1.05L12.83 17a2 2 0 0 1-1.66 0L2.53 13.7A1.33 1.33 0 0 1 2 12.65"/>
+                    </svg>
+                    Module Instances
+                </a>
+                
+                <!-- System & Tools -->
+                <div class="border-t border-gray-100 my-2 pt-2">
+                    <a href="{{ route('notifications.admin') }}" 
+                       class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('notifications.admin', 'notifications.announcement') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                        </svg>
+                        System Messages
+                    </a>
+                    
+                    @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                    <a href="{{ route('admin.email-templates.index') }}" 
+                       class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('admin.email-templates.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M4 6l16 0"/>
+                            <path d="M4 12l16 0"/>
+                            <path d="M4 18l7 0"/>
+                            <path d="M16 18l4 0"/>
+                        </svg>
+                        Email Templates
+                    </a>
+                    @endif
+                    
+                    <a href="{{ route('reports.dashboard') }}" 
+                       class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('reports.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M3 3v18h18"/>
+                            <path d="m19 9-5 5-4-4-3 3"/>
+                        </svg>
+                        Reports & Analytics
+                    </a>
+                    
+                    @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                    <a href="{{ route('moodle.index') }}" 
+                       class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('moodle.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900' }}">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="m2 17 10 5 10-5"/>
+                            <path d="m2 12 10 5 10-5"/>
+                        </svg>
+                        Moodle Integration
+                    </a>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            <!-- Mobile Profile Section -->
+            <div class="border-t border-gray-200 pt-4 mt-6">
+                <div class="px-4">
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="h-10 w-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                            {{ substr(Auth::user()->name, 0, 1) }}
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-gray-900">{{ Auth::user()->name }}</div>
+                            <div class="text-xs text-gray-600 font-medium">{{ ucfirst(str_replace('_', ' ', Auth::user()->role)) }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <a href="{{ route('notifications.index') }}" class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-150">
+                            <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                                <path d="m13.73 21a2 2 0 0 1-3.46 0"/>
+                            </svg>
+                            Notifications
+                            @if(Auth::user()->getUnreadNotificationCount() > 0)
+                                <span class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{{ Auth::user()->getUnreadNotificationCount() }}</span>
+                            @endif
+                        </a>
+                        
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="flex items-center w-full px-3 py-2 text-sm text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-150">
+                                <svg class="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                    <polyline points="16,17 21,12 16,7"/>
+                                    <line x1="21" x2="9" y1="12" y2="12"/>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
