@@ -49,10 +49,24 @@ class NotificationController extends Controller
      */
     public function markAllAsRead()
     {
+        $updatedCount = auth()->user()->unreadNotifications()->count();
+        
         auth()->user()->unreadNotifications()->update([
             'is_read' => true,
             'read_at' => now()
         ]);
+
+        // Clear the cached unread count
+        \Cache::forget("unread_notifications_" . auth()->id());
+
+        // Return JSON for AJAX requests
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Marked {$updatedCount} notifications as read.",
+                'updated_count' => $updatedCount
+            ]);
+        }
 
         return redirect()->back()->with('success', 'All notifications marked as read.');
     }

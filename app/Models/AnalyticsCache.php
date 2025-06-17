@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\Carbon;
+
+class AnalyticsCache extends Model
+{
+    use HasFactory;
+
+    protected $table = 'analytics_cache';
+
+    protected $fillable = [
+        'cache_key',
+        'cache_data',
+        'expires_at',
+    ];
+
+    protected $casts = [
+        'cache_data' => 'array',
+        'expires_at' => 'datetime',
+    ];
+
+    /**
+     * Get cached data by key if not expired
+     */
+    public static function getCached($key)
+    {
+        $cache = self::where('cache_key', $key)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        return $cache ? $cache->cache_data : null;
+    }
+
+    /**
+     * Store data in cache with expiration
+     */
+    public static function setCached($key, $data, $expiresInMinutes = 60)
+    {
+        return self::updateOrCreate(
+            ['cache_key' => $key],
+            [
+                'cache_data' => $data,
+                'expires_at' => now()->addMinutes($expiresInMinutes),
+            ]
+        );
+    }
+
+    /**
+     * Clear expired cache entries
+     */
+    public static function clearExpired()
+    {
+        return self::where('expires_at', '<', now())->delete();
+    }
+
+    /**
+     * Clear cache for specific key
+     */
+    public static function clearKey($key)
+    {
+        return self::where('cache_key', $key)->delete();
+    }
+
+    /**
+     * Clear all cache
+     */
+    public static function clearAll()
+    {
+        return self::truncate();
+    }
+}

@@ -23,12 +23,12 @@
                             
                             <div>
                                 <label class="text-sm font-medium text-gray-500">Full Name</label>
-                                <p class="mt-1 text-lg text-gray-900">{{ $student->full_name }}</p>
+                                <p class="mt-1 text-lg text-gray-900 break-words">{{ $student->full_name }}</p>
                             </div>
                             
-                            <div>
+                            <div class="md:col-span-2">
                                 <label class="text-sm font-medium text-gray-500">Email Address</label>
-                                <p class="mt-1 text-gray-900">{{ $student->email }}</p>
+                                <p class="mt-1 text-gray-900 break-all">{{ $student->email }}</p>
                             </div>
                             
                             @if($student->phone)
@@ -119,12 +119,17 @@
                     </div>
 
                     <!-- Support Information -->
-                    <div class="bg-blue-50 rounded-xl p-6">
+                    <div class="bg-blue-50 rounded-xl p-6 overflow-hidden">
                         <h3 class="text-lg font-semibold text-blue-900 mb-3">Need Help?</h3>
                         <p class="text-sm text-blue-700 mb-4">If you notice any errors in your information or need to update your details, please contact Student Services.</p>
-                        <div class="text-sm text-blue-600">
+                        <div class="text-sm text-blue-600 space-y-1">
                             <p class="font-medium">Student Services</p>
-                            <p>Email: studentservices@theopencollege.com</p>
+                            <div class="break-words overflow-wrap-anywhere">
+                                <span class="text-blue-600">Email: </span>
+                                <a href="mailto:studentservices@theopencollege.com" class="text-blue-700 hover:text-blue-800 underline break-all">
+                                    studentservices@theopencollege.com
+                                </a>
+                            </div>
                             <p>Phone: (01) 495 2028</p>
                         </div>
                     </div>

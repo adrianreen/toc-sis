@@ -411,62 +411,109 @@
                     <div x-show="open" 
                          x-cloak
                          x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="transform opacity-0 scale-95"
-                         x-transition:enter-end="transform opacity-100 scale-100"
-                         x-transition:leave="transition ease-in duration-100"
-                         x-transition:leave-start="transform opacity-100 scale-100"
-                         x-transition:leave-end="transform opacity-0 scale-95"
+                         x-transition:enter-start="transform opacity-0 scale-95 translate-y-1"
+                         x-transition:enter-end="transform opacity-100 scale-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="transform opacity-100 scale-100 translate-y-0"
+                         x-transition:leave-end="transform opacity-0 scale-95 translate-y-1"
                          @click.away="open = false"
-                         class="absolute right-0 mt-3 w-64 rounded-xl shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-gray-100">
+                         class="absolute right-0 mt-3 w-72 rounded-xl shadow-2xl bg-white ring-1 ring-slate-200 focus:outline-none z-50 overflow-hidden">
                         
                         <!-- Profile Header -->
-                        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-blue-50">
+                        <div class="px-5 py-6 bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200">
                             <div class="flex items-center space-x-3">
-                                <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                                <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
                                     {{ substr(Auth::user()->name, 0, 1) }}
                                 </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900">{{ Auth::user()->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
-                                    <p class="text-xs text-purple-600 font-medium">{{ ucfirst(str_replace('_', ' ', Auth::user()->role)) }}</p>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-bold text-slate-900 truncate">
+                                        {{ Auth::user()->name }}
+                                    </h3>
+                                    <p class="text-xs text-slate-600 font-medium truncate">
+                                        {{ Auth::user()->email }}
+                                    </p>
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-toc-100 text-toc-800">
+                                            {{ ucfirst(str_replace('_', ' ', Auth::user()->role)) }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Menu Items -->
-                        <div class="py-2">
-                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
-                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                                    <circle cx="12" cy="7" r="4"/>
-                                </svg>
-                                Your Profile
-                            </a>
-                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
-                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M12 1v6m0 6v6"/>
-                                    <path d="m21 12-6-6-6 6-6-6"/>
-                                </svg>
-                                Account Settings
-                            </a>
-                            <a href="#" class="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150">
-                                <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="m9 12 2 2 4-4"/>
-                                </svg>
-                                Help & Support
-                            </a>
-                            <div class="border-t border-gray-100 my-2"></div>
+                        <div class="p-3">
+                            <div class="space-y-1">
+                                @if(Auth::user()->role === 'student')
+                                    <!-- Student Profile Link -->
+                                    <a href="{{ route('students.profile') }}" class="group flex items-center px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 rounded-lg">
+                                        <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-toc-100 mr-3 transition-colors">
+                                            <svg class="w-4 h-4 text-slate-600 group-hover:text-toc-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                                <circle cx="12" cy="7" r="4"/>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium text-slate-900">My Profile</span>
+                                    </a>
+                                @else
+                                    <!-- Staff Profile (placeholder for future implementation) -->
+                                    <a href="#" class="group flex items-center px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 rounded-lg">
+                                        <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-slate-200 mr-3 transition-colors">
+                                            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                                <circle cx="12" cy="7" r="4"/>
+                                            </svg>
+                                        </div>
+                                        <span class="font-medium text-slate-900">My Profile</span>
+                                    </a>
+                                @endif
+
+                                <!-- Notifications -->
+                                <a href="{{ route('notifications.index') }}" class="group flex items-center px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 rounded-lg">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-blue-100 mr-3 transition-colors relative">
+                                        <svg class="w-4 h-4 text-slate-600 group-hover:text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                                            <path d="m13.73 21a2 2 0 0 1-3.46 0"/>
+                                        </svg>
+                                        @if(Auth::user()->getUnreadNotificationCount() > 0)
+                                            <span class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full ring-2 ring-white"></span>
+                                        @endif
+                                    </div>
+                                    <span class="font-medium text-slate-900 flex-1">Notifications</span>
+                                    @if(Auth::user()->getUnreadNotificationCount() > 0)
+                                        <span class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold shadow-sm">
+                                            {{ Auth::user()->getUnreadNotificationCount() }}
+                                        </span>
+                                    @endif
+                                </a>
+
+                                <!-- Help & Support -->
+                                <a href="mailto:support@theopencollege.com" class="group flex items-center px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 rounded-lg">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 group-hover:bg-emerald-100 mr-3 transition-colors">
+                                        <svg class="w-4 h-4 text-slate-600 group-hover:text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 16v-4"/>
+                                            <path d="M12 8h.01"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-medium text-slate-900">Help & Support</span>
+                                </a>
+                            </div>
+
+                            <div class="border-t border-slate-200 my-3"></div>
+                            
+                            <!-- Sign Out -->
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit" class="flex items-center w-full px-4 py-3 text-sm text-red-700 hover:bg-red-50 transition-colors duration-150">
-                                    <svg class="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                                        <polyline points="16,17 21,12 16,7"/>
-                                        <line x1="21" x2="9" y1="12" y2="12"/>
-                                    </svg>
-                                    Sign Out
+                                <button type="submit" class="group flex items-center w-full px-3 py-2.5 text-sm text-red-700 hover:bg-red-50 hover:text-red-800 transition-all duration-200 rounded-lg">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 group-hover:bg-red-200 mr-3 transition-colors">
+                                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                            <polyline points="16,17 21,12 16,7"/>
+                                            <line x1="21" x2="9" y1="12" y2="12"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-medium text-red-900">Sign Out</span>
                                 </button>
                             </form>
                         </div>

@@ -19,6 +19,7 @@ use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\TranscriptController;
 use App\Http\Controllers\EmailTemplateController;
 use App\Http\Controllers\StudentEmailController;
+use App\Http\Controllers\AnalyticsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -250,6 +251,19 @@ Route::get('/my-progress', function () {
         Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
         Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
         Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
+        
+        // Analytics API routes
+        Route::prefix('api/analytics')->name('analytics.')->group(function () {
+            Route::get('system-overview', [AnalyticsController::class, 'systemOverview'])->name('system-overview');
+            Route::get('student-performance', [AnalyticsController::class, 'studentPerformance'])->name('student-performance');
+            Route::get('programme-effectiveness', [AnalyticsController::class, 'programmeEffectiveness'])->name('programme-effectiveness');
+            Route::get('assessment-completion', [AnalyticsController::class, 'assessmentCompletion'])->name('assessment-completion');
+            Route::get('student-engagement', [AnalyticsController::class, 'studentEngagement'])->name('student-engagement');
+            Route::get('chart-data/{type}', [AnalyticsController::class, 'chartData'])->name('chart-data');
+            Route::get('historical-metrics', [AnalyticsController::class, 'historicalMetrics'])->name('historical-metrics');
+            Route::post('refresh-cache', [AnalyticsController::class, 'refreshCache'])->name('refresh-cache');
+            Route::post('clear-expired-cache', [AnalyticsController::class, 'clearExpiredCache'])->name('clear-expired-cache');
+        });
     });
 
     // =================================================================
