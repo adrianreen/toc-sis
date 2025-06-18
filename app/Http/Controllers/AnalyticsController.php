@@ -24,7 +24,15 @@ class AnalyticsController extends Controller
             $data = $this->analyticsService->getSystemOverview();
             return response()->json($data);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get system overview'], 500);
+            \Log::error('Analytics system overview error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to get system overview',
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
     }
 
@@ -101,7 +109,17 @@ class AnalyticsController extends Controller
             
             return response()->json($data);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get chart data'], 500);
+            \Log::error('Analytics chart data error', [
+                'type' => $type,
+                'options' => $options,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Failed to get chart data',
+                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
     }
 

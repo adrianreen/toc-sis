@@ -276,6 +276,84 @@ class NotificationService
         );
     }
 
+    public function notifyRepeatAssessmentRequired(User $user, $repeatAssessment): void
+    {
+        $this->createNotification(
+            $user,
+            'repeat_assessment_required',
+            'Repeat Assessment Required',
+            "You need to complete a repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name}. " .
+            "Payment of €{$repeatAssessment->payment_amount} is required before you can proceed.",
+            route('students.assessments'), // Student assessment view route
+            [
+                'repeat_assessment_id' => $repeatAssessment->id,
+                'assessment_name' => $repeatAssessment->studentAssessment->assessmentComponent->name,
+                'module_name' => $repeatAssessment->moduleInstance->module->name,
+                'payment_amount' => $repeatAssessment->payment_amount,
+                'due_date' => $repeatAssessment->repeat_due_date->format('Y-m-d'),
+                'deadline_date' => $repeatAssessment->deadline_date->format('Y-m-d'),
+            ]
+        );
+    }
+
+    public function notifyRepeatAssessmentPaymentReceived(User $user, $repeatAssessment): void
+    {
+        $this->createNotification(
+            $user,
+            'repeat_assessment_payment_received',
+            'Repeat Assessment Payment Received',
+            "Your payment for the repeat assessment of {$repeatAssessment->studentAssessment->assessmentComponent->name} has been received. " .
+            "Your repeat assessment will be set up shortly.",
+            route('students.assessments'),
+            [
+                'repeat_assessment_id' => $repeatAssessment->id,
+                'assessment_name' => $repeatAssessment->studentAssessment->assessmentComponent->name,
+                'payment_amount' => $repeatAssessment->payment_amount,
+                'payment_method' => $repeatAssessment->payment_method,
+            ]
+        );
+    }
+
+    public function notifyRepeatAssessmentReady(User $user, $repeatAssessment): void
+    {
+        $this->createNotification(
+            $user,
+            'repeat_assessment_ready',
+            'Repeat Assessment Ready',
+            "Your repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name} is now ready. " .
+            "You can access it through your student portal.",
+            route('students.assessments'),
+            [
+                'repeat_assessment_id' => $repeatAssessment->id,
+                'assessment_name' => $repeatAssessment->studentAssessment->assessmentComponent->name,
+                'due_date' => $repeatAssessment->repeat_due_date->format('Y-m-d'),
+                'moodle_course_id' => $repeatAssessment->moodle_course_id,
+            ]
+        );
+    }
+
+    public function notifyRepeatAssessmentReminderStaff(User $staffUser, $repeatAssessment): void
+    {
+        $studentName = $repeatAssessment->student->full_name;
+        $assessmentName = $repeatAssessment->studentAssessment->assessmentComponent->name;
+        
+        $this->createNotification(
+            $staffUser,
+            'repeat_assessment_reminder_staff',
+            'Repeat Assessment Action Required',
+            "Repeat assessment for {$studentName} - {$assessmentName} requires attention. " .
+            "Status: {$repeatAssessment->workflow_stage}, Priority: {$repeatAssessment->priority_level}",
+            route('repeat-assessments.show', $repeatAssessment),
+            [
+                'repeat_assessment_id' => $repeatAssessment->id,
+                'student_name' => $studentName,
+                'assessment_name' => $assessmentName,
+                'workflow_stage' => $repeatAssessment->workflow_stage,
+                'priority_level' => $repeatAssessment->priority_level,
+                'deadline_date' => $repeatAssessment->deadline_date->format('Y-m-d'),
+            ]
+        );
+    }
 
     public function initializeUserPreferences(User $user): void
     {

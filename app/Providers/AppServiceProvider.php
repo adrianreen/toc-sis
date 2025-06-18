@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Event;                       // <- the missing on
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Azure\Provider as AzureProvider;
 
+// Observer imports
+use App\Models\StudentAssessment;
+use App\Observers\StudentAssessmentObserver;
+
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
@@ -19,6 +23,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Register model observers
+        StudentAssessment::observe(StudentAssessmentObserver::class);
+        
         Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event) {
             $event->extendSocialite('azure', AzureProvider::class);
         });

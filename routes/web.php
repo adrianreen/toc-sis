@@ -28,6 +28,7 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+
 // Azure AD authentication
 Route::get('/login', [AzureController::class, 'redirect'])->name('login');
 Route::get('/callback', [AzureController::class, 'callback']);
@@ -194,9 +195,40 @@ Route::get('/my-progress', function () {
         
         // Repeat Assessment routes
         Route::get('repeat-assessments', [RepeatAssessmentController::class, 'index'])->name('repeat-assessments.index');
-        Route::get('students/{student}/repeat-assessments/create', [RepeatAssessmentController::class, 'create'])->name('repeat-assessments.create');
-        Route::post('students/{student}/repeat-assessments', [RepeatAssessmentController::class, 'store'])->name('repeat-assessments.store');
+        Route::get('repeat-assessments/create', [RepeatAssessmentController::class, 'create'])->name('repeat-assessments.create');
+        Route::get('repeat-assessments/{repeatAssessment}', [RepeatAssessmentController::class, 'show'])->name('repeat-assessments.show');
+        Route::get('repeat-assessments/{repeatAssessment}/edit', [RepeatAssessmentController::class, 'edit'])->name('repeat-assessments.edit');
+        Route::put('repeat-assessments/{repeatAssessment}', [RepeatAssessmentController::class, 'update'])->name('repeat-assessments.update');
+        Route::delete('repeat-assessments/{repeatAssessment}', [RepeatAssessmentController::class, 'destroy'])->name('repeat-assessments.destroy');
+        
+        // Specific student routes
+        Route::get('students/{student}/repeat-assessments/create', [RepeatAssessmentController::class, 'create'])->name('repeat-assessments.create-for-student');
+        Route::post('students/{student}/repeat-assessments', [RepeatAssessmentController::class, 'store'])->name('repeat-assessments.store-for-student');
+        Route::post('repeat-assessments', [RepeatAssessmentController::class, 'store'])->name('repeat-assessments.store');
+        
+        // Workflow management
         Route::patch('repeat-assessments/{repeatAssessment}/approve', [RepeatAssessmentController::class, 'approve'])->name('repeat-assessments.approve');
+        Route::patch('repeat-assessments/{repeatAssessment}/reject', [RepeatAssessmentController::class, 'reject'])->name('repeat-assessments.reject');
+        Route::patch('repeat-assessments/{repeatAssessment}/complete', [RepeatAssessmentController::class, 'complete'])->name('repeat-assessments.complete');
+        
+        // Payment management
+        Route::post('repeat-assessments/{repeatAssessment}/payment', [RepeatAssessmentController::class, 'recordPayment'])->name('repeat-assessments.record-payment');
+        Route::patch('repeat-assessments/{repeatAssessment}/waive-payment', [RepeatAssessmentController::class, 'waivePayment'])->name('repeat-assessments.waive-payment');
+        
+        // Notification management
+        Route::post('repeat-assessments/{repeatAssessment}/notification', [RepeatAssessmentController::class, 'sendNotification'])->name('repeat-assessments.send-notification');
+        
+        // Moodle integration
+        Route::post('repeat-assessments/{repeatAssessment}/moodle-setup', [RepeatAssessmentController::class, 'setupMoodle'])->name('repeat-assessments.setup-moodle');
+        
+        // Bulk operations
+        Route::post('repeat-assessments/bulk-action', [RepeatAssessmentController::class, 'bulkAction'])->name('repeat-assessments.bulk-action');
+        
+        // Auto-population
+        Route::post('repeat-assessments/auto-populate', [RepeatAssessmentController::class, 'autoPopulate'])->name('repeat-assessments.auto-populate');
+        
+        // API endpoints
+        Route::get('api/students/{student}/failed-assessments', [RepeatAssessmentController::class, 'getFailedAssessments'])->name('api.students.failed-assessments');
 
         // Student Assessment routes
         Route::get('assessments', [StudentAssessmentController::class, 'index'])->name('assessments.index');

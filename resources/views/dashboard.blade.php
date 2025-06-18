@@ -94,10 +94,8 @@
         @endif
     </x-slot>
 
-    <!-- Add Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
-    <div class="py-8">
+    <div class="py-8 min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Simplified Quick Actions -->
             <div class="mb-8">
@@ -108,30 +106,30 @@
                     </span>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Primary Action: View Students (Most Used) -->
-                    <a href="{{ route('students.index') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                    <a href="{{ route('students.index') }}" class="group bg-white border border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 card-enhanced">
                         <div class="flex items-center space-x-4">
-                            <div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center group-hover:bg-slate-200 transition-colors">
-                                <i data-lucide="users" class="w-5 h-5 text-slate-600"></i>
+                            <div class="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center group-hover:from-toc-100 group-hover:to-toc-200 transition-all duration-200 shadow-sm">
+                                <i data-lucide="users" class="w-6 h-6 text-slate-600 group-hover:text-toc-600 transition-colors"></i>
                             </div>
                             <div>
-                                <h3 class="font-semibold text-slate-900 text-sm">Students</h3>
-                                <p class="text-slate-500 text-xs">View & manage</p>
+                                <h3 class="font-semibold text-slate-900 text-base">Students</h3>
+                                <p class="text-slate-500 text-sm">View & manage</p>
                             </div>
                         </div>
                     </a>
 
                     @if(in_array(Auth::user()->role, ['manager', 'teacher', 'student_services']))
                         <!-- Primary Action: Assessments/Grading -->
-                        <a href="{{ route('assessments.index') }}" class="group bg-white border border-slate-200 rounded-lg p-5 hover:border-slate-300 hover:shadow-md transition-all duration-200">
+                        <a href="{{ route('assessments.index') }}" class="group bg-white border border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 card-enhanced">
                             <div class="flex items-center space-x-4">
-                                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                                    <i data-lucide="clipboard-check" class="w-5 h-5 text-blue-600"></i>
+                                <div class="w-12 h-12 bg-gradient-to-br from-toc-100 to-toc-200 rounded-xl flex items-center justify-center group-hover:from-toc-200 group-hover:to-toc-300 transition-all duration-200 shadow-sm">
+                                    <i data-lucide="clipboard-check" class="w-6 h-6 text-toc-600"></i>
                                 </div>
                                 <div>
-                                    <h3 class="font-semibold text-slate-900 text-sm">Assessments</h3>
-                                    <p class="text-slate-500 text-xs">Grading & results</p>
+                                    <h3 class="font-semibold text-slate-900 text-base">Assessments</h3>
+                                    <p class="text-slate-500 text-sm">Grading & results</p>
                                 </div>
                             </div>
                         </a>
@@ -237,11 +235,16 @@
                 @endif
             </div>
                 <!-- Recent Activity -->
-                <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
-                    <div class="p-6 border-b border-slate-200">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 card-enhanced">
+                    <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-25 to-slate-50 rounded-t-xl">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-slate-900">Recent Activity</h3>
-                            <a href="{{ route('reports.dashboard') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-gradient-to-br from-toc-100 to-toc-200 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="activity" class="w-4 h-4 text-toc-600"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold text-slate-900">Recent Activity</h3>
+                            </div>
+                            <a href="{{ route('reports.dashboard') }}" class="text-sm text-toc-600 hover:text-toc-700 font-medium transition-colors">
                                 View all →
                             </a>
                         </div>
@@ -255,20 +258,21 @@
                         @endphp
                         
                         @if($recentActivities->count() > 0)
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 @foreach($recentActivities as $activity)
-                                    <div class="flex items-start space-x-3">
+                                    <div class="flex items-start space-x-3 p-3 rounded-lg hover:bg-slate-50 transition-colors">
                                         <div class="flex-shrink-0">
-                                            <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-                                                <i data-lucide="activity" class="w-4 h-4 text-slate-500"></i>
+                                            <div class="w-8 h-8 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center shadow-sm">
+                                                <i data-lucide="activity" class="w-4 h-4 text-slate-600"></i>
                                             </div>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <p class="text-sm text-slate-900">
-                                                <span class="font-medium">{{ $activity->causer?->name ?? 'System' }}</span>
+                                            <p class="text-sm text-slate-900 leading-relaxed">
+                                                <span class="font-semibold text-toc-700">{{ $activity->causer?->name ?? 'System' }}</span>
                                                 {{ $activity->description }}
                                             </p>
-                                            <p class="text-xs text-slate-500 mt-1">
+                                            <p class="text-xs text-slate-500 mt-1.5 flex items-center">
+                                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
                                                 {{ $activity->created_at->diffForHumans() }}
                                             </p>
                                         </div>
@@ -276,20 +280,18 @@
                                 @endforeach
                             </div>
                         @else
-                            <div class="text-center py-8">
-                                <i data-lucide="activity" class="w-12 h-12 text-slate-400 mx-auto mb-4"></i>
-                                <p class="text-slate-500">No recent activity</p>
+                            <div class="text-center py-12">
+                                <div class="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                                    <i data-lucide="activity" class="w-8 h-8 text-slate-400"></i>
+                                </div>
+                                <h4 class="text-sm font-medium text-slate-900 mb-1">No recent activity</h4>
+                                <p class="text-sm text-slate-500">Activity will appear here as users interact with the system</p>
                             </div>
                         @endif
                     </div>
                 </div>
-    <!-- Initialize Lucide Icons -->
+    <!-- Student search functionality for dashboard -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            lucide.createIcons();
-        });
-
-        // Student search functionality for dashboard
         function studentSearch() {
             return {
                 search: '',

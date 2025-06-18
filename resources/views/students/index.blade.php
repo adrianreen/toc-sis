@@ -6,7 +6,7 @@
                 🗑️ Recycle Bin
             </x-button>
         @endif
-        <x-button href="{{ route('students.create') }}" variant="primary">
+        <x-button href="{{ route('students.create') }}" variant="primary" class="!bg-blue-500 !text-white">
             Add New Student
         </x-button>
     </x-slot>
@@ -24,13 +24,13 @@
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     <!-- Search Input -->
                     <div class="lg:col-span-2">
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="search" class="block text-sm font-medium text-slate-700 mb-2">
                             Search Students
                         </label>
                         <div class="relative">
                             <!-- Search Icon -->
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                             </div>
@@ -42,7 +42,7 @@
                                 name="search"
                                 value="{{ request('search') }}"
                                 placeholder="Search by name, student number, or email..."
-                                class="block w-full pl-10 pr-20 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200"
+                                class="block w-full pl-10 pr-20 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-toc-500 focus:border-toc-500 sm:text-sm transition-all duration-200"
                                 :class="loading ? 'bg-blue-50' : ''"
                                 x-model="searchTerm"
                                 @input="performFilter()"
@@ -67,7 +67,7 @@
                                     class="p-1 rounded-full hover:bg-gray-100 transition-colors"
                                     title="Clear search"
                                 >
-                                    <svg class="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="h-4 w-4 text-slate-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
                                 </button>
@@ -83,9 +83,9 @@
 
                     <!-- Status Filter -->
                     <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="status" class="block text-sm font-medium text-slate-700 mb-2">
                             <span class="flex items-center">
-                                <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 Status
@@ -97,17 +97,18 @@
                                 name="status"
                                 x-model="statusFilter"
                                 @change="performFilter()"
-                                class="block w-full py-3 pl-4 pr-10 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-gray-400 appearance-none"
+                                class="block w-full py-3 pl-4 pr-10 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-toc-500 focus:border-toc-500 transition-colors hover:border-slate-400 appearance-none"
                             >
                                 <option value="">All Statuses</option>
-                                <option value="active">✅ Active</option>
-                                <option value="enrolled">📋 Enrolled</option>
-                                <option value="deferred">⏸️ Deferred</option>
-                                <option value="completed">🎓 Completed</option>
-                                <option value="cancelled">❌ Cancelled</option>
+                                <option value="active">✓ Active</option>
+                                <option value="enrolled">👤 Enrolled</option>
+                                <option value="deferred">⏸ Deferred</option>
+                                <option value="completed">🏆 Completed</option>
+                                <option value="cancelled">✗ Cancelled</option>
+                                <option value="enquiry">? Enquiry</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </div>
@@ -116,9 +117,9 @@
 
                     <!-- Programme Filter -->
                     <div>
-                        <label for="programme" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="programme" class="block text-sm font-medium text-slate-700 mb-2">
                             <span class="flex items-center">
-                                <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                 </svg>
                                 Programme
@@ -130,7 +131,7 @@
                                 name="programme"
                                 x-model="programmeFilter"
                                 @change="performFilter()"
-                                class="block w-full py-3 pl-4 pr-10 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors hover:border-gray-400 appearance-none"
+                                class="block w-full py-3 pl-4 pr-10 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-toc-500 focus:border-toc-500 transition-colors hover:border-slate-400 appearance-none"
                             >
                                 <option value="">All Programmes</option>
                                 @foreach($programmes as $programme)
@@ -138,7 +139,7 @@
                                 @endforeach
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                 </svg>
                             </div>
@@ -154,7 +155,7 @@
                             type="button"
                             x-show="searchTerm.length > 0 || statusFilter !== '' || programmeFilter !== ''"
                             @click="clearAllFilters()"
-                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            class="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -165,14 +166,14 @@
                         <!-- Fallback static button for when no JS -->
                         @if(request()->hasAny(['search', 'status', 'programme']))
                             <a href="{{ route('students.index') }}" 
-                               class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                               class="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                x-show="false">
                                 Clear All Filters
                             </a>
                         @endif
                     </div>
                     
-                    <div class="text-sm font-medium text-gray-900" id="results-count">
+                    <div class="text-sm font-medium text-slate-900" id="results-count">
                         {{ $students->total() }} students
                         @if(request()->hasAny(['search', 'status', 'programme']))
                             <span class="text-blue-600">(filtered)</span>
@@ -186,37 +187,37 @@
         <x-card padding="none" class="overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <th scope="col" class="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-4 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 <div class="flex items-center space-x-2">
-                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
                                     <span>Actions</span>
                                 </div>
                             </th>
-                            <th scope="col" class="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-4 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Student
                             </th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Contact
                             </th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Status
                             </th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Programmes
                             </th>
-                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                 Joined
                             </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200" id="students-tbody">
                         @forelse($students as $student)
-                            <tr class="hover:bg-gray-50 transition-colors duration-200 group" 
+                            <tr class="hover:bg-slate-50 transition-colors duration-200 group" 
                                 title="Student record for {{ $student->full_name }}">
                                 
                                 <!-- Actions -->
@@ -228,9 +229,10 @@
                                             size="xs"
                                             title="Edit {{ $student->full_name }}'s information"
                                         >
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
+                                            <span class="sr-only">Edit</span>
                                         </x-button>
                                         @if(in_array(Auth::user()->role, ['manager', 'student_services']))
                                             <form method="POST" action="{{ route('students.destroy', $student) }}" 
@@ -261,24 +263,25 @@
                                             </div>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-semibold text-gray-900">{{ $student->full_name }}</div>
-                                            <div class="text-sm text-gray-500 font-mono">{{ $student->student_number }}</div>
+                                            <div class="text-sm font-semibold text-slate-900">{{ $student->full_name }}</div>
+                                            <div class="text-sm text-slate-500 font-mono">{{ $student->student_number }}</div>
                                         </div>
                                     </div>
                                 </td>
 
                                 <!-- Contact -->
                                 <td class="px-6 py-4 whitespace-nowrap cursor-pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
-                                    <div class="text-sm text-gray-900 break-all">{{ $student->email }}</div>
-                                    <div class="text-sm text-gray-500">Email</div>
+                                    <div class="text-sm text-slate-900 break-all">{{ $student->email }}</div>
+                                    <div class="text-sm text-slate-500">Email</div>
                                 </td>
 
                                 <!-- Status -->
                                 <td class="px-6 py-4 whitespace-nowrap cursor-pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
                                     <x-status-badge 
                                         :status="$student->status" 
-                                        variant="dot" 
+                                        variant="subtle" 
                                         size="sm"
+                                        icon="auto"
                                     >
                                         {{ ucfirst($student->status) }}
                                     </x-status-badge>
@@ -292,7 +295,7 @@
                                                 {{ $programme }}
                                             </span>
                                         @empty
-                                            <span class="text-gray-400 text-xs italic">
+                                            <span class="text-slate-400 text-xs italic">
                                                 No enrolments
                                             </span>
                                         @endforelse
@@ -300,18 +303,18 @@
                                 </td>
 
                                 <!-- Joined Date -->
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 cursor-pointer" onclick="window.location.href='{{ route('students.show', $student) }}'">
                                     <div>{{ $student->created_at->format('d M Y') }}</div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
                                 <td colspan="6" class="px-6 py-12 text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="mx-auto h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
                                     </svg>
-                                    <h3 class="mt-2 text-sm font-medium text-gray-900">No students found</h3>
-                                    <p class="mt-1 text-sm text-gray-500">
+                                    <h3 class="mt-2 text-sm font-medium text-slate-900">No students found</h3>
+                                    <p class="mt-1 text-sm text-slate-500">
                                         @if(request()->hasAny(['search', 'status', 'programme']))
                                             Try adjusting your search or filters.
                                         @else
@@ -332,18 +335,18 @@
                 </table>
                 
                 <!-- Show More Button (appears via JavaScript when needed) -->
-                <div id="show-more-container" class="hidden bg-gray-50 border-t border-gray-200 px-6 py-4 text-center">
+                <div id="show-more-container" class="hidden bg-slate-50 border-t border-gray-200 px-6 py-4 text-center">
                     <button 
                         type="button"
                         onclick="document.getElementById('searchForm').submit()"
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        class="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                         View All Results
                     </button>
-                    <p class="text-xs text-gray-500 mt-1">Switch to paginated view to see all results</p>
+                    <p class="text-xs text-slate-500 mt-1">Switch to paginated view to see all results</p>
                 </div>
             </div>
 
@@ -451,11 +454,11 @@
                             <tr>
                                 <td colspan="6" class="px-6 py-12 text-center">
                                     <div class="flex flex-col items-center">
-                                        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="mx-auto h-12 w-12 text-slate-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                         </svg>
-                                        <h3 class="text-sm font-medium text-gray-900 mb-1">No students found</h3>
-                                        <p class="text-sm text-gray-500 mb-4">No students match "${this.searchTerm}"</p>
+                                        <h3 class="text-sm font-medium text-slate-900 mb-1">No students found</h3>
+                                        <p class="text-sm text-slate-500 mb-4">No students match "${this.searchTerm}"</p>
                                         <button onclick="this.closest('[x-data]').__x.$data.clearSearch()" 
                                                 class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                                             Clear search and view all students
@@ -473,10 +476,10 @@
                 renderStudentRow(student) {
                     const initials = student.full_name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
                     const statusClasses = this.getStatusClasses(student.status);
-                    const dotClasses = this.getStatusDotClasses(student.status);
+                    const lucideIcon = this.getLucideIcon(student.status);
                     
                     return `
-                        <tr class="hover:bg-gray-50 transition-colors duration-200 group" 
+                        <tr class="hover:bg-slate-50 transition-colors duration-200 group" 
                             title="Student record for ${student.full_name}">
                             <td class="px-4 py-4 whitespace-nowrap text-left text-sm font-medium" onclick="event.stopPropagation()">
                                 <div class="flex items-center space-x-1">
@@ -495,18 +498,18 @@
                                         </div>
                                     </div>
                                     <div class="ml-4">
-                                        <div class="text-sm font-semibold text-gray-900">${student.full_name}</div>
-                                        <div class="text-sm text-gray-500 font-mono">${student.student_number}</div>
+                                        <div class="text-sm font-semibold text-slate-900">${student.full_name}</div>
+                                        <div class="text-sm text-slate-500 font-mono">${student.student_number}</div>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap cursor-pointer" onclick="window.location.href='/students/${student.id}'">
-                                <div class="text-sm text-gray-900 break-all">${student.email}</div>
-                                <div class="text-sm text-gray-500">Email</div>
+                                <div class="text-sm text-slate-900 break-all">${student.email}</div>
+                                <div class="text-sm text-slate-500">Email</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap cursor-pointer" onclick="window.location.href='/students/${student.id}'">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClasses}">
-                                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full ${dotClasses}"></span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${statusClasses}">
+                                    ${this.getStatusIconSvg(lucideIcon)}
                                     ${student.status.charAt(0).toUpperCase() + student.status.slice(1)}
                                 </span>
                             </td>
@@ -514,11 +517,11 @@
                                 <div class="flex flex-wrap gap-1 max-w-xs">
                                     ${student.programmes && student.programmes.length > 0 
                                         ? student.programmes.map(prog => `<span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800">${prog}</span>`).join('')
-                                        : '<span class="text-gray-400 text-xs italic">No enrolments</span>'
+                                        : '<span class="text-slate-400 text-xs italic">No enrolments</span>'
                                     }
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-pointer" onclick="window.location.href='/students/${student.id}'">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 cursor-pointer" onclick="window.location.href='/students/${student.id}'">
                                 <div>${student.created_at}</div>
                             </td>
                         </tr>
@@ -530,21 +533,45 @@
                         'active': 'bg-green-100 text-green-800',
                         'enrolled': 'bg-blue-100 text-blue-800',
                         'deferred': 'bg-yellow-100 text-yellow-800',
-                        'completed': 'bg-purple-100 text-purple-800',
-                        'cancelled': 'bg-red-100 text-red-800'
+                        'completed': 'bg-toc-100 text-toc-800',
+                        'cancelled': 'bg-red-100 text-red-800',
+                        'enquiry': 'bg-slate-100 text-slate-700'
                     };
-                    return classes[status] || 'bg-gray-100 text-gray-800';
+                    return classes[status] || 'bg-slate-100 text-slate-700';
                 },
                 
-                getStatusDotClasses(status) {
-                    const classes = {
-                        'active': 'bg-green-400',
-                        'enrolled': 'bg-blue-400',
-                        'deferred': 'bg-yellow-400',
-                        'completed': 'bg-purple-400',
-                        'cancelled': 'bg-red-400'
+                getLucideIcon(status) {
+                    const icons = {
+                        'active': 'check-circle',
+                        'enrolled': 'graduation-cap',
+                        'deferred': 'pause-circle',
+                        'completed': 'award',
+                        'cancelled': 'x-circle',
+                        'enquiry': 'help-circle',
+                        'failed': 'x-circle',
+                        'pending': 'clock',
+                        'submitted': 'upload',
+                        'graded': 'clipboard-check',
+                        'passed': 'check-circle'
                     };
-                    return classes[status] || 'bg-gray-400';
+                    return icons[status] || 'help-circle';
+                },
+
+                getStatusIconSvg(iconName) {
+                    const iconSvgs = {
+                        'check-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                        'graduation-cap': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>',
+                        'pause-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                        'award': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>',
+                        'x-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                        'help-circle': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                        'clock': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+                        'upload': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>',
+                        'clipboard-check': '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>'
+                    };
+                    
+                    const svgPath = iconSvgs[iconName] || iconSvgs['help-circle'];
+                    return `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">${svgPath}</svg>`;
                 },
                 
                 updateResultsCount(total, showing = null, hasMore = false) {

@@ -40,13 +40,26 @@ class AnalyticsCache extends Model
      */
     public static function setCached($key, $data, $expiresInMinutes = 60)
     {
-        return self::updateOrCreate(
-            ['cache_key' => $key],
-            [
-                'cache_data' => $data,
-                'expires_at' => now()->addMinutes($expiresInMinutes),
-            ]
-        );
+        try {
+            return \DB::transaction(function () use ($key, $data, $expiresInMinutes) {
+                return self::updateOrCreate(
+                    ['cache_key' => $key],
+                    [
+                        'cache_data' => $data,
+                        'expires_at' => now()->addMinutes($expiresInMinutes),
+                    ]
+                );
+            }, 3); // Retry up to 3 times on deadlock
+        } catch (\Exception $e) {
+            \Log::warning('Analytics cache write failed', [
+                'key' => $key,
+                'error' => $e->getMessage()
+            ]);
+            
+            // If cache write fails, continue without caching
+            // This prevents 500 errors on rapid refreshes
+            return null;
+        }
     }
 
     /**

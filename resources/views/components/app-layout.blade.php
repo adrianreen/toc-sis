@@ -96,5 +96,117 @@
             </div>
         </div>
     </div>
+
+    <!-- Lucide Icons - Fixed CDN -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js" defer></script>
+    <script>
+        // Firefox-compatible icon initialization
+        function initializeLucideIcons() {
+            if (typeof lucide !== 'undefined' && lucide.createIcons) {
+                try {
+                    console.log('Initializing Lucide icons...');
+                    lucide.createIcons();
+                    console.log('Lucide icons initialized successfully');
+                    return true;
+                } catch (error) {
+                    console.error('Error initializing Lucide icons:', error);
+                    return false;
+                }
+            } else {
+                console.warn('Lucide library not yet available');
+                return false;
+            }
+        }
+        
+        // Multiple initialization strategies for Firefox compatibility
+        let iconInitialized = false;
+        
+        // Strategy 1: DOM Content Loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - attempting icon init');
+            if (initializeLucideIcons()) {
+                iconInitialized = true;
+            }
+        });
+        
+        // Strategy 2: Window Load (fallback)
+        window.addEventListener('load', function() {
+            console.log('Window Load - attempting icon init');
+            if (!iconInitialized && initializeLucideIcons()) {
+                iconInitialized = true;
+            }
+        });
+        
+        // Strategy 3: Delayed initialization for Firefox (fallback)
+        setTimeout(function() {
+            if (!iconInitialized) {
+                console.log('Delayed init - attempting icon init');
+                if (initializeLucideIcons()) {
+                    iconInitialized = true;
+                }
+            }
+        }, 1000);
+        
+        // Strategy 4: Polling until icons are ready (Firefox-specific issue)
+        let pollAttempts = 0;
+        const maxPollAttempts = 20;
+        const pollInterval = setInterval(function() {
+            pollAttempts++;
+            
+            if (iconInitialized) {
+                clearInterval(pollInterval);
+                return;
+            }
+            
+            if (pollAttempts >= maxPollAttempts) {
+                console.error('Failed to initialize Lucide icons after', maxPollAttempts, 'attempts');
+                clearInterval(pollInterval);
+                return;
+            }
+            
+            if (initializeLucideIcons()) {
+                iconInitialized = true;
+                clearInterval(pollInterval);
+            }
+        }, 500);
+        
+        // Re-initialize icons when content changes (for dynamic content)
+        if (typeof MutationObserver !== 'undefined') {
+            const observer = new MutationObserver(function(mutations) {
+                let shouldReinitialize = false;
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // Check if any added nodes contain lucide icons
+                        for (let node of mutation.addedNodes) {
+                            if (node.nodeType === 1) { // Element node
+                                if (node.querySelector && node.querySelector('[data-lucide]')) {
+                                    shouldReinitialize = true;
+                                    break;
+                                }
+                                if (node.hasAttribute && node.hasAttribute('data-lucide')) {
+                                    shouldReinitialize = true;
+                                    break;  
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                if (shouldReinitialize) {
+                    setTimeout(function() {
+                        initializeLucideIcons();
+                    }, 100);
+                }
+            });
+            
+            // Start observing after a short delay
+            setTimeout(function() {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }, 1000);
+        }
+    </script>
 </body>
 </html>

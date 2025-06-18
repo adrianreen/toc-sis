@@ -29,44 +29,61 @@ class AnalyticsService
             return $cached;
         }
 
-        $data = [];
-        $startDate = now()->subMonths($months);
+        try {
+            $startDate = now()->subMonths($months);
 
-        // Get assessment completion rates by period
-        $assessmentTrends = StudentAssessment::select(
-            DB::raw('DATE_FORMAT(graded_date, "%Y-%m") as period'),
-            DB::raw('COUNT(*) as total_assessments'),
-            DB::raw('SUM(CASE WHEN status = "passed" THEN 1 ELSE 0 END) as passed_assessments'),
-            DB::raw('AVG(CASE WHEN grade IS NOT NULL THEN grade ELSE 0 END) as avg_grade')
-        )
-        ->where('graded_date', '>=', $startDate)
-        ->whereNotNull('graded_date')
-        ->groupBy('period')
-        ->orderBy('period')
-        ->get();
+            // Get assessment completion rates by period
+            $assessmentTrends = StudentAssessment::select(
+                DB::raw('DATE_FORMAT(graded_date, "%Y-%m") as period'),
+                DB::raw('COUNT(*) as total_assessments'),
+                DB::raw('SUM(CASE WHEN status = "passed" THEN 1 ELSE 0 END) as passed_assessments'),
+                DB::raw('AVG(CASE WHEN grade IS NOT NULL THEN grade ELSE 0 END) as avg_grade')
+            )
+            ->where('graded_date', '>=', $startDate)
+            ->whereNotNull('graded_date')
+            ->groupBy('period')
+            ->orderBy('period')
+            ->get();
 
-        // Get student enrollment trends
-        $enrollmentTrends = Enrolment::select(
-            DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
-            DB::raw('COUNT(*) as new_enrollments'),
-            DB::raw('SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_enrollments')
-        )
-        ->where('created_at', '>=', $startDate)
-        ->groupBy('period')
-        ->orderBy('period')
-        ->get();
+            // Get student enrollment trends
+            $enrollmentTrends = Enrolment::select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
+                DB::raw('COUNT(*) as new_enrollments'),
+                DB::raw('SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_enrollments')
+            )
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('period')
+            ->orderBy('period')
+            ->get();
 
-        $data = [
-            'assessment_trends' => $assessmentTrends,
-            'enrollment_trends' => $enrollmentTrends,
-            'period_type' => $periodType,
-            'generated_at' => now()->toISOString(),
-        ];
+            $data = [
+                'assessment_trends' => $assessmentTrends,
+                'enrollment_trends' => $enrollmentTrends,
+                'period_type' => $periodType,
+                'generated_at' => now()->toISOString(),
+            ];
 
-        // Cache for 1 hour
-        AnalyticsCache::setCached($cacheKey, $data, 60);
+            // Cache for 1 hour
+            AnalyticsCache::setCached($cacheKey, $data, 60);
 
-        return $data;
+            return $data;
+            
+        } catch (\Exception $e) {
+            Log::error('Student performance trends calculation failed', [
+                'error' => $e->getMessage(),
+                'period_type' => $periodType,
+                'months' => $months
+            ]);
+            
+            // Return empty data structure instead of failing
+            return [
+                'assessment_trends' => [],
+                'enrollment_trends' => [],
+                'period_type' => $periodType,
+                'generated_at' => now()->toISOString(),
+                'error' => 'Data temporarily unavailable'
+            ];
+        }
     }
 
     /**
@@ -76,56 +93,90 @@ class AnalyticsService
     {
         $cacheKey = 'programme_effectiveness';
         
+        // Check cache first
         $cached = AnalyticsCache::getCached($cacheKey);
         if ($cached) {
             return $cached;
         }
 
-        $programmes = Programme::with(['enrolments.student.studentModuleEnrolments.studentAssessments'])->where('is_active', true)->get();
+        try {
+            // Use raw SQL queries for better performance and to avoid memory issues
+            $programmes = Programme::where('is_active', true)->get();
+            $data = [];
 
-        $data = [];
+            foreach ($programmes as $programme) {
+                // Get enrollment statistics with single queries
+                $enrollmentStats = DB::table('enrolments')
+                    ->where('programme_id', $programme->id)
+                    ->selectRaw('
+                        COUNT(*) as total_enrollments,
+                        SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_enrollments,
+                        SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_enrollments
+                    ')
+                    ->first();
 
-        foreach ($programmes as $programme) {
-            $totalEnrolments = $programme->enrolments->count();
-            $activeEnrolments = $programme->enrolments->where('status', 'active')->count();
-            $completedEnrolments = $programme->enrolments->where('status', 'completed')->count();
+                $totalEnrolments = $enrollmentStats->total_enrollments ?? 0;
+                $activeEnrolments = $enrollmentStats->active_enrollments ?? 0;
+                $completedEnrolments = $enrollmentStats->completed_enrollments ?? 0;
+                
+                // Calculate completion rate
+                $completionRate = $totalEnrolments > 0 ? ($completedEnrolments / $totalEnrolments) * 100 : 0;
+                
+                // Get assessment performance with optimized query
+                $assessmentStats = DB::table('student_assessments')
+                    ->join('student_module_enrolments', 'student_assessments.student_module_enrolment_id', '=', 'student_module_enrolments.id')
+                    ->join('enrolments', 'student_module_enrolments.student_id', '=', 'enrolments.student_id')
+                    ->where('enrolments.programme_id', $programme->id)
+                    ->whereIn('student_assessments.status', ['graded', 'passed', 'failed'])
+                    ->whereNotNull('student_assessments.grade')
+                    ->selectRaw('
+                        COUNT(*) as total_graded,
+                        AVG(student_assessments.grade) as avg_grade,
+                        SUM(CASE WHEN student_assessments.status = "passed" THEN 1 ELSE 0 END) as passed_count
+                    ')
+                    ->first();
+
+                $totalGraded = $assessmentStats->total_graded ?? 0;
+                $avgGrade = $assessmentStats->avg_grade ?? 0;
+                $passedCount = $assessmentStats->passed_count ?? 0;
+                $passRate = $totalGraded > 0 ? ($passedCount / $totalGraded) * 100 : 0;
+
+                $data[] = [
+                    'programme_id' => $programme->id,
+                    'programme_code' => $programme->code,
+                    'programme_title' => $programme->title,
+                    'total_enrollments' => (int) $totalEnrolments,
+                    'active_enrollments' => (int) $activeEnrolments,
+                    'completed_enrollments' => (int) $completedEnrolments,
+                    'completion_rate' => round($completionRate, 2),
+                    'average_grade' => round($avgGrade, 2),
+                    'pass_rate' => round($passRate, 2),
+                ];
+            }
+
+            $result = [
+                'programmes' => $data,
+                'generated_at' => now()->toISOString(),
+            ];
+
+            // Cache for 2 hours - but don't fail if caching fails
+            AnalyticsCache::setCached($cacheKey, $result, 120);
+
+            return $result;
             
-            // Calculate completion rate
-            $completionRate = $totalEnrolments > 0 ? ($completedEnrolments / $totalEnrolments) * 100 : 0;
+        } catch (\Exception $e) {
+            Log::error('Programme effectiveness calculation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             
-            // Get assessment performance for this programme
-            $allAssessments = $programme->enrolments->flatMap(function ($enrolment) {
-                return $enrolment->student->studentModuleEnrolments->flatMap->studentAssessments;
-            });
-
-            $gradedAssessments = $allAssessments->where('status', 'graded')->where('grade', '!=', null);
-            $avgGrade = $gradedAssessments->avg('grade') ?? 0;
-            $passRate = $gradedAssessments->count() > 0 
-                ? ($gradedAssessments->where('status', 'passed')->count() / $gradedAssessments->count()) * 100 
-                : 0;
-
-            $data[] = [
-                'programme_id' => $programme->id,
-                'programme_code' => $programme->code,
-                'programme_title' => $programme->title,
-                'total_enrollments' => $totalEnrolments,
-                'active_enrollments' => $activeEnrolments,
-                'completed_enrollments' => $completedEnrolments,
-                'completion_rate' => round($completionRate, 2),
-                'average_grade' => round($avgGrade, 2),
-                'pass_rate' => round($passRate, 2),
+            // Return empty data structure instead of failing
+            return [
+                'programmes' => [],
+                'generated_at' => now()->toISOString(),
+                'error' => 'Data temporarily unavailable'
             ];
         }
-
-        $result = [
-            'programmes' => $data,
-            'generated_at' => now()->toISOString(),
-        ];
-
-        // Cache for 2 hours
-        AnalyticsCache::setCached($cacheKey, $result, 120);
-
-        return $result;
     }
 
     /**
@@ -187,45 +238,62 @@ class AnalyticsService
             return $cached;
         }
 
-        $dateFormat = $periodType === 'weekly' ? '%Y-%u' : '%Y-%m';
-        $startDate = $periodType === 'weekly' 
-            ? now()->subWeeks($periods) 
-            : now()->subMonths($periods);
+        try {
+            $dateFormat = $periodType === 'weekly' ? '%Y-%u' : '%Y-%m';
+            $startDate = $periodType === 'weekly' 
+                ? now()->subWeeks($periods) 
+                : now()->subMonths($periods);
 
-        $completionRates = StudentAssessment::select(
-            DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as period"),
-            DB::raw('COUNT(*) as total_assessments'),
-            DB::raw('SUM(CASE WHEN status IN ("graded", "passed", "failed") THEN 1 ELSE 0 END) as completed_assessments'),
-            DB::raw('SUM(CASE WHEN status = "pending" AND due_date < NOW() THEN 1 ELSE 0 END) as overdue_assessments')
-        )
-        ->where('created_at', '>=', $startDate)
-        ->groupBy('period')
-        ->orderBy('period')
-        ->get()
-        ->map(function ($item) {
-            $completionRate = $item->total_assessments > 0 
-                ? ($item->completed_assessments / $item->total_assessments) * 100 
-                : 0;
-            
-            return [
-                'period' => $item->period,
-                'total_assessments' => $item->total_assessments,
-                'completed_assessments' => $item->completed_assessments,
-                'overdue_assessments' => $item->overdue_assessments,
-                'completion_rate' => round($completionRate, 2),
+            $completionRates = StudentAssessment::select(
+                DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as period"),
+                DB::raw('COUNT(*) as total_assessments'),
+                DB::raw('SUM(CASE WHEN status IN ("graded", "passed", "failed") THEN 1 ELSE 0 END) as completed_assessments'),
+                DB::raw('SUM(CASE WHEN status = "pending" AND due_date < NOW() THEN 1 ELSE 0 END) as overdue_assessments')
+            )
+            ->where('created_at', '>=', $startDate)
+            ->groupBy('period')
+            ->orderBy('period')
+            ->get()
+            ->map(function ($item) {
+                $completionRate = $item->total_assessments > 0 
+                    ? ($item->completed_assessments / $item->total_assessments) * 100 
+                    : 0;
+                
+                return [
+                    'period' => $item->period,
+                    'total_assessments' => $item->total_assessments,
+                    'completed_assessments' => $item->completed_assessments,
+                    'overdue_assessments' => $item->overdue_assessments,
+                    'completion_rate' => round($completionRate, 2),
+                ];
+            });
+
+            $data = [
+                'completion_rates' => $completionRates,
+                'period_type' => $periodType,
+                'generated_at' => now()->toISOString(),
             ];
-        });
 
-        $data = [
-            'completion_rates' => $completionRates,
-            'period_type' => $periodType,
-            'generated_at' => now()->toISOString(),
-        ];
+            // Cache for 1 hour
+            AnalyticsCache::setCached($cacheKey, $data, 60);
 
-        // Cache for 1 hour
-        AnalyticsCache::setCached($cacheKey, $data, 60);
-
-        return $data;
+            return $data;
+            
+        } catch (\Exception $e) {
+            Log::error('Assessment completion rates calculation failed', [
+                'error' => $e->getMessage(),
+                'period_type' => $periodType,
+                'periods' => $periods
+            ]);
+            
+            // Return empty data structure instead of failing
+            return [
+                'completion_rates' => [],
+                'period_type' => $periodType,
+                'generated_at' => now()->toISOString(),
+                'error' => 'Data temporarily unavailable'
+            ];
+        }
     }
 
     /**
@@ -240,43 +308,60 @@ class AnalyticsService
             return $cached;
         }
 
-        // Get recent activity metrics
-        $thirtyDaysAgo = now()->subDays(30);
-        
-        $recentlyActive = Student::whereHas('studentModuleEnrolments.studentAssessments', function ($query) use ($thirtyDaysAgo) {
-            $query->where('updated_at', '>=', $thirtyDaysAgo);
-        })->count();
+        try {
+            // Get recent activity metrics
+            $thirtyDaysAgo = now()->subDays(30);
+            
+            $recentlyActive = Student::whereHas('studentModuleEnrolments.studentAssessments', function ($query) use ($thirtyDaysAgo) {
+                $query->where('updated_at', '>=', $thirtyDaysAgo);
+            })->count();
 
-        $totalActiveStudents = Student::where('status', 'active')->count();
-        $engagementRate = $totalActiveStudents > 0 ? ($recentlyActive / $totalActiveStudents) * 100 : 0;
+            $totalActiveStudents = Student::where('status', 'active')->count();
+            $engagementRate = $totalActiveStudents > 0 ? ($recentlyActive / $totalActiveStudents) * 100 : 0;
 
-        // Get submission patterns
-        $submissionPatterns = StudentAssessment::select(
-            DB::raw('DAYOFWEEK(submission_date) as day_of_week'),
-            DB::raw('COUNT(*) as submission_count')
-        )
-        ->where('submission_date', '>=', $thirtyDaysAgo)
-        ->whereNotNull('submission_date')
-        ->groupBy('day_of_week')
-        ->orderBy('day_of_week')
-        ->get()
-        ->mapWithKeys(function ($item) {
-            $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            return [$days[$item->day_of_week - 1] => $item->submission_count];
-        });
+            // Get submission patterns
+            $submissionPatterns = StudentAssessment::select(
+                DB::raw('DAYOFWEEK(submission_date) as day_of_week'),
+                DB::raw('COUNT(*) as submission_count')
+            )
+            ->where('submission_date', '>=', $thirtyDaysAgo)
+            ->whereNotNull('submission_date')
+            ->groupBy('day_of_week')
+            ->orderBy('day_of_week')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                return [$days[$item->day_of_week - 1] => $item->submission_count];
+            });
 
-        $data = [
-            'total_active_students' => $totalActiveStudents,
-            'recently_active_students' => $recentlyActive,
-            'engagement_rate' => round($engagementRate, 2),
-            'submission_patterns' => $submissionPatterns,
-            'generated_at' => now()->toISOString(),
-        ];
+            $data = [
+                'total_active_students' => $totalActiveStudents,
+                'recently_active_students' => $recentlyActive,
+                'engagement_rate' => round($engagementRate, 2),
+                'submission_patterns' => $submissionPatterns,
+                'generated_at' => now()->toISOString(),
+            ];
 
-        // Cache for 1 hour
-        AnalyticsCache::setCached($cacheKey, $data, 60);
+            // Cache for 1 hour
+            AnalyticsCache::setCached($cacheKey, $data, 60);
 
-        return $data;
+            return $data;
+            
+        } catch (\Exception $e) {
+            Log::error('Student engagement calculation failed', [
+                'error' => $e->getMessage()
+            ]);
+            
+            // Return empty data structure instead of failing
+            return [
+                'total_active_students' => 0,
+                'recently_active_students' => 0,
+                'engagement_rate' => 0,
+                'submission_patterns' => [],
+                'generated_at' => now()->toISOString(),
+                'error' => 'Data temporarily unavailable'
+            ];
+        }
     }
 
     /**
@@ -359,9 +444,25 @@ class AnalyticsService
     {
         $data = $this->getStudentPerformanceTrends();
         
-        $labels = $data['assessment_trends']->pluck('period')->toArray();
-        $avgGrades = $data['assessment_trends']->pluck('avg_grade')->toArray();
-        $passRates = $data['assessment_trends']->map(function ($item) {
+        // Handle error cases where data might be empty or have error
+        if (isset($data['error']) || empty($data['assessment_trends'])) {
+            return [
+                'type' => 'line',
+                'data' => [
+                    'labels' => [],
+                    'datasets' => []
+                ],
+                'error' => $data['error'] ?? 'No data available'
+            ];
+        }
+        
+        // Convert to collection if it's an array
+        $trends = collect($data['assessment_trends']);
+        
+        $labels = $trends->pluck('period')->toArray();
+        $avgGrades = $trends->pluck('avg_grade')->toArray();
+        $passRates = $trends->map(function ($item) {
+            $item = (object) $item; // Ensure it's an object
             return $item->total_assessments > 0 
                 ? ($item->passed_assessments / $item->total_assessments) * 100 
                 : 0;
@@ -416,6 +517,18 @@ class AnalyticsService
     private function formatProgrammeEffectivenessChart($options = [])
     {
         $data = $this->getProgrammeEffectiveness();
+        
+        // Handle error cases where data might be empty or have error
+        if (isset($data['error']) || empty($data['programmes'])) {
+            return [
+                'type' => 'bar',
+                'data' => [
+                    'labels' => [],
+                    'datasets' => []
+                ],
+                'error' => $data['error'] ?? 'No data available'
+            ];
+        }
         
         $labels = array_column($data['programmes'], 'programme_code');
         $completionRates = array_column($data['programmes'], 'completion_rate');
@@ -472,9 +585,25 @@ class AnalyticsService
     {
         $data = $this->getAssessmentCompletionRates();
         
-        $labels = $data['completion_rates']->pluck('period')->toArray();
-        $completionRates = $data['completion_rates']->pluck('completion_rate')->toArray();
-        $overdueRates = $data['completion_rates']->map(function ($item) {
+        // Handle error cases where data might be empty or have error
+        if (isset($data['error']) || empty($data['completion_rates'])) {
+            return [
+                'type' => 'line',
+                'data' => [
+                    'labels' => [],
+                    'datasets' => []
+                ],
+                'error' => $data['error'] ?? 'No data available'
+            ];
+        }
+        
+        // Convert to collection if it's an array
+        $rates = collect($data['completion_rates']);
+        
+        $labels = $rates->pluck('period')->toArray();
+        $completionRates = $rates->pluck('completion_rate')->toArray();
+        $overdueRates = $rates->map(function ($item) {
+            $item = (array) $item; // Ensure it's an array for access
             return $item['total_assessments'] > 0 
                 ? ($item['overdue_assessments'] / $item['total_assessments']) * 100 
                 : 0;
@@ -520,8 +649,25 @@ class AnalyticsService
     {
         $data = $this->getStudentEngagement();
         
-        $labels = array_keys($data['submission_patterns']->toArray());
-        $submissions = array_values($data['submission_patterns']->toArray());
+        // Handle error cases where data might be empty or have error
+        if (isset($data['error']) || empty($data['submission_patterns'])) {
+            return [
+                'type' => 'doughnut',
+                'data' => [
+                    'labels' => [],
+                    'datasets' => []
+                ],
+                'error' => $data['error'] ?? 'No data available'
+            ];
+        }
+        
+        // Convert to array if it's a collection, or ensure it's an array
+        $patterns = is_array($data['submission_patterns']) 
+            ? $data['submission_patterns'] 
+            : $data['submission_patterns']->toArray();
+            
+        $labels = array_keys($patterns);
+        $submissions = array_values($patterns);
 
         return [
             'type' => 'doughnut',

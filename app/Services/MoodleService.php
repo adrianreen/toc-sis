@@ -339,4 +339,135 @@ class MoodleService
             ];
         }
     }
+
+    /**
+     * Set up a Moodle course for a repeat assessment
+     */
+    public function setupRepeatAssessmentCourse($repeatAssessment): ?string
+    {
+        try {
+            $moduleInstance = $repeatAssessment->moduleInstance;
+            $student = $repeatAssessment->student;
+            $assessmentComponent = $repeatAssessment->studentAssessment->assessmentComponent;
+
+            // Check if a course already exists for this module instance
+            if ($moduleInstance->moodle_course_id) {
+                // Course exists, just enroll the student
+                $enrolled = $this->enrollStudent($student, $moduleInstance);
+                
+                if ($enrolled) {
+                    Log::info("Student enrolled in existing Moodle course for repeat assessment", [
+                        'student_id' => $student->id,
+                        'course_id' => $moduleInstance->moodle_course_id,
+                        'repeat_assessment_id' => $repeatAssessment->id
+                    ]);
+                    
+                    return $moduleInstance->moodle_course_id;
+                } else {
+                    throw new \Exception('Failed to enroll student in existing Moodle course');
+                }
+            }
+
+            // Create a new course for this repeat assessment
+            $courseName = "Repeat Assessment - {$moduleInstance->module->name} - {$assessmentComponent->name}";
+            $courseShortName = "REPEAT_{$moduleInstance->module->code}_{$repeatAssessment->id}";
+            
+            $courseData = [
+                'fullname' => $courseName,
+                'shortname' => $courseShortName,
+                'summary' => "Repeat assessment course for {$assessmentComponent->name} in {$moduleInstance->module->name}",
+                'categoryid' => config('moodle.default_category_id', 1),
+                'visible' => 1,
+                'startdate' => now()->timestamp,
+                'enddate' => $repeatAssessment->repeat_due_date->timestamp,
+            ];
+
+            $response = $this->makeRequest('core_course_create_courses', [
+                'courses' => [$courseData]
+            ]);
+
+            if (empty($response) || !isset($response[0]['id'])) {
+                throw new \Exception('Failed to create Moodle course');
+            }
+
+            $courseId = $response[0]['id'];
+
+            // Enroll the student in the new course
+            $enrolled = $this->enrollStudentInCourse($student, $courseId);
+            
+            if (!$enrolled) {
+                throw new \Exception('Failed to enroll student in new Moodle course');
+            }
+
+            // Update the module instance with the course ID for future use
+            $moduleInstance->update(['moodle_course_id' => $courseId]);
+
+            Log::info("New Moodle course created for repeat assessment", [
+                'student_id' => $student->id,
+                'course_id' => $courseId,
+                'course_name' => $courseName,
+                'repeat_assessment_id' => $repeatAssessment->id
+            ]);
+
+            return (string) $courseId;
+
+        } catch (\Exception $e) {
+            Log::error("Failed to setup Moodle course for repeat assessment", [
+                'repeat_assessment_id' => $repeatAssessment->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            throw $e;
+        }
+    }
+
+    /**
+     * Enroll a student in a specific Moodle course by course ID
+     */
+    public function enrollStudentInCourse(Student $student, int $courseId, string $role = 'student'): bool
+    {
+        try {
+            // First, ensure the user exists in Moodle
+            $moodleUserId = $this->createOrUpdateUser($student);
+            
+            if (!$moodleUserId) {
+                return false;
+            }
+
+            // Get the role ID for the specified role
+            $roleId = $this->getRoleId($role);
+            
+            if (!$roleId) {
+                Log::error("Invalid role specified for Moodle enrollment", ['role' => $role]);
+                return false;
+            }
+
+            // Enroll the user in the course
+            $response = $this->makeRequest('enrol_manual_enrol_users', [
+                'enrolments' => [[
+                    'roleid' => $roleId,
+                    'userid' => $moodleUserId,
+                    'courseid' => $courseId,
+                ]]
+            ]);
+
+            Log::info("Student enrolled in Moodle course", [
+                'student_id' => $student->id,
+                'moodle_user_id' => $moodleUserId,
+                'course_id' => $courseId,
+                'role' => $role
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("Failed to enroll student in Moodle course", [
+                'student_id' => $student->id,
+                'course_id' => $courseId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
+        }
+    }
 }

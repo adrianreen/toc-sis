@@ -70,6 +70,11 @@ class StudentAssessment extends Model
         return $this->belongsTo(User::class, 'visibility_changed_by');
     }
 
+    public function repeatAssessments()
+    {
+        return $this->hasMany(RepeatAssessment::class);
+    }
+
     // ===== VISIBILITY METHODS =====
 
     /**

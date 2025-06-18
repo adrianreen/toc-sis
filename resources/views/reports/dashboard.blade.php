@@ -163,7 +163,62 @@
 
     <!-- Analytics JavaScript -->
     <script>
-        function refreshAllAnalytics() {
+        async function refreshAllAnalytics() {
+            // Show loading state
+            const button = document.querySelector('button[onclick="refreshAllAnalytics()"]');
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Refreshing...';
+            button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-gray-400 cursor-not-allowed');
+
+            try {
+                // First, clear the server-side cache
+                const response = await fetch('/api/analytics/refresh-cache', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (response.ok) {
+                    // Show success message
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                    successMessage.textContent = 'Analytics cache cleared! Reloading...';
+                    document.body.appendChild(successMessage);
+
+                    // Wait a moment then reload the page to get fresh data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    throw new Error('Failed to refresh cache');
+                }
+            } catch (error) {
+                console.error('Error refreshing analytics:', error);
+                
+                // Show error message
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+                errorMessage.textContent = 'Failed to refresh cache. Trying component refresh...';
+                document.body.appendChild(errorMessage);
+
+                setTimeout(() => {
+                    errorMessage.remove();
+                }, 3000);
+
+                // Fallback: try to refresh components without cache clear
+                refreshAnalyticsComponents();
+                
+                // Reset button
+                button.disabled = false;
+                button.textContent = originalText;
+                button.className = button.className.replace('bg-gray-400 cursor-not-allowed', 'bg-blue-600 hover:bg-blue-700');
+            }
+        }
+
+        function refreshAnalyticsComponents() {
             // Refresh system overview
             const overviewComponent = document.querySelector('[x-data*="analyticsOverview"]');
             if (overviewComponent && overviewComponent._x_dataStack?.[0]?.loadData) {
@@ -177,16 +232,6 @@
                     component._x_dataStack[0].refreshChart();
                 }
             });
-
-            // Show success message
-            const successMessage = document.createElement('div');
-            successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-            successMessage.textContent = 'Analytics refreshed successfully!';
-            document.body.appendChild(successMessage);
-
-            setTimeout(() => {
-                successMessage.remove();
-            }, 3000);
         }
 
         // Auto-refresh every 10 minutes

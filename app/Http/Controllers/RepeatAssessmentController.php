@@ -6,45 +6,196 @@ namespace App\Http\Controllers;
 use App\Models\RepeatAssessment;
 use App\Models\StudentAssessment;
 use App\Models\Student;
+use App\Models\User;
+use App\Models\ModuleInstance;
+use App\Services\NotificationService;
+use App\Services\MoodleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RepeatAssessmentController extends Controller
 {
-    public function index()
-    {
-        $repeats = RepeatAssessment::with([
-            'student',
-            'studentAssessment.assessmentComponent',
-            'moduleInstance.module'
-        ])->latest()->paginate(20);
+    protected NotificationService $notificationService;
+    protected MoodleService $moodleService;
 
-        return view('repeat-assessments.index', compact('repeats'));
+    public function __construct(NotificationService $notificationService, MoodleService $moodleService)
+    {
+        $this->notificationService = $notificationService;
+        $this->moodleService = $moodleService;
+        
+        // Apply role middleware
+        $this->middleware(['auth', 'role:manager,student_services,teacher']);
     }
 
-    public function create(Student $student)
+    public function index(Request $request)
     {
-        // Get failed assessments
+        $query = RepeatAssessment::with([
+            'student',
+            'studentAssessment.assessmentComponent',
+            'moduleInstance.module',
+            'approvedBy',
+            'assignedTo'
+        ]);
+
+        // Apply filters
+        if ($request->filled('workflow_stage')) {
+            $query->byWorkflowStage($request->workflow_stage);
+        }
+
+        if ($request->filled('payment_status')) {
+            $query->byPaymentStatus($request->payment_status);
+        }
+
+        if ($request->filled('priority_level')) {
+            $query->byPriority($request->priority_level);
+        }
+
+        if ($request->filled('assigned_to')) {
+            $query->assignedTo($request->assigned_to);
+        }
+
+        if ($request->filled('overdue')) {
+            $query->overdue();
+        }
+
+        if ($request->filled('due_soon')) {
+            $query->dueSoon($request->due_soon ?: 7);
+        }
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('student', function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('student_number', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        // Sorting
+        $sortField = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        $repeats = $query->paginate(20)->appends($request->query());
+
+        // Get filter options
+        $workflowStages = [
+            'identified' => 'Identified',
+            'notified' => 'Student Notified',
+            'payment_pending' => 'Payment Pending',
+            'moodle_setup' => 'Moodle Setup',
+            'active' => 'Active',
+            'completed' => 'Completed',
+            'cancelled' => 'Cancelled'
+        ];
+
+        $paymentStatuses = [
+            'pending' => 'Payment Pending',
+            'paid' => 'Paid',
+            'waived' => 'Waived',
+            'overdue' => 'Overdue'
+        ];
+
+        $priorities = [
+            'low' => 'Low',
+            'medium' => 'Medium',
+            'high' => 'High',
+            'urgent' => 'Urgent'
+        ];
+
+        $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
+                     ->orderBy('name')
+                     ->get();
+
+        // Get summary statistics
+        $stats = [
+            'total' => RepeatAssessment::count(),
+            'pending_payment' => RepeatAssessment::pendingPayment()->count(),
+            'overdue' => RepeatAssessment::overdue()->count(),
+            'due_soon' => RepeatAssessment::dueSoon()->count(),
+            'active' => RepeatAssessment::byWorkflowStage('active')->count(),
+        ];
+
+        return view('repeat-assessments.index', compact(
+            'repeats', 'workflowStages', 'paymentStatuses', 'priorities', 'staff', 'stats'
+        ));
+    }
+
+    public function show(RepeatAssessment $repeatAssessment)
+    {
+        $repeatAssessment->load([
+            'student',
+            'studentAssessment.assessmentComponent',
+            'moduleInstance.module',
+            'approvedBy',
+            'assignedTo'
+        ]);
+
+        return view('repeat-assessments.show', compact('repeatAssessment'));
+    }
+
+    public function create(Student $student = null)
+    {
+        // If no student specified, show student selection
+        if (!$student) {
+            // Get students with failed assessments that don't already have repeat assessments
+            $studentsWithFailures = Student::whereHas('studentModuleEnrolments.studentAssessments', function ($query) {
+                $query->where('status', 'failed');
+            })->with(['studentModuleEnrolments.studentAssessments' => function ($query) {
+                $query->where('status', 'failed')
+                      ->with('assessmentComponent');
+            }])->get();
+
+            return view('repeat-assessments.select-student', compact('studentsWithFailures'));
+        }
+
+        // Get failed assessments for the specific student
         $failedAssessments = StudentAssessment::whereHas('studentModuleEnrolment', function ($query) use ($student) {
                 $query->where('student_id', $student->id);
             })
             ->where('status', 'failed')
+            ->whereDoesntHave('repeatAssessments') // Don't show assessments that already have repeat assessments
             ->with(['assessmentComponent.module', 'studentModuleEnrolment.moduleInstance'])
             ->get();
 
-        return view('repeat-assessments.create', compact('student', 'failedAssessments'));
+        $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
+                     ->orderBy('name')
+                     ->get();
+
+        return view('repeat-assessments.create', compact('student', 'failedAssessments', 'staff'));
     }
 
-    public function store(Request $request, Student $student)
+    public function store(Request $request, Student $student = null)
     {
         $validated = $request->validate([
+            'student_id' => $student ? 'nullable' : 'required|exists:students,id',
             'student_assessment_id' => 'required|exists:student_assessments,id',
             'reason' => 'required|string|max:1000',
             'repeat_due_date' => 'required|date|after:today',
             'cap_grade' => 'nullable|numeric|min:0|max:100',
+            'payment_amount' => 'nullable|numeric|min:0',
+            'priority_level' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])],
+            'assigned_to' => 'nullable|exists:users,id',
+            'deadline_date' => 'required|date|after:today',
+            'staff_notes' => 'nullable|string|max:2000',
+            'moodle_setup_required' => 'boolean',
         ]);
 
+        // If student not provided in URL, get from form
+        if (!$student) {
+            $student = Student::findOrFail($validated['student_id']);
+        }
+
         $assessment = StudentAssessment::findOrFail($validated['student_assessment_id']);
+
+        // Check if repeat assessment already exists for this student assessment
+        $existingRepeat = RepeatAssessment::where('student_assessment_id', $assessment->id)->first();
+        if ($existingRepeat) {
+            return back()->withErrors(['student_assessment_id' => 'A repeat assessment already exists for this assessment.']);
+        }
 
         DB::transaction(function () use ($validated, $student, $assessment) {
             // Create repeat assessment
@@ -56,6 +207,13 @@ class RepeatAssessmentController extends Controller
                 'repeat_due_date' => $validated['repeat_due_date'],
                 'cap_grade' => $validated['cap_grade'] ?? 40, // Default cap at 40%
                 'status' => 'pending',
+                'payment_amount' => $validated['payment_amount'] ?? 50.00, // Default amount
+                'priority_level' => $validated['priority_level'],
+                'assigned_to' => $validated['assigned_to'] ?? auth()->id(),
+                'deadline_date' => $validated['deadline_date'],
+                'staff_notes' => $validated['staff_notes'],
+                'workflow_stage' => 'identified',
+                'moodle_setup_status' => ($validated['moodle_setup_required'] ?? true) ? 'pending' : 'not_required',
             ]);
 
             // Create new assessment attempt
@@ -65,27 +223,372 @@ class RepeatAssessmentController extends Controller
                 'attempt_number' => $assessment->attempt_number + 1,
                 'due_date' => $validated['repeat_due_date'],
                 'status' => 'pending',
+                'is_visible' => false, // Keep hidden until approved
             ]);
 
             activity()
-                ->performedOn($student)
+                ->performedOn($repeat)
                 ->causedBy(auth()->user())
-                ->withProperties(['repeat_id' => $repeat->id])
-                ->log('Repeat assessment created for ' . $assessment->assessmentComponent->name);
+                ->withProperties([
+                    'student_id' => $student->id,
+                    'assessment_component' => $assessment->assessmentComponent->name,
+                    'module' => $assessment->assessmentComponent->module->name
+                ])
+                ->log('Repeat assessment created');
         });
 
         return redirect()->route('repeat-assessments.index')
             ->with('success', 'Repeat assessment created successfully.');
     }
 
-    public function approve(RepeatAssessment $repeat)
+    public function edit(RepeatAssessment $repeatAssessment)
     {
-        $repeat->update([
-            'status' => 'approved',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
+        $repeatAssessment->load([
+            'student',
+            'studentAssessment.assessmentComponent',
+            'moduleInstance.module'
         ]);
 
+        $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
+                     ->orderBy('name')
+                     ->get();
+
+        return view('repeat-assessments.edit', compact('repeatAssessment', 'staff'));
+    }
+
+    public function update(Request $request, RepeatAssessment $repeatAssessment)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:1000',
+            'repeat_due_date' => 'required|date',
+            'cap_grade' => 'nullable|numeric|min:0|max:100',
+            'payment_amount' => 'nullable|numeric|min:0',
+            'priority_level' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])],
+            'assigned_to' => 'nullable|exists:users,id',
+            'deadline_date' => 'required|date',
+            'staff_notes' => 'nullable|string|max:2000',
+        ]);
+
+        $repeatAssessment->update($validated);
+
+        activity()
+            ->performedOn($repeatAssessment)
+            ->causedBy(auth()->user())
+            ->log('Repeat assessment updated');
+
+        return redirect()->route('repeat-assessments.show', $repeatAssessment)
+            ->with('success', 'Repeat assessment updated successfully.');
+    }
+
+    // Payment management
+    public function recordPayment(Request $request, RepeatAssessment $repeatAssessment)
+    {
+        $validated = $request->validate([
+            'payment_method' => ['required', Rule::in(['online', 'bank_transfer', 'cheque', 'cash'])],
+            'payment_amount' => 'required|numeric|min:0',
+            'payment_notes' => 'nullable|string|max:500',
+        ]);
+
+        $repeatAssessment->markAsPaid(
+            $validated['payment_method'],
+            $validated['payment_amount'],
+            $validated['payment_notes']
+        );
+
+        return back()->with('success', 'Payment recorded successfully.');
+    }
+
+    public function waivePayment(Request $request, RepeatAssessment $repeatAssessment)
+    {
+        $validated = $request->validate([
+            'waiver_reason' => 'required|string|max:500',
+        ]);
+
+        $repeatAssessment->waivePayment($validated['waiver_reason']);
+
+        return back()->with('success', 'Payment waived successfully.');
+    }
+
+    // Notification management
+    public function sendNotification(Request $request, RepeatAssessment $repeatAssessment)
+    {
+        $validated = $request->validate([
+            'notification_method' => ['required', Rule::in(['email', 'post', 'phone', 'in_person'])],
+            'notification_notes' => 'nullable|string|max:500',
+        ]);
+
+        // Send notification via NotificationService
+        if ($validated['notification_method'] === 'email') {
+            // Use existing notification service to send email
+            $this->notificationService->notifyRepeatAssessmentRequired(
+                $repeatAssessment->student->user,
+                $repeatAssessment
+            );
+        }
+
+        $repeatAssessment->markNotificationSent(
+            $validated['notification_method'],
+            $validated['notification_notes']
+        );
+
+        return back()->with('success', 'Student notification sent successfully.');
+    }
+
+    // Moodle integration
+    public function setupMoodle(Request $request, RepeatAssessment $repeatAssessment)
+    {
+        $validated = $request->validate([
+            'moodle_course_id' => 'nullable|string|max:50',
+            'moodle_notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Use MoodleService to set up course
+            $courseId = $this->moodleService->setupRepeatAssessmentCourse($repeatAssessment);
+            
+            $repeatAssessment->markMoodleSetupComplete(
+                $courseId ?? $validated['moodle_course_id'],
+                $validated['moodle_notes']
+            );
+
+            return back()->with('success', 'Moodle course setup completed successfully.');
+        } catch (\Exception $e) {
+            $repeatAssessment->markMoodleSetupFailed($e->getMessage());
+            return back()->with('error', 'Moodle setup failed: ' . $e->getMessage());
+        }
+    }
+
+    // Workflow management
+    public function approve(RepeatAssessment $repeatAssessment)
+    {
+        $repeatAssessment->approve();
+
         return back()->with('success', 'Repeat assessment approved.');
+    }
+
+    public function reject(Request $request, RepeatAssessment $repeatAssessment)
+    {
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        $repeatAssessment->reject($validated['rejection_reason']);
+
+        return back()->with('success', 'Repeat assessment rejected.');
+    }
+
+    public function complete(RepeatAssessment $repeatAssessment)
+    {
+        $repeatAssessment->update([
+            'workflow_stage' => 'completed',
+            'status' => 'completed'
+        ]);
+
+        activity()
+            ->performedOn($repeatAssessment)
+            ->causedBy(auth()->user())
+            ->log('Repeat assessment marked as completed');
+
+        return back()->with('success', 'Repeat assessment marked as completed.');
+    }
+
+    // Bulk operations
+    public function bulkAction(Request $request)
+    {
+        $validated = $request->validate([
+            'action' => ['required', Rule::in(['assign', 'update_priority', 'send_reminders'])],
+            'repeat_assessment_ids' => 'required|array',
+            'repeat_assessment_ids.*' => 'exists:repeat_assessments,id',
+            'assigned_to' => 'nullable|exists:users,id',
+            'priority_level' => ['nullable', Rule::in(['low', 'medium', 'high', 'urgent'])],
+        ]);
+
+        $repeatAssessments = RepeatAssessment::whereIn('id', $validated['repeat_assessment_ids'])->get();
+
+        switch ($validated['action']) {
+            case 'assign':
+                $repeatAssessments->each(function ($repeat) use ($validated) {
+                    $repeat->update(['assigned_to' => $validated['assigned_to']]);
+                });
+                $message = 'Repeat assessments assigned successfully.';
+                break;
+
+            case 'update_priority':
+                $repeatAssessments->each(function ($repeat) use ($validated) {
+                    $repeat->update(['priority_level' => $validated['priority_level']]);
+                });
+                $message = 'Priority levels updated successfully.';
+                break;
+
+            case 'send_reminders':
+                $repeatAssessments->each(function ($repeat) {
+                    if (!$repeat->notification_sent) {
+                        // Send reminder notification
+                        $this->notificationService->notifyRepeatAssessmentRequired(
+                            $repeat->student->user,
+                            $repeat
+                        );
+                        $repeat->markNotificationSent('email', 'Bulk reminder sent');
+                    }
+                });
+                $message = 'Reminder notifications sent successfully.';
+                break;
+        }
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'action' => $validated['action'],
+                'count' => $repeatAssessments->count()
+            ])
+            ->log('Bulk action performed on repeat assessments');
+
+        return back()->with('success', $message);
+    }
+
+    // Auto-population of failed students
+    public function autoPopulate(Request $request)
+    {
+        $validated = $request->validate([
+            'module_instance_id' => 'nullable|exists:module_instances,id',
+            'deadline_days' => 'required|integer|min:1|max:365',
+            'payment_amount' => 'required|numeric|min:0',
+            'dry_run' => 'boolean',
+        ]);
+
+        $query = StudentAssessment::where('status', 'failed')
+            ->whereDoesntHave('repeatAssessments')
+            ->with(['studentModuleEnrolment.student', 'assessmentComponent']);
+
+        if ($validated['module_instance_id']) {
+            $query->whereHas('studentModuleEnrolment', function ($q) use ($validated) {
+                $q->where('module_instance_id', $validated['module_instance_id']);
+            });
+        }
+
+        $failedAssessments = $query->get();
+
+        if ($validated['dry_run'] ?? false) {
+            return response()->json([
+                'count' => $failedAssessments->count(),
+                'assessments' => $failedAssessments->map(function ($assessment) {
+                    return [
+                        'student_name' => $assessment->studentModuleEnrolment->student->full_name,
+                        'assessment_name' => $assessment->assessmentComponent->name,
+                        'module_name' => $assessment->assessmentComponent->module->name,
+                    ];
+                })
+            ]);
+        }
+
+        $created = 0;
+        $deadline = now()->addDays($validated['deadline_days']);
+
+        DB::transaction(function () use ($failedAssessments, $validated, $deadline, &$created) {
+            foreach ($failedAssessments as $assessment) {
+                RepeatAssessment::create([
+                    'student_assessment_id' => $assessment->id,
+                    'student_id' => $assessment->studentModuleEnrolment->student_id,
+                    'module_instance_id' => $assessment->studentModuleEnrolment->module_instance_id,
+                    'reason' => 'Auto-populated from failed assessment',
+                    'repeat_due_date' => $deadline,
+                    'cap_grade' => 40,
+                    'status' => 'pending',
+                    'payment_amount' => $validated['payment_amount'],
+                    'priority_level' => 'medium',
+                    'assigned_to' => auth()->id(),
+                    'deadline_date' => $deadline,
+                    'workflow_stage' => 'identified',
+                    'moodle_setup_status' => 'pending',
+                ]);
+                $created++;
+            }
+        });
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'created_count' => $created,
+                'deadline_days' => $validated['deadline_days'],
+                'payment_amount' => $validated['payment_amount']
+            ])
+            ->log('Auto-populated repeat assessments from failed assessments');
+
+        return back()->with('success', "Successfully created {$created} repeat assessments.");
+    }
+
+    public function destroy(RepeatAssessment $repeatAssessment)
+    {
+        // Only allow deletion if not yet approved and no payments made
+        if ($repeatAssessment->isApproved() || $repeatAssessment->isPaid()) {
+            return back()->with('error', 'Cannot delete an approved or paid repeat assessment.');
+        }
+
+        $studentName = $repeatAssessment->student->full_name;
+        $assessmentName = $repeatAssessment->studentAssessment->assessmentComponent->name;
+
+        $repeatAssessment->delete();
+
+        activity()
+            ->causedBy(auth()->user())
+            ->withProperties([
+                'student_name' => $studentName,
+                'assessment_name' => $assessmentName
+            ])
+            ->log('Repeat assessment deleted');
+
+        return redirect()->route('repeat-assessments.index')
+            ->with('success', 'Repeat assessment deleted successfully.');
+    }
+
+    /**
+     * Get failed assessments for a specific student (API endpoint)
+     */
+    public function getFailedAssessments(Student $student)
+    {
+        try {
+            $failedAssessments = StudentAssessment::with([
+                'studentModuleEnrolment.moduleInstance.module'
+            ])
+            ->whereHas('studentModuleEnrolment', function($query) use ($student) {
+                $query->where('student_id', $student->id);
+            })
+            ->where(function($query) {
+                $query->where('status', 'failed')
+                      ->orWhere(function($subQuery) {
+                          $subQuery->where('status', 'graded')
+                                   ->where('grade', '<', 40);
+                      });
+            })
+            ->whereDoesntHave('repeatAssessments') // Don't include assessments that already have repeat assessments
+            ->get()
+            ->map(function($assessment) {
+                return [
+                    'id' => $assessment->id,
+                    'module_title' => $assessment->studentModuleEnrolment->moduleInstance->module->title,
+                    'module_code' => $assessment->studentModuleEnrolment->moduleInstance->module->code,
+                    'grade' => $assessment->grade,
+                    'status' => $assessment->status,
+                    'due_date' => $assessment->due_date?->format('Y-m-d'),
+                    'graded_date' => $assessment->graded_date?->format('Y-m-d'),
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'assessments' => $failedAssessments
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to load student assessments', [
+                'student_id' => $student->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load assessments'
+            ], 500);
+        }
     }
 }

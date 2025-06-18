@@ -71,7 +71,7 @@ class AnalyticsApiTest extends TestCase
         Programme::factory()->count(1)->create(['is_active' => false]);
 
         $response = $this->actingAs($this->manager)
-            ->getJson '/api/analytics/system-overview');
+            ->getJson('/api/analytics/system-overview');
 
         $response->assertStatus(200);
         
