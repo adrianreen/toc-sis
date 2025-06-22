@@ -236,13 +236,13 @@
                      @mouseleave="open = false">
                     <button @click="open = !open" 
                             class="group relative flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                                   {{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'moodle.*') 
+                                   {{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*') 
                                       ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 
                                       : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50' }}"
-                            :class="{ 'bg-slate-100': open && !{{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'moodle.*') ? 'true' : 'false' }} }">
+                            :class="{ 'bg-slate-100': open && !{{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*') ? 'true' : 'false' }} }">
                         
                         
-                        <svg class="w-4 h-4 mr-3 {{ request()->routeIs('programmes.*', 'cohorts.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'moodle.*') ? 'text-toc-600' : 'text-slate-500 group-hover:text-slate-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 mr-3 {{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*') ? 'text-toc-600' : 'text-slate-500 group-hover:text-slate-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
                             <circle cx="12" cy="13" r="1"/>
                         </svg>
@@ -276,19 +276,17 @@
                                 </div>
                                 Programmes
                             </a>
-                            <a href="{{ route('cohorts.index') }}" 
+                            <a href="{{ route('programme-instances.index') }}" 
                                class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                                      {{ request()->routeIs('cohorts.*') 
+                                      {{ request()->routeIs('programme-instances.*') 
                                          ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 
                                          : 'text-gray-700 hover:text-slate-900 hover:bg-slate-100' }}">
-                                <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ request()->routeIs('cohorts.*') ? 'bg-blue-100' : 'bg-blue-100 group-hover:bg-blue-200' }} mr-3">
-                                    <svg class="w-4 h-4 {{ request()->routeIs('cohorts.*') ? 'text-toc-600' : 'text-toc-600' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M18 21a8 8 0 0 0-16 0"/>
-                                        <circle cx="10" cy="8" r="5"/>
-                                        <path d="m21 8-2 2-1.5-1.5L21 8z"/>
+                                <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ request()->routeIs('programme-instances.*') ? 'bg-blue-100' : 'bg-purple-100 group-hover:bg-purple-200' }} mr-3">
+                                    <svg class="w-4 h-4 {{ request()->routeIs('programme-instances.*') ? 'text-toc-600' : 'text-purple-600' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                                     </svg>
                                 </div>
-                                Cohorts
+                                Programme Instances
                             </a>
                             <a href="{{ route('modules.index') }}" 
                                class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
@@ -347,6 +345,18 @@
                                     Email Templates
                                 </a>
                             @endif
+                            <a href="{{ route('admin.system-health.dashboard') }}" 
+                               class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                                      {{ request()->routeIs('admin.system-health.*') 
+                                         ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 
+                                         : 'text-gray-700 hover:text-slate-900 hover:bg-slate-100' }}">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ request()->routeIs('admin.system-health.*') ? 'bg-blue-100' : 'bg-emerald-100 group-hover:bg-emerald-200' }} mr-3">
+                                    <svg class="w-4 h-4 {{ request()->routeIs('admin.system-health.*') ? 'text-toc-600' : 'text-emerald-600' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                System Health Dashboard
+                            </a>
                             <a href="{{ route('reports.dashboard') }}" 
                                class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
                                       {{ request()->routeIs('reports.*') 
@@ -672,14 +682,12 @@
                     Programmes
                 </a>
                 
-                <a href="{{ route('cohorts.index') }}" 
-                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('cohorts.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-slate-900' }}">
+                <a href="{{ route('programme-instances.index') }}" 
+                   class="flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {{ request()->routeIs('programme-instances.*') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-slate-900' }}">
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M18 21a8 8 0 0 0-16 0"/>
-                        <circle cx="10" cy="8" r="5"/>
-                        <path d="m21 8-2 2-1.5-1.5L21 8z"/>
+                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                     </svg>
-                    Cohorts
+                    Programme Instances
                 </a>
                 
                 <a href="{{ route('modules.index') }}" 

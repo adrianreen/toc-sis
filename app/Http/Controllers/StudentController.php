@@ -16,7 +16,7 @@ class StudentController extends Controller
     public function index(Request $request)
     {
         // Start with optimized base query
-        $query = Student::with(['enrolments.programme:id,code,title']);
+        $query = Student::with(['enrolments.programmeInstance.programme:id,title', 'enrolments.moduleInstance.module:id,module_code,title']);
         
         // Enhanced search with better performance
         if ($request->filled('search')) {
@@ -44,8 +44,8 @@ class StudentController extends Controller
         
         // Programme filter with better performance
         if ($request->filled('programme')) {
-            $query->whereHas('enrolments.programme', function($q) use ($request) {
-                $q->where('code', $request->get('programme'));
+            $query->whereHas('enrolments.programmeInstance.programme', function($q) use ($request) {
+                $q->where('id', $request->get('programme'));
             });
         }
         
@@ -71,9 +71,11 @@ class StudentController extends Controller
         $students = $query->paginate(25)->withQueryString();
         
         // Get programmes for filter dropdown with counts
-        $programmes = Programme::select('code', 'title')
-            ->withCount('enrolments')
-            ->orderBy('code')
+        $programmes = Programme::select('id', 'title')
+            ->withCount(['programmeInstances as enrolments_count' => function($query) {
+                $query->whereHas('enrolments');
+            }])
+            ->orderBy('title')
             ->get();
         
         // Return JSON for AJAX requests
@@ -87,7 +89,7 @@ class StudentController extends Controller
                         'email' => $student->email,
                         'status' => $student->status,
                         'created_at' => $student->created_at->toISOString(),
-                        'programmes' => $student->enrolments->pluck('programme.code')->unique()->values()->all()
+                        'programmes' => $student->enrolments->where('enrolment_type', 'programme')->pluck('programmeInstance.programme.title')->unique()->values()->all()
                     ];
                 }),
                 'pagination' => [
@@ -160,7 +162,7 @@ class StudentController extends Controller
      */
     public function show(Student $student)
     {
-        $student->load(['enrolments.programme', 'enrolments.cohort', 'createdBy', 'updatedBy']);
+        $student->load(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module', 'createdBy', 'updatedBy']);
         
         return view('students.show', compact('student'));
     }
@@ -274,7 +276,7 @@ class StudentController extends Controller
     public function recycleBin()
     {
         $deletedStudents = Student::onlyTrashed()
-            ->with(['enrolments.programme', 'createdBy', 'updatedBy'])
+            ->with(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module', 'createdBy', 'updatedBy'])
             ->orderBy('deleted_at', 'desc')
             ->paginate(25);
 
@@ -330,7 +332,7 @@ class StudentController extends Controller
      */
     public function search(Request $request)
     {
-        $query = Student::with(['enrolments.programme']);
+        $query = Student::with(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module']);
         
         // Get search term from either 'search' or 'q' parameter
         $search = $request->get('search') ?: $request->get('q');
@@ -349,8 +351,8 @@ class StudentController extends Controller
         }
         
         if ($request->filled('programme')) {
-            $query->whereHas('enrolments.programme', function($q) use ($request) {
-                $q->where('code', $request->get('programme'));
+            $query->whereHas('enrolments.programmeInstance.programme', function($q) use ($request) {
+                $q->where('id', $request->get('programme'));
             });
         }
         
@@ -387,7 +389,7 @@ class StudentController extends Controller
                     'full_name' => $student->full_name,
                     'email' => $student->email,
                     'status' => $student->status,
-                    'programmes' => $student->enrolments->pluck('programme.code')->unique()->values(),
+                    'programmes' => $student->enrolments->where('enrolment_type', 'programme')->pluck('programmeInstance.programme.title')->unique()->values(),
                     'created_at' => $student->created_at->format('d M Y'),
                 ];
             }),
@@ -444,4 +446,18 @@ class StudentController extends Controller
         return response()->json(['message' => 'Operation completed successfully.']);
     }
     */
+
+    /**
+     * Show student progress page
+     */
+    public function progress(Student $student)
+    {
+        $student->load([
+            'studentGradeRecords.moduleInstance.module',
+            'enrolments.programmeInstance.programme',
+            'enrolments.moduleInstance.module'
+        ]);
+
+        return view('students.progress', compact('student'));
+    }
 }

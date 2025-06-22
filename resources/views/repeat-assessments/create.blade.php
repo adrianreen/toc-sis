@@ -46,35 +46,39 @@
                             @enderror
                         </div>
 
-                        <!-- Assessment Selection -->
+                        <!-- Grade Record Selection -->
                         <div>
-                            <label for="student_assessment_id" class="block text-sm font-medium text-gray-700">Failed Assessment</label>
-                            <select name="student_assessment_id" id="student_assessment_id" 
+                            <label for="student_grade_record_id" class="block text-sm font-medium text-gray-700">Failed Grade Record</label>
+                            <select name="student_grade_record_id" id="student_grade_record_id" 
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
                                     required disabled>
                                 <option value="">Select student first...</option>
                             </select>
-                            @error('student_assessment_id')
+                            @error('student_grade_record_id')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
                     </div>
 
-                    <!-- Assessment Details Display -->
-                    <div id="assessmentDetails" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
-                        <h4 class="text-sm font-medium text-gray-900 mb-2">Assessment Details</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <!-- Grade Record Details Display -->
+                    <div id="gradeRecordDetails" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                        <h4 class="text-sm font-medium text-gray-900 mb-2">Grade Record Details</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                             <div>
                                 <span class="text-gray-500">Module:</span>
                                 <span id="moduleTitle" class="font-medium ml-1"></span>
                             </div>
                             <div>
-                                <span class="text-gray-500">Grade:</span>
-                                <span id="assessmentGrade" class="font-medium ml-1"></span>
+                                <span class="text-gray-500">Component:</span>
+                                <span id="componentName" class="font-medium ml-1"></span>
                             </div>
                             <div>
-                                <span class="text-gray-500">Status:</span>
-                                <span id="assessmentStatus" class="font-medium ml-1"></span>
+                                <span class="text-gray-500">Grade:</span>
+                                <span id="gradePercentage" class="font-medium ml-1"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Attempts:</span>
+                                <span id="attempts" class="font-medium ml-1"></span>
                             </div>
                         </div>
                     </div>
@@ -241,20 +245,20 @@
     </div>
 
     <script>
-        let assessmentData = {};
+        let gradeRecordData = {};
 
-        async function loadStudentAssessments() {
+        async function loadStudentGradeRecords() {
             const studentId = document.getElementById('student_id').value;
-            const assessmentSelect = document.getElementById('student_assessment_id');
-            const detailsDiv = document.getElementById('assessmentDetails');
+            const gradeRecordSelect = document.getElementById('student_grade_record_id');
+            const detailsDiv = document.getElementById('gradeRecordDetails');
             
             // Reset
-            assessmentSelect.innerHTML = '<option value="">Loading...</option>';
-            assessmentSelect.disabled = true;
+            gradeRecordSelect.innerHTML = '<option value="">Loading...</option>';
+            gradeRecordSelect.disabled = true;
             detailsDiv.classList.add('hidden');
             
             if (!studentId) {
-                assessmentSelect.innerHTML = '<option value="">Select student first...</option>';
+                gradeRecordSelect.innerHTML = '<option value="">Select student first...</option>';
                 return;
             }
             
@@ -262,41 +266,42 @@
                 const response = await fetch(`/api/students/${studentId}/failed-assessments`);
                 const data = await response.json();
                 
-                assessmentSelect.innerHTML = '<option value="">Select failed assessment...</option>';
+                gradeRecordSelect.innerHTML = '<option value="">Select failed grade record...</option>';
                 
                 if (data.assessments && data.assessments.length > 0) {
                     data.assessments.forEach(assessment => {
-                        assessmentData[assessment.id] = assessment;
+                        gradeRecordData[assessment.module_instance_id] = assessment;
                         const option = document.createElement('option');
-                        option.value = assessment.id;
-                        option.textContent = `${assessment.module_title} - Grade: ${assessment.grade}% (${assessment.status})`;
-                        assessmentSelect.appendChild(option);
+                        option.value = assessment.module_instance_id;
+                        option.textContent = `${assessment.module_title} - ${assessment.failed_components}/${assessment.total_components} failed (${assessment.lowest_grade}%)`;
+                        gradeRecordSelect.appendChild(option);
                     });
-                    assessmentSelect.disabled = false;
+                    gradeRecordSelect.disabled = false;
                 } else {
-                    assessmentSelect.innerHTML = '<option value="">No failed assessments found</option>';
+                    gradeRecordSelect.innerHTML = '<option value="">No failed grade records found</option>';
                 }
             } catch (error) {
-                console.error('Error loading assessments:', error);
-                assessmentSelect.innerHTML = '<option value="">Error loading assessments</option>';
+                console.error('Error loading grade records:', error);
+                gradeRecordSelect.innerHTML = '<option value="">Error loading grade records</option>';
             }
         }
 
-        document.getElementById('student_assessment_id').addEventListener('change', function() {
-            const assessmentId = this.value;
-            const detailsDiv = document.getElementById('assessmentDetails');
+        document.getElementById('student_grade_record_id').addEventListener('change', function() {
+            const moduleInstanceId = this.value;
+            const detailsDiv = document.getElementById('gradeRecordDetails');
             
-            if (assessmentId && assessmentData[assessmentId]) {
-                const assessment = assessmentData[assessmentId];
+            if (moduleInstanceId && gradeRecordData[moduleInstanceId]) {
+                const gradeRecord = gradeRecordData[moduleInstanceId];
                 
-                document.getElementById('moduleTitle').textContent = assessment.module_title;
-                document.getElementById('assessmentGrade').textContent = `${assessment.grade}%`;
-                document.getElementById('assessmentStatus').textContent = assessment.status;
+                document.getElementById('moduleTitle').textContent = gradeRecord.module_title;
+                document.getElementById('componentName').textContent = `${gradeRecord.failed_components} components failed`;
+                document.getElementById('gradePercentage').textContent = `${gradeRecord.lowest_grade}%`;
+                document.getElementById('attempts').textContent = 'Multiple';
                 
                 // Auto-populate reason if available
                 const reasonField = document.getElementById('reason');
                 if (!reasonField.value) {
-                    reasonField.value = `Failed assessment - Grade: ${assessment.grade}%`;
+                    reasonField.value = `Failed grade record - Lowest Grade: ${gradeRecord.lowest_grade}%`;
                 }
                 
                 detailsDiv.classList.remove('hidden');
@@ -305,9 +310,12 @@
             }
         });
 
-        // Load assessments if student is pre-selected (e.g., from old input)
+        // Load grade records if student is pre-selected (e.g., from old input)
         if (document.getElementById('student_id').value) {
-            loadStudentAssessments();
+            loadStudentGradeRecords();
         }
+
+        // Add event listener for student selection change
+        document.getElementById('student_id').addEventListener('change', loadStudentGradeRecords);
     </script>
 </x-app-layout>

@@ -1,60 +1,43 @@
 <?php
-// app/Models/Programme.php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Programme extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
-        'code',
         'title',
+        'awarding_body',
+        'nfq_level',
+        'total_credits',
         'description',
-        'enrolment_type',
-        'settings',
-        'is_active'
+        'learning_outcomes',
     ];
 
     protected $casts = [
-        'settings' => 'array',
-        'is_active' => 'boolean'
+        'nfq_level' => 'integer',
+        'total_credits' => 'integer',
     ];
 
-    public function cohorts()
+    public static function rules()
     {
-        return $this->hasMany(Cohort::class);
+        return [
+            'title' => 'required|string|max:255',
+            'awarding_body' => 'required|string|max:255',
+            'nfq_level' => 'required|integer|min:1|max:10',
+            'total_credits' => 'required|integer|min:1|max:600',
+            'description' => 'nullable|string',
+            'learning_outcomes' => 'nullable|string',
+        ];
     }
 
-    public function isCohortBased()
+    public function programmeInstances(): HasMany
     {
-        return $this->enrolment_type === 'cohort';
+        return $this->hasMany(ProgrammeInstance::class);
     }
-
-    public function isRolling()
-    {
-        return $this->enrolment_type === 'rolling';
-    }
-
-    public function isAcademicTerm()
-    {
-        return $this->enrolment_type === 'academic_term';
-    }
-    public function modules(): BelongsToMany
-{
-    return $this->belongsToMany(Module::class, 'programme_modules')
-        ->withPivot('sequence', 'is_mandatory')
-        ->orderBy('pivot_sequence')
-        ->withTimestamps();
-}
-
-public function enrolments(): HasMany
-{
-    return $this->hasMany(Enrolment::class);
-}
 }

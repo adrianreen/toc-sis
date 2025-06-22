@@ -25,13 +25,17 @@ class TranscriptController extends Controller
 
         // Load student data with all related information for transcript
         $student->load([
-            'enrolments.programme',
-            'enrolments.cohort',
-            'studentModuleEnrolments.moduleInstance.module',
-            'studentModuleEnrolments.moduleInstance.cohort.programme',
-            'studentModuleEnrolments.studentAssessments' => function($query) {
+            'enrolments.programmeInstance.programme',
+            'enrolments.moduleInstance.module',
+            'studentGradeRecords' => function($query) {
                 // Only show visible results
-                $query->visibleToStudents()->with('assessmentComponent');
+                $query->where(function ($q) {
+                    $q->where('is_visible_to_student', true)
+                      ->orWhere(function ($subQ) {
+                          $subQ->whereNotNull('release_date')
+                               ->where('release_date', '<=', now());
+                      });
+                })->with('moduleInstance.module');
             }
         ]);
 
@@ -73,12 +77,16 @@ class TranscriptController extends Controller
 
         // Load student data
         $student->load([
-            'enrolments.programme',
-            'enrolments.cohort',
-            'studentModuleEnrolments.moduleInstance.module',
-            'studentModuleEnrolments.moduleInstance.cohort.programme',
-            'studentModuleEnrolments.studentAssessments' => function($query) {
-                $query->visibleToStudents()->with('assessmentComponent');
+            'enrolments.programmeInstance.programme',
+            'enrolments.moduleInstance.module',
+            'studentGradeRecords' => function($query) {
+                $query->where(function ($q) {
+                    $q->where('is_visible_to_student', true)
+                      ->orWhere(function ($subQ) {
+                          $subQ->whereNotNull('release_date')
+                               ->where('release_date', '<=', now());
+                      });
+                })->with('moduleInstance.module');
             }
         ]);
 
@@ -93,46 +101,76 @@ class TranscriptController extends Controller
      */
     private function prepareTranscriptData(Student $student)
     {
-        // Group modules by programme
+        // Group modules by programme using new architecture
         $programmeModules = [];
+        $standaloneModules = [];
         $overallGPA = 0;
         $totalCredits = 0;
         $totalGradePoints = 0;
 
-        foreach ($student->studentModuleEnrolments as $moduleEnrolment) {
-            $module = $moduleEnrolment->moduleInstance->module;
-            $programme = $moduleEnrolment->moduleInstance->cohort->programme;
+        // Get grade records grouped by module instance
+        $gradesByModule = $student->studentGradeRecords->groupBy('module_instance_id');
+
+        foreach ($gradesByModule as $moduleInstanceId => $gradeRecords) {
+            $moduleInstance = $gradeRecords->first()->moduleInstance;
+            $module = $moduleInstance->module;
             
-            if (!isset($programmeModules[$programme->id])) {
-                $programmeModules[$programme->id] = [
-                    'programme' => $programme,
-                    'modules' => [],
-                    'total_credits' => 0,
-                    'gpa' => 0
+            // Calculate module grade and status from grade records
+            $moduleGrade = $this->calculateModuleGradeFromRecords($gradeRecords, $module);
+            
+            // Find which programme this module belongs to (if any)
+            $programmeEnrolment = $student->enrolments()
+                ->where('enrolment_type', 'programme')
+                ->whereHas('programmeInstance.moduleInstances', function($query) use ($moduleInstanceId) {
+                    $query->where('module_instances.id', $moduleInstanceId);
+                })->first();
+
+            if ($programmeEnrolment) {
+                // This is a programme module
+                $programme = $programmeEnrolment->programmeInstance->programme;
+                
+                if (!isset($programmeModules[$programme->id])) {
+                    $programmeModules[$programme->id] = [
+                        'programme' => $programme,
+                        'programmeInstance' => $programmeEnrolment->programmeInstance,
+                        'modules' => [],
+                        'total_credits' => 0,
+                        'gpa' => 0
+                    ];
+                }
+
+                $programmeModules[$programme->id]['modules'][] = [
+                    'module' => $module,
+                    'moduleInstance' => $moduleInstance,
+                    'grade' => $moduleGrade['grade'],
+                    'status' => $moduleGrade['status'],
+                    'completion_date' => $moduleGrade['completion_date'],
+                    'credits' => $module->credit_value ?? 5,
+                ];
+
+                // Add to programme totals
+                if ($moduleGrade['grade'] && $moduleGrade['status'] === 'Completed') {
+                    $programmeModules[$programme->id]['total_credits'] += ($module->credit_value ?? 5);
+                }
+            } else {
+                // This is a standalone module
+                $standaloneModules[] = [
+                    'module' => $module,
+                    'moduleInstance' => $moduleInstance,
+                    'grade' => $moduleGrade['grade'],
+                    'status' => $moduleGrade['status'],
+                    'completion_date' => $moduleGrade['completion_date'],
+                    'credits' => $module->credit_value ?? 5,
                 ];
             }
 
-            // Calculate module grade and status
-            $moduleGrade = $this->calculateModuleGrade($moduleEnrolment);
-            
-            $programmeModules[$programme->id]['modules'][] = [
-                'module' => $module,
-                'enrolment' => $moduleEnrolment,
-                'grade' => $moduleGrade['grade'],
-                'status' => $moduleGrade['status'],
-                'completion_date' => $moduleGrade['completion_date'],
-                'credits' => $module->credits ?? 5, // Default 5 credits if not set
-            ];
-
-            // Add to totals for GPA calculation
+            // Add to overall totals for GPA calculation
             if ($moduleGrade['grade'] && $moduleGrade['status'] === 'Completed') {
-                $credits = $module->credits ?? 5;
+                $credits = $module->credit_value ?? 5;
                 $gradePoint = $this->gradeToPoints($moduleGrade['grade']);
                 
                 $totalCredits += $credits;
                 $totalGradePoints += ($gradePoint * $credits);
-                
-                $programmeModules[$programme->id]['total_credits'] += $credits;
             }
         }
 
@@ -162,6 +200,7 @@ class TranscriptController extends Controller
         return [
             'student' => $student,
             'programmeModules' => $programmeModules,
+            'standaloneModules' => $standaloneModules,
             'overallGPA' => $overallGPA,
             'totalCredits' => $totalCredits,
             'generatedDate' => now(),
@@ -175,24 +214,13 @@ class TranscriptController extends Controller
     }
 
     /**
-     * Calculate the final grade for a module based on assessments
+     * Calculate the final grade for a module based on grade records
      */
-    private function calculateModuleGrade($moduleEnrolment)
+    private function calculateModuleGradeFromRecords($gradeRecords, $module)
     {
-        // Check if final grade is visible to student
-        if (!($moduleEnrolment->is_final_grade_visible ?? true)) {
-            return [
-                'grade' => null,
-                'status' => 'In Progress',
-                'completion_date' => null
-            ];
-        }
-
-        $assessments = $moduleEnrolment->studentAssessments->filter(function($assessment) {
-            return $assessment->isVisibleToStudent();
-        });
+        $gradedRecords = $gradeRecords->whereNotNull('grade');
         
-        if ($assessments->isEmpty()) {
+        if ($gradedRecords->isEmpty()) {
             return [
                 'grade' => null,
                 'status' => 'In Progress',
@@ -200,25 +228,33 @@ class TranscriptController extends Controller
             ];
         }
 
-        $totalMark = 0;
+        $totalWeightedMark = 0;
         $totalWeight = 0;
         $completionDate = null;
-        $allPassed = true;
+        $allComponentsPassed = true;
 
-        foreach ($assessments as $assessment) {
-            if ($assessment->grade !== null) {
-                $weight = $assessment->assessmentComponent->weight ?? 100;
-                $totalMark += ($assessment->grade * $weight / 100);
+        // Get assessment strategy from module
+        $assessmentStrategy = $module->assessment_strategy ?? [];
+        
+        foreach ($assessmentStrategy as $component) {
+            $gradeRecord = $gradedRecords->where('assessment_component_name', $component['component_name'])->first();
+            
+            if ($gradeRecord && $gradeRecord->grade !== null) {
+                $weight = $component['weighting'];
+                $percentage = $gradeRecord->percentage;
+                
+                $totalWeightedMark += ($percentage * $weight / 100);
                 $totalWeight += $weight;
                 
-                // Check if this assessment passed (QQI pass is 50%)
-                if ($assessment->grade < 50) {
-                    $allPassed = false;
+                // Check component pass requirements
+                $componentPassMark = $component['component_pass_mark'] ?? 40;
+                if ($component['is_must_pass'] && $percentage < $componentPassMark) {
+                    $allComponentsPassed = false;
                 }
                 
                 // Get latest completion date
-                if ($assessment->updated_at && (!$completionDate || $assessment->updated_at > $completionDate)) {
-                    $completionDate = $assessment->updated_at;
+                if ($gradeRecord->graded_date && (!$completionDate || $gradeRecord->graded_date > $completionDate)) {
+                    $completionDate = $gradeRecord->graded_date;
                 }
             }
         }
@@ -232,11 +268,11 @@ class TranscriptController extends Controller
         }
 
         // Calculate final percentage
-        $finalMark = round($totalMark, 1);
+        $finalMark = round($totalWeightedMark, 1);
         
         // Determine grade and status
         $grade = $this->markToGrade($finalMark);
-        $status = $allPassed && $finalMark >= 50 ? 'Completed' : ($finalMark > 0 ? 'Failed' : 'In Progress');
+        $status = $allComponentsPassed && $finalMark >= 40 ? 'Completed' : ($finalMark > 0 ? 'Failed' : 'In Progress');
 
         return [
             'grade' => $grade,

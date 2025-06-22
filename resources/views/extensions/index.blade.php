@@ -55,10 +55,10 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900">
-                                            {{ $extension->studentAssessment->studentModuleEnrolment->moduleInstance->module->code }}
+                                            {{ $extension->studentGradeRecord->moduleInstance->module->code }}
                                         </div>
                                         <div class="text-sm text-gray-500">
-                                            {{ $extension->studentAssessment->assessmentComponent->name }}
+                                            {{ $extension->studentGradeRecord->assessment_component_name }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -82,7 +82,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         @if($extension->status === 'pending' && 
                                             (Auth::user()->role === 'manager' || 
-                                             Auth::user()->id === $extension->studentAssessment->studentModuleEnrolment->moduleInstance->teacher_id))
+                                             Auth::user()->id === $extension->studentGradeRecord->moduleInstance->teacher_id))
                                             <form action="{{ route('extensions.approve', $extension) }}" method="POST" class="inline">
                                                 @csrf
                                                 @method('PATCH')

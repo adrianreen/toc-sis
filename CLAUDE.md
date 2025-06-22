@@ -47,20 +47,98 @@ npm run dev
 npm run build
 ```
 
-## Core Architecture
+## Core Architecture - 4 Level Programme-Module System
+
+### 1. Core Philosophy
+The system is built on a clear separation between a static Blueprint (the "what") and a live Instance (the "when and who"). This applies to both Programmes and Modules. The system supports two primary delivery styles:
+- **Synchronous (Sync)**: Group-based cohorts with fixed schedules
+- **Asynchronous (Async)**: Rolling, self-paced enrolments
+
+### 2. Entity Definitions
+
+#### I. Programme (Static Blueprint)
+- **Purpose**: Static library of information about a full award - the master recipe
+- **Key Attributes**:
+  - Title (e.g., "BA in Business Management")
+  - Awarding Body & NFQ Level
+  - Total Credits for the full award
+  - General description and learning outcomes
+
+#### II. Programme Instance (Live Container)
+- **Purpose**: The live, scheduled container for a Programme that students enrol into
+- **Key Attributes**:
+  - Link to parent Programme blueprint
+  - Label (e.g., "September 2024 Intake" or "2024 Rolling Enrolment")
+  - Intake Dates (Start/End): Mandatory for Sync, wider window for Async
+  - Default Delivery Style (enum: Sync, Async)
+  - Curriculum (via pivot table to Module Instance IDs)
+
+#### III. Module (Static Blueprint)
+- **Purpose**: Static library of information for a single unit of study
+- **Key Attributes**:
+  - Title (e.g., "Introduction to Marketing")
+  - Module Code & Credit Value
+  - Assessment Strategy: Array of Assessment Component objects with:
+    - ComponentName (e.g., "Final Exam")
+    - Weighting (%)
+    - IsMustPass (boolean)
+    - ComponentPassMark (nullable, can override module-level pass mark)
+  - Allows Standalone Enrolment (boolean): Enables Minor Awards
+  - AsyncInstanceCadence (enum: Monthly, Quarterly, Bi-Annually, Annually)
+
+#### IV. Module Instance (Live Class)
+- **Purpose**: The live, scheduled run of a Module - the concrete "class" a student interacts with
+- **Key Attributes**:
+  - Link to parent Module blueprint
+  - Assigned Tutor (link to Staff record)
+  - Start Date and target End Date
+  - Programme Instance ID (nullable): Links to parent programme or null for standalone
+  - Delivery Style (enum: Sync, Async): Can override programme default
+
+#### V. Curriculum Linker Mechanism
+- **Purpose**: Connects Module Instances to Programme Instances
+- **Implementation**: `programme_instance_curriculum` pivot table
+- **Structure**: programme_instance_id + module_instance_id with foreign key constraints
+
+### 3. The Enrolment Model: Two-Path System
+
+#### Enrolment Entity Structure
+- **StudentID**: Link to student record
+- **EnrolmentType** (enum: Programme, Module): Defines the enrolment path
+- **ProgrammeInstanceID**: Populated if type is Programme
+- **ModuleInstanceID**: Populated if type is Module (standalone)
+
+#### Enrolment Workflows
+
+**Programme Enrolment:**
+1. Admin selects student and clicks "Enrol"
+2. Admin chooses "Enrol in a Programme"
+3. System displays available Programme Instances of type Sync
+4. Admin selects instance
+5. Enrolment record created linking student to Programme Instance
+6. System automatically knows Module Instances via curriculum linkage
+
+**Standalone Module Enrolment:**
+1. Admin selects student and clicks "Enrol"
+2. Admin chooses "Enrol in a Standalone Module"
+3. System displays Module Instances where parent Module allows standalone enrolment
+4. Admin selects specific instance
+5. Enrolment record created linking student directly to Module Instance (programme link null)
+
+### 4. Student Grade Record System
+- **Purpose**: Replaces old StudentAssessment model
+- **Key Attributes**:
+  - StudentID
+  - ModuleInstanceID (the class they took)
+  - AssessmentComponentID (specific piece of work from Module blueprint)
+  - Grade/Mark
+  - SubmissionDate, GradedByStaffID, etc.
 
 ### Authentication & Authorization
 - **Azure AD Integration**: Primary authentication via Microsoft Azure AD
 - **Role-Based Access Control**: 4 roles (`manager`, `student_services`, `teacher`, `student`)
 - **Domain Mapping**: Automatic role assignment based on Azure AD groups
 - **Student Linking**: Users linked to student records via email matching
-
-### Academic Hierarchy
-```
-Programme → Cohort → ModuleInstance ← Module
-    ↓         ↓           ↓
-   Student → Enrolment → StudentModuleEnrolment → StudentAssessment
-```
 
 ### Assessment Visibility System
 - **Critical Feature**: Assessment results are hidden by default
@@ -75,11 +153,14 @@ Programme → Cohort → ModuleInstance ← Module
 - **Admin Announcements**: System-wide messaging capability
 - **Scheduled Delivery**: Future notification scheduling support
 
-### Key Models & Relationships
-- **Programme**: Academic courses with different enrolment types (cohort-based, rolling)
-- **ModuleInstance**: Specific delivery of a module to a cohort with teacher assignment
-- **StudentAssessment**: Individual assessment attempts with sophisticated grading and visibility controls
-- **Deferral/Extension/RepeatAssessment**: Academic exception management
+### Key Models & Relationships (New Architecture)
+- **Programme**: Static blueprint for full awards
+- **ProgrammeInstance**: Live delivery container with intake dates
+- **Module**: Static blueprint for study units with assessment components
+- **ModuleInstance**: Live class delivery with tutor assignment
+- **Enrolment**: Two-path system (Programme vs Module) student enrolments
+- **StudentGradeRecord**: Individual assessment component grades
+- **Deferral/Extension/RepeatAssessment**: Academic exception management (retained)
 - **Notification**: User notifications with delivery tracking and read status
 - **NotificationPreference**: Per-user notification settings by type
 
@@ -100,6 +181,7 @@ Programme → Cohort → ModuleInstance ← Module
 - **Activity Logging**: Comprehensive audit trail via Spatie ActivityLog
 - **Soft Deletes**: Important academic records should use soft deletes
 - **Foreign Key Constraints**: Strict relational integrity
+- **Pivot Tables**: programme_instance_curriculum for curriculum linkage
 
 ## Security Notes
 - **Student Data Protection**: Results visibility system prevents premature grade disclosure
@@ -257,106 +339,26 @@ php artisan tinker --execute="
 - **Core notification system** is fully functional for grade releases and announcements
 - **Extension/Deferral workflows** need to be implemented before testing those notification types
 
-## CSV/Excel Import Implementation Plan
+## Todo List Integration
+This document tracks the critical nuclear-level restructure to the new 4-level Programme-Module architecture:
 
-### Overview
-Future implementation of bulk student import functionality to complement the existing "Add New Student" workflow.
+### Completed ✅
+- Clean database - drop all existing tables and start fresh
+- Delete all old model files (Programme, Cohort, ModuleInstance, etc.)
+- Delete old migration files completely
+- Update CLAUDE.md to remove old architecture and document new 4-level system
 
-### Critical Challenges Identified
+### In Progress 🔄
+- Create new Programme model and migration
+- Create new ProgrammeInstance model and migration  
+- Create new Module model with Assessment Components and AsyncInstanceCadence
+- Create new ModuleInstance model and migration
+- Create programme_instance_curriculum pivot table
+- Create new Enrolment model with two-path system
+- Create new StudentGradeRecord model and migration
+- Delete old controllers, services, and tests related to legacy architecture
 
-#### 1. Email Uniqueness Constraint
-- **Issue**: `email` field has unique constraint across students table
-- **Impact**: Import fails if duplicates exist within file or against existing records
-- **Solution**: Pre-process file for duplicate detection, offer merge/skip options
-
-#### 2. Student Number Generation
-- **Issue**: `Student::generateStudentNumber()` creates sequential YYYY### format
-- **Impact**: Bulk imports could create gaps/conflicts with concurrent imports
-- **Solution**: Use database transactions and proper locking mechanisms
-
-#### 3. User Account Linking
-- **Issue**: Students can link to User accounts via `student_id` field
-- **Impact**: Import needs to handle automatic user account creation
-- **Solution**: Add optional "create_user_account" column or separate workflow
-
-### Implementation Requirements
-
-#### Dependencies Needed
-```bash
-# Required package for CSV/Excel processing
-composer require maatwebsite/excel
-```
-
-#### CSV Template Structure
-```csv
-first_name,last_name,email,phone,address,city,county,eircode,date_of_birth,status,notes
-Emma,Murphy,emma.murphy@student.ie,0851234567,123 Main Street,Dublin,Dublin,D01 X123,1990-05-15,enquiry,New student enquiry
-```
-
-#### Validation Rules to Apply
-```php
-'first_name' => 'required|string|max:255',
-'last_name' => 'required|string|max:255', 
-'email' => 'required|email|unique:students,email',
-'date_of_birth' => 'nullable|date|before:today',
-'status' => 'required|in:enquiry,enrolled,active,deferred,completed,cancelled'
-```
-
-### Technical Considerations
-
-#### Memory Management
-- **Challenge**: Large CSV files (1000+ students) exceed PHP memory limits
-- **Solution**: Use Laravel Excel's `chunk()` method for batch processing
-
-#### Activity Logging Overhead
-- **Challenge**: Spatie ActivityLog creates audit records for every student
-- **Solution**: Optimize logging or batch log entries for large imports
-
-#### File Upload Security
-- **Requirements**: 
-  - File type validation (CSV, XLSX only)
-  - Size limits (recommend 10MB max)
-  - Temporary file storage and cleanup
-
-### Recommended Implementation Phases
-
-#### Phase 1: Basic CSV Import
-1. Install Laravel Excel package
-2. Create upload form component (button placeholder already exists)
-3. Implement basic validation and import
-4. Add error handling and reporting
-
-#### Phase 2: Enhanced Features  
-1. Excel (XLSX) support
-2. Preview functionality before import
-3. Batch processing for large files
-4. Progress tracking with background queues
-
-#### Phase 3: Advanced Features
-1. User account creation integration
-2. Enrollment workflow automation via `EnrolmentService`
-3. Duplicate detection and merging
-4. Import history and rollback capability
-
-### User Experience Flow
-**Recommended Workflow**: Upload → Preview → Validate → Import → Results
-
-### Key Risks & Mitigations
-- **Data corruption**: Use database transactions
-- **Performance issues**: Implement chunked processing  
-- **Memory exhaustion**: Set PHP limits, use streaming
-- **Duplicate students**: Pre-validation and merge options
-- **Invalid data**: Comprehensive validation with clear error messages
-
-### Integration Points
-- **EnrolmentService**: Use for complex enrollment workflows
-- **Activity Logging**: Maintain audit compliance
-- **Role-Based Access**: Restrict import to appropriate roles (manager, student_services)
-- **Notification System**: Consider notifications for import completion
-
-### Testing Strategy
-- Start with small imports (10-50 students)
-- Test various CSV formats and edge cases
-- Validate memory usage with large datasets
-- Ensure transactional integrity
-- Test error recovery scenarios
+### Architecture Implementation Status
+**Status**: Nuclear-level critical restructure in progress
+**Approach**: Greenfield - complete removal of legacy architecture
+**Priority**: Highest - entire project depends on this success

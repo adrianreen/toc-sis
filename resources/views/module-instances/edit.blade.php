@@ -17,17 +17,17 @@
                         <!-- Module (Read-only) -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700">Module</label>
-                            <input type="text" value="{{ $moduleInstance->module->code }} - {{ $moduleInstance->module->title }}" disabled
+                            <input type="text" value="{{ $moduleInstance->module->module_code }} - {{ $moduleInstance->module->title }}" disabled
                                 class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm">
                             <p class="mt-1 text-xs text-gray-500">Module cannot be changed after creation</p>
                         </div>
 
-                        <!-- Cohort (Read-only) -->
+                        <!-- Programme Instances (Read-only) -->
                         <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700">Cohort</label>
-                            <input type="text" value="{{ $moduleInstance->cohort->programme->code }} - {{ $moduleInstance->cohort->code }} - {{ $moduleInstance->cohort->name }}" disabled
+                            <label class="block text-sm font-medium text-gray-700">Programme Instances</label>
+                            <input type="text" value="@if($moduleInstance->programmeInstances->count() > 0){{ $moduleInstance->programmeInstances->pluck('label')->implode(', ') }}@else Standalone Module @endif" disabled
                                 class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm">
-                            <p class="mt-1 text-xs text-gray-500">Cohort cannot be changed after creation</p>
+                            <p class="mt-1 text-xs text-gray-500">Programme instance associations cannot be changed after creation</p>
                         </div>
 
                         <!-- Instance Code (Read-only) -->
@@ -49,52 +49,52 @@
                                 @enderror
                             </div>
 
-                            <!-- End Date -->
+                            <!-- Target End Date -->
                             <div>
-                                <label for="end_date" class="block text-sm font-medium text-gray-700">End Date *</label>
-                                <input type="date" name="end_date" id="end_date" 
-                                    value="{{ old('end_date', $moduleInstance->end_date->format('Y-m-d')) }}" required
+                                <label for="target_end_date" class="block text-sm font-medium text-gray-700">Target End Date</label>
+                                <input type="date" name="target_end_date" id="target_end_date" 
+                                    value="{{ old('target_end_date', $moduleInstance->target_end_date?->format('Y-m-d')) }}"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                @error('end_date')
+                                @error('target_end_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
+                                <p class="mt-1 text-sm text-gray-500">Optional - estimated completion date</p>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            <!-- Teacher -->
+                            <!-- Tutor -->
                             <div>
-                                <label for="teacher_id" class="block text-sm font-medium text-gray-700">Teacher</label>
-                                <select name="teacher_id" id="teacher_id"
+                                <label for="tutor_id" class="block text-sm font-medium text-gray-700">Tutor</label>
+                                <select name="tutor_id" id="tutor_id"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                     <option value="">Not Assigned</option>
-                                    @foreach($teachers as $teacher)
-                                        <option value="{{ $teacher->id }}" 
-                                            {{ old('teacher_id', $moduleInstance->teacher_id) == $teacher->id ? 'selected' : '' }}>
-                                            {{ $teacher->name }}
+                                    @foreach($tutors as $tutor)
+                                        <option value="{{ $tutor->id }}" 
+                                            {{ old('tutor_id', $moduleInstance->tutor_id) == $tutor->id ? 'selected' : '' }}>
+                                            {{ $tutor->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('teacher_id')
+                                @error('tutor_id')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
-                                @if($moduleInstance->teacher_id && old('teacher_id', $moduleInstance->teacher_id) != $moduleInstance->teacher_id)
+                                @if($moduleInstance->tutor_id)
                                     <p class="mt-1 text-xs text-yellow-600">
-                                        Warning: Changing the teacher will affect {{ $moduleInstance->studentEnrolments->count() }} enrolled students
+                                        Warning: Changing the tutor will affect {{ $moduleInstance->enrolments->count() }} enrolled students
                                     </p>
                                 @endif
                             </div>
 
-                            <!-- Status -->
+                            <!-- Delivery Style -->
                             <div>
-                                <label for="status" class="block text-sm font-medium text-gray-700">Status *</label>
-                                <select name="status" id="status" required
+                                <label for="delivery_style" class="block text-sm font-medium text-gray-700">Delivery Style *</label>
+                                <select name="delivery_style" id="delivery_style" required
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                    <option value="planned" {{ old('status', $moduleInstance->status) === 'planned' ? 'selected' : '' }}>Planned</option>
-                                    <option value="active" {{ old('status', $moduleInstance->status) === 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="completed" {{ old('status', $moduleInstance->status) === 'completed' ? 'selected' : '' }}>Completed</option>
+                                    <option value="sync" {{ old('delivery_style', $moduleInstance->delivery_style) === 'sync' ? 'selected' : '' }}>Synchronous (Fixed schedule, cohort-based)</option>
+                                    <option value="async" {{ old('delivery_style', $moduleInstance->delivery_style) === 'async' ? 'selected' : '' }}>Asynchronous (Self-paced, flexible)</option>
                                 </select>
-                                @error('status')
+                                @error('delivery_style')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -106,43 +106,19 @@
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                                 <div>
                                     <span class="text-gray-600">Enrolled Students:</span>
-                                    <span class="font-medium ml-1">{{ $moduleInstance->studentEnrolments->count() }}</span>
+                                    <span class="font-medium ml-1">{{ $moduleInstance->enrolments->count() }}</span>
                                 </div>
                                 <div>
                                     <span class="text-gray-600">Active Students:</span>
-                                    <span class="font-medium ml-1">{{ $moduleInstance->studentEnrolments->where('status', 'active')->count() }}</span>
+                                    <span class="font-medium ml-1">{{ $moduleInstance->enrolments->where('status', 'active')->count() }}</span>
                                 </div>
                                 <div>
                                     <span class="text-gray-600">Completed:</span>
-                                    <span class="font-medium ml-1">{{ $moduleInstance->studentEnrolments->where('status', 'completed')->count() }}</span>
+                                    <span class="font-medium ml-1">{{ $moduleInstance->enrolments->where('status', 'completed')->count() }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Teacher Change History -->
-                        @if($teacherChanges->count() > 0)
-                            <div class="mt-6 p-4 bg-yellow-50 rounded-lg">
-                                <h4 class="text-sm font-medium text-gray-700 mb-2">Teacher Assignment History</h4>
-                                <div class="space-y-2 text-sm">
-                                    @foreach($teacherChanges as $change)
-                                        <div class="flex justify-between">
-                                            <span>
-                                                @if($change->properties['old_teacher_id'])
-                                                    From {{ \App\Models\User::find($change->properties['old_teacher_id'])?->name ?? 'Unknown' }}
-                                                @else
-                                                    Initially unassigned
-                                                @endif
-                                                → 
-                                                {{ \App\Models\User::find($change->properties['new_teacher_id'])?->name ?? 'Unknown' }}
-                                            </span>
-                                            <span class="text-gray-500">
-                                                {{ $change->created_at->format('d M Y') }} by {{ $change->causer?->name }}
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
 
                         <div class="mt-6 flex justify-end">
                             <a href="{{ route('module-instances.show', $moduleInstance) }}" 

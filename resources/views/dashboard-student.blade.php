@@ -34,7 +34,7 @@
             <div class="mb-8">
                 <h2 class="text-xl font-semibold text-slate-900 mb-6">Quick Actions</h2>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
                     <!-- View My Progress -->
                     <a href="{{ route('students.progress') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-between">
@@ -52,11 +52,24 @@
                     <a href="{{ route('students.enrolments') }}" class="group bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h3 class="font-semibold text-lg text-white">My Programmes</h3>
-                                <p class="text-emerald-100 text-sm mt-1">View enrolments</p>
+                                <h3 class="font-semibold text-lg text-white">My Enrolments</h3>
+                                <p class="text-emerald-100 text-sm mt-1">Programmes & modules</p>
                             </div>
                             <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                                 <i data-lucide="book-open" class="w-6 h-6 text-white"></i>
+                            </div>
+                        </div>
+                    </a>
+
+                    <!-- View My Grades -->
+                    <a href="{{ route('students.grades') }}" class="group bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl p-6 text-white hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold text-lg text-white">My Grades</h3>
+                                <p class="text-indigo-100 text-sm mt-1">View assessment results</p>
+                            </div>
+                            <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                                <i data-lucide="award" class="w-6 h-6 text-white"></i>
                             </div>
                         </div>
                     </a>
@@ -109,7 +122,7 @@
                     <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
                         <div class="p-6 border-b border-slate-200">
                             <div class="flex items-center justify-between">
-                                <h3 class="text-lg font-semibold text-slate-900">My Current Programmes</h3>
+                                <h3 class="text-lg font-semibold text-slate-900">My Current Enrolments</h3>
                                 <a href="{{ route('students.enrolments') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
                                     View all →
                                 </a>
@@ -117,24 +130,50 @@
                         </div>
                         <div class="p-6">
                             @php
-                                $currentEnrolments = Auth::user()->student->enrolments()
-                                    ->with(['programme', 'cohort'])
-                                    ->whereIn('status', ['active', 'deferred'])
-                                    ->latest()
-                                    ->limit(3)
-                                    ->get();
+                                $programmeEnrolments = Auth::user()->student->getCurrentProgrammeEnrolments()->limit(2)->get();
+                                $moduleEnrolments = Auth::user()->student->getCurrentModuleEnrolments()->limit(2)->get();
                             @endphp
                             
-                            @if($currentEnrolments->count() > 0)
+                            @if($programmeEnrolments->count() > 0 || $moduleEnrolments->count() > 0)
                                 <div class="space-y-4">
-                                    @foreach($currentEnrolments as $enrolment)
-                                        <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                                    {{-- Programme Enrolments --}}
+                                    @foreach($programmeEnrolments as $enrolment)
+                                        <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
                                             <div>
-                                                <h4 class="font-medium text-slate-900">{{ $enrolment->programme->title }}</h4>
-                                                <p class="text-sm text-slate-600">
-                                                    {{ $enrolment->programme->code }}
-                                                    @if($enrolment->cohort)
-                                                        • Cohort {{ $enrolment->cohort->code }}
+                                                <div class="flex items-center space-x-2">
+                                                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                                    <h4 class="font-medium text-slate-900">{{ $enrolment->programmeInstance->programme->title }}</h4>
+                                                </div>
+                                                <p class="text-sm text-slate-600 ml-4">
+                                                    Instance: {{ $enrolment->programmeInstance->label }} • 
+                                                    {{ $enrolment->programmeInstance->programme->total_credits }} Credits •
+                                                    NQF {{ $enrolment->programmeInstance->programme->nfq_level }}
+                                                </p>
+                                            </div>
+                                            <span class="px-3 py-1 rounded-full text-xs font-medium 
+                                                @if($enrolment->status === 'active') bg-green-100 text-green-800
+                                                @elseif($enrolment->status === 'deferred') bg-yellow-100 text-yellow-800
+                                                @else bg-gray-100 text-gray-800
+                                                @endif">
+                                                {{ ucfirst($enrolment->status) }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+
+                                    {{-- Module Enrolments --}}
+                                    @foreach($moduleEnrolments as $enrolment)
+                                        <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                                            <div>
+                                                <div class="flex items-center space-x-2">
+                                                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                    <h4 class="font-medium text-slate-900">{{ $enrolment->moduleInstance->module->title }}</h4>
+                                                </div>
+                                                <p class="text-sm text-slate-600 ml-4">
+                                                    {{ $enrolment->moduleInstance->module->module_code }} • 
+                                                    {{ $enrolment->moduleInstance->module->credit_value }} Credits •
+                                                    {{ ucfirst($enrolment->moduleInstance->delivery_style) }}
+                                                    @if($enrolment->moduleInstance->tutor)
+                                                        • {{ $enrolment->moduleInstance->tutor->name }}
                                                     @endif
                                                 </p>
                                             </div>
@@ -151,7 +190,7 @@
                             @else
                                 <div class="text-center py-8">
                                     <i data-lucide="book-open" class="w-12 h-12 text-slate-400 mx-auto mb-4"></i>
-                                    <p class="text-slate-500">No active programme enrolments</p>
+                                    <p class="text-slate-500">No active enrolments</p>
                                     <p class="text-sm text-slate-400 mt-1">Contact Student Services if you need assistance</p>
                                 </div>
                             @endif
@@ -170,35 +209,47 @@
                         </div>
                         <div class="p-6">
                             @php
-                                $recentGrades = \App\Models\StudentAssessment::whereHas('studentModuleEnrolment', function($q) {
-                                    $q->where('student_id', Auth::user()->student->id);
-                                })
-                                ->whereNotNull('grade')
-                                ->with(['assessmentComponent.module', 'studentModuleEnrolment.moduleInstance'])
-                                ->latest('graded_date')
-                                ->limit(3)
-                                ->get();
+                                $recentGrades = Auth::user()->student->studentGradeRecords()
+                                    ->with(['moduleInstance.module'])
+                                    ->whereNotNull('grade')
+                                    ->where(function ($query) {
+                                        $query->where('is_visible_to_student', true)
+                                              ->orWhere(function ($q) {
+                                                  $q->whereNotNull('release_date')
+                                                    ->where('release_date', '<=', now());
+                                              });
+                                    })
+                                    ->latest('graded_date')
+                                    ->limit(4)
+                                    ->get();
                             @endphp
                             
                             @if($recentGrades->count() > 0)
                                 <div class="space-y-4">
-                                    @foreach($recentGrades as $grade)
+                                    @foreach($recentGrades as $gradeRecord)
                                         <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                                             <div>
-                                                <h4 class="font-medium text-slate-900">{{ $grade->assessmentComponent->name }}</h4>
+                                                <h4 class="font-medium text-slate-900">{{ $gradeRecord->assessment_component_name }}</h4>
                                                 <p class="text-sm text-slate-600">
-                                                    {{ $grade->studentModuleEnrolment->moduleInstance->instance_code }}
+                                                    {{ $gradeRecord->moduleInstance->module->title }} ({{ $gradeRecord->moduleInstance->module->module_code }})
                                                 </p>
                                                 <p class="text-xs text-slate-500">
-                                                    Graded {{ $grade->graded_date ? $grade->graded_date->diffForHumans() : 'recently' }}
+                                                    @if($gradeRecord->graded_date)
+                                                        Graded {{ $gradeRecord->graded_date->diffForHumans() }}
+                                                    @else
+                                                        Recently graded
+                                                    @endif
                                                 </p>
                                             </div>
                                             <div class="text-right">
-                                                <div class="text-lg font-semibold {{ $grade->grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
-                                                    {{ number_format($grade->grade, 1) }}%
+                                                <div class="text-lg font-semibold {{ $gradeRecord->percentage >= 40 ? 'text-green-600' : 'text-red-600' }}">
+                                                    {{ number_format($gradeRecord->percentage, 1) }}%
                                                 </div>
-                                                <div class="text-xs {{ $grade->grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
-                                                    {{ $grade->grade >= 40 ? 'PASS' : 'FAIL' }}
+                                                <div class="text-xs text-slate-500">
+                                                    {{ $gradeRecord->grade }}/{{ $gradeRecord->max_grade }}
+                                                </div>
+                                                <div class="text-xs {{ $gradeRecord->percentage >= 40 ? 'text-green-600' : 'text-red-600' }}">
+                                                    {{ $gradeRecord->percentage >= 40 ? 'PASS' : 'FAIL' }}
                                                 </div>
                                             </div>
                                         </div>
@@ -208,6 +259,7 @@
                                 <div class="text-center py-8">
                                     <i data-lucide="clipboard-check" class="w-12 h-12 text-slate-400 mx-auto mb-4"></i>
                                     <p class="text-slate-500">No recent grades available</p>
+                                    <p class="text-sm text-slate-400 mt-1">Grades will appear here once released by tutors</p>
                                 </div>
                             @endif
                         </div>

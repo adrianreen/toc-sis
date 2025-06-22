@@ -100,9 +100,9 @@
                                 </svg>
                             </a>
                             
-                            <a href="{{ route('students.assessments') }}" 
+                            <a href="{{ route('students.grades') }}" 
                                class="flex items-center justify-between p-3 text-sm bg-toc-50 hover:bg-toc-100 rounded-lg transition-colors group">
-                                <span class="text-toc-700 font-medium">My Assessments</span>
+                                <span class="text-toc-700 font-medium">My Grades</span>
                                 <svg class="w-4 h-4 text-toc-500 group-hover:text-toc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
@@ -147,10 +147,16 @@
                         <div class="border border-gray-200 rounded-lg p-4">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                                 <div class="flex-1">
-                                    <h3 class="font-semibold text-gray-900">{{ $enrolment->programme->title }}</h3>
-                                    <p class="text-sm text-gray-600">Programme Code: {{ $enrolment->programme->code }}</p>
-                                    @if($enrolment->cohort)
-                                        <p class="text-sm text-gray-600">Cohort: {{ $enrolment->cohort->name }} ({{ $enrolment->cohort->code }})</p>
+                                    @if($enrolment->isProgrammeEnrolment())
+                                        <h3 class="font-semibold text-gray-900">{{ $enrolment->programmeInstance->programme->title }}</h3>
+                                        <p class="text-sm text-gray-600">Programme Instance: {{ $enrolment->programmeInstance->label }}</p>
+                                        <p class="text-sm text-gray-600">Intake: {{ $enrolment->programmeInstance->intake_start_date->format('M Y') }}</p>
+                                        <p class="text-sm text-gray-600">Delivery: {{ ucfirst($enrolment->programmeInstance->default_delivery_style) }}</p>
+                                    @elseif($enrolment->isModuleEnrolment())
+                                        <h3 class="font-semibold text-gray-900">{{ $enrolment->moduleInstance->module->title }} <span class="text-sm font-normal text-gray-500">(Standalone Module)</span></h3>
+                                        <p class="text-sm text-gray-600">Module Code: {{ $enrolment->moduleInstance->module->module_code }}</p>
+                                        <p class="text-sm text-gray-600">Credits: {{ $enrolment->moduleInstance->module->credit_value }}</p>
+                                        <p class="text-sm text-gray-600">Start: {{ $enrolment->moduleInstance->start_date->format('d M Y') }}</p>
                                     @endif
                                     <p class="text-sm text-gray-600">Enrolled: {{ $enrolment->enrolment_date->format('d M Y') }}</p>
                                 </div>

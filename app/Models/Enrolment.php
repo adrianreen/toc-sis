@@ -1,31 +1,26 @@
 <?php
-// app/Models/Enrolment.php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Enrolment extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'student_id',
-        'programme_id',
-        'cohort_id',
+        'enrolment_type',
+        'programme_instance_id',
+        'module_instance_id',
         'enrolment_date',
-        'expected_completion_date',
-        'actual_completion_date',
-        'status'
+        'status',
     ];
 
     protected $casts = [
         'enrolment_date' => 'date',
-        'expected_completion_date' => 'date',
-        'actual_completion_date' => 'date',
     ];
 
     public function student(): BelongsTo
@@ -33,18 +28,23 @@ class Enrolment extends Model
         return $this->belongsTo(Student::class);
     }
 
-    public function programme(): BelongsTo
+    public function programmeInstance(): BelongsTo
     {
-        return $this->belongsTo(Programme::class);
+        return $this->belongsTo(ProgrammeInstance::class);
     }
 
-    public function cohort(): BelongsTo
+    public function moduleInstance(): BelongsTo
     {
-        return $this->belongsTo(Cohort::class);
+        return $this->belongsTo(ModuleInstance::class);
     }
 
-    public function extensionRequests(): HasMany
+    public function isProgrammeEnrolment(): bool
     {
-        return $this->hasMany(ExtensionRequest::class);
+        return $this->enrolment_type === 'programme';
+    }
+
+    public function isModuleEnrolment(): bool
+    {
+        return $this->enrolment_type === 'module';
     }
 }

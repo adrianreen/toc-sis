@@ -19,17 +19,7 @@ return new class extends Migration
             $table->index('status', 'idx_students_status');
         });
 
-        Schema::table('modules', function (Blueprint $table) {
-            $table->index('is_active', 'idx_modules_active');
-        });
-
-        Schema::table('programmes', function (Blueprint $table) {
-            $table->index('is_active', 'idx_programmes_active');
-        });
-
-        Schema::table('assessment_components', function (Blueprint $table) {
-            $table->index('is_active', 'idx_assessment_components_active');
-        });
+        // Legacy table indexes removed - new architecture has different schema
     }
 
     /**
@@ -45,16 +35,6 @@ return new class extends Migration
             $table->dropIndex('idx_students_status');
         });
 
-        Schema::table('modules', function (Blueprint $table) {
-            $table->dropIndex('idx_modules_active');
-        });
-
-        Schema::table('programmes', function (Blueprint $table) {
-            $table->dropIndex('idx_programmes_active');
-        });
-
-        Schema::table('assessment_components', function (Blueprint $table) {
-            $table->dropIndex('idx_assessment_components_active');
-        });
+        // Legacy table indexes removed - new architecture has different schema
     }
 };

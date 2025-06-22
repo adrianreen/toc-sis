@@ -97,11 +97,11 @@
                                                     Programme Code: <span class="font-medium">{{ $enrolment->programme->code }}</span>
                                                 </p>
                                                 
-                                                @if($enrolment->cohort)
+                                                @if($enrolment->programme_instance_id)
                                                     <div class="flex items-center space-x-4 text-sm text-gray-600 mb-2">
                                                         <span class="flex items-center">
                                                             <i data-lucide="users" class="w-4 h-4 mr-1"></i>
-                                                            Cohort: {{ $enrolment->cohort->code }} - {{ $enrolment->cohort->name }}
+                                                            Intake: {{ $enrolment->programmeInstance->label }}
                                                         </span>
                                                     </div>
                                                 @endif
@@ -150,7 +150,7 @@
 
                                         <!-- Progress Information -->
                                         @php
-                                            $moduleEnrolments = $enrolment->studentModuleEnrolments ?? collect();
+                                            $moduleEnrolments = $enrolment->studentGradeRecords ?? collect();
                                             $totalModules = $moduleEnrolments->count();
                                             $completedModules = $moduleEnrolments->where('status', 'completed')->count();
                                             $progressPercentage = $totalModules > 0 ? round(($completedModules / $totalModules) * 100) : 0;
@@ -192,9 +192,9 @@
                                                         <i data-lucide="pause-circle" class="w-5 h-5 text-yellow-600 mr-2 mt-0.5"></i>
                                                         <div>
                                                             <span class="text-yellow-800 font-medium block">Programme Deferred</span>
-                                                            @if($activeDeferral->toCohort)
+                                                            @if($activeDeferral->return_date)
                                                                 <span class="text-yellow-700 text-sm">
-                                                                    Expected to return in {{ $activeDeferral->toCohort->name }}
+                                                                    Expected to return on {{ $activeDeferral->return_date->format('d M Y') }}
                                                                 </span>
                                                             @endif
                                                         </div>

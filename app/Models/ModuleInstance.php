@@ -1,33 +1,29 @@
 <?php
-// app/Models/ModuleInstance.php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ModuleInstance extends Model
 {
-    use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'module_id',
-        'cohort_id',
-        'instance_code',
+        'tutor_id',
         'start_date',
-        'end_date',
-        'teacher_id',
-        'status',
-        'settings',
+        'target_end_date',
+        'delivery_style',
         'moodle_course_id',
     ];
 
     protected $casts = [
         'start_date' => 'date',
-        'end_date' => 'date',
-        'settings' => 'array',
+        'target_end_date' => 'date',
     ];
 
     public function module(): BelongsTo
@@ -35,31 +31,23 @@ class ModuleInstance extends Model
         return $this->belongsTo(Module::class);
     }
 
-    public function cohort(): BelongsTo
+    public function tutor(): BelongsTo
     {
-        return $this->belongsTo(Cohort::class);
+        return $this->belongsTo(User::class, 'tutor_id');
     }
 
-    public function teacher(): BelongsTo
+    public function programmeInstances(): BelongsToMany
     {
-        return $this->belongsTo(User::class, 'teacher_id');
+        return $this->belongsToMany(ProgrammeInstance::class, 'programme_instance_curriculum');
     }
 
-    public function studentEnrolments(): HasMany
+    public function enrolments(): HasMany
     {
-        return $this->hasMany(StudentModuleEnrolment::class);
+        return $this->hasMany(Enrolment::class);
     }
 
-    public static function generateInstanceCode($moduleCode, $cohortCode)
+    public function studentGradeRecords(): HasMany
     {
-        return $moduleCode . '-' . $cohortCode;
-    }
-
-    /**
-     * Get the full course name for Moodle
-     */
-    public function getFullCourseName(): string
-    {
-        return $this->module->name . ' (' . $this->cohort->name . ')';
+        return $this->hasMany(StudentGradeRecord::class);
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Notification;
 use App\Models\NotificationPreference;
 use App\Models\User;
 use App\Models\StudentAssessment;
+use App\Models\StudentGradeRecord;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -189,6 +190,87 @@ class NotificationService
                 );
             }
         }
+    }
+
+    // ===============================================
+    // NEW ARCHITECTURE METHODS - StudentGradeRecord
+    // ===============================================
+
+    public function notifyGradeReleasedV2(User $user, string $moduleName, string $assessmentName, float $grade): Notification
+    {
+        $title = "Grade Released: {$assessmentName}";
+        $message = "Your grade for '{$assessmentName}' in {$moduleName} is now available. Grade: {$grade}%";
+        $actionUrl = route('students.progress');
+
+        return $this->createNotification(
+            $user,
+            Notification::TYPE_GRADE_RELEASED,
+            $title,
+            $message,
+            $actionUrl,
+            [
+                'module_name' => $moduleName,
+                'assessment_name' => $assessmentName,
+                'grade' => $grade
+            ]
+        );
+    }
+
+    public function notifyAssessmentDeadline(User $user, string $assessmentName, \DateTime $dueDate, string $moduleName, int $daysBeforeDue = 3): Notification
+    {
+        $title = "Assessment Due Soon: {$assessmentName}";
+        $message = "Your assessment '{$assessmentName}' for {$moduleName} is due in {$daysBeforeDue} days on {$dueDate->format('d M Y')}.";
+        $actionUrl = route('students.progress');
+
+        return $this->createNotification(
+            $user,
+            Notification::TYPE_ASSESSMENT_DUE,
+            $title,
+            $message,
+            $actionUrl,
+            [
+                'assessment_name' => $assessmentName,
+                'module_name' => $moduleName,
+                'days_before' => $daysBeforeDue,
+                'due_date' => $dueDate->format('Y-m-d')
+            ]
+        );
+    }
+
+    public function notifyStudentGradeRecord(StudentGradeRecord $gradeRecord): ?Notification
+    {
+        $student = $gradeRecord->student;
+        $user = $student->user;
+
+        if (!$user || !$gradeRecord->is_visible_to_student) {
+            return null;
+        }
+
+        $moduleInstance = $gradeRecord->moduleInstance;
+        $module = $moduleInstance->module;
+        
+        $title = "Grade Released: {$gradeRecord->assessment_component_name}";
+        $message = "Your grade for '{$gradeRecord->assessment_component_name}' in {$module->title} is now available.";
+        
+        if ($gradeRecord->grade !== null) {
+            $message .= " Grade: {$gradeRecord->grade}%";
+        }
+        
+        $actionUrl = route('students.progress');
+
+        return $this->createNotification(
+            $user,
+            Notification::TYPE_GRADE_RELEASED,
+            $title,
+            $message,
+            $actionUrl,
+            [
+                'grade_record_id' => $gradeRecord->id,
+                'module_name' => $module->title,
+                'assessment_name' => $gradeRecord->assessment_component_name,
+                'grade' => $gradeRecord->grade
+            ]
+        );
     }
 
     public function processScheduledNotifications(): int

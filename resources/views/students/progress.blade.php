@@ -9,19 +9,19 @@
             </div>
 
             @php
-                // Calculate overall statistics (only from visible assessments and final grades)
-                $totalAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->count();
-                $completedAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->whereIn('status', ['graded', 'passed', 'failed'])->count();
-                $passedAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->where('status', 'passed')->count();
+                // Calculate overall statistics from grade records
+                $totalGradeRecords = $student->studentGradeRecords->count();
+                $completedGradeRecords = $student->studentGradeRecords->whereNotNull('percentage')->count();
+                $passedGradeRecords = $student->studentGradeRecords->where('percentage', '>=', 40)->count();
                 
-                // Only include visible assessment grades in overall average
-                $visibleAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments->filter(function($assessment) {
-                    return $assessment->grade !== null && $assessment->isVisibleToStudent();
+                // Only include visible grade records in overall average
+                $visibleGradeRecords = $student->studentGradeRecords->filter(function($gradeRecord) {
+                    return $gradeRecord->percentage !== null && $gradeRecord->is_visible_to_student;
                 });
-                $overallAverage = $visibleAssessments->count() > 0 ? $visibleAssessments->avg('grade') : null;
+                $overallAverage = $visibleGradeRecords->count() > 0 ? $visibleGradeRecords->avg('percentage') : null;
                 
-                $completionPercentage = $totalAssessments > 0 ? round(($completedAssessments / $totalAssessments) * 100, 1) : 0;
-                $passRate = $completedAssessments > 0 ? round(($passedAssessments / $completedAssessments) * 100, 1) : 0;
+                $completionPercentage = $totalGradeRecords > 0 ? round(($completedGradeRecords / $totalGradeRecords) * 100, 1) : 0;
+                $passRate = $completedGradeRecords > 0 ? round(($passedGradeRecords / $completedGradeRecords) * 100, 1) : 0;
             @endphp
 
             <!-- Overall Progress Cards -->
@@ -72,7 +72,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-500">Total Assessments</p>
-                            <p class="text-3xl font-bold text-blue-600">{{ $totalAssessments }}</p>
+                            <p class="text-3xl font-bold text-blue-600">{{ $totalGradeRecords }}</p>
                         </div>
                         <div class="p-3 bg-blue-100 rounded-full">
                             <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -80,7 +80,7 @@
                             </svg>
                         </div>
                     </div>
-                    <p class="mt-2 text-sm text-gray-600">{{ $completedAssessments }} completed</p>
+                    <p class="mt-2 text-sm text-gray-600">{{ $completedGradeRecords }} completed</p>
                 </div>
 
                 <!-- Pass Rate -->
@@ -100,31 +100,35 @@
             </div>
 
             <!-- Module Progress -->
-            @if($student->studentModuleEnrolments->count() > 0)
+            @php
+                $moduleGroups = $student->studentGradeRecords->groupBy('module_instance_id');
+            @endphp
+            @if($moduleGroups->count() > 0)
             <div class="bg-white shadow-soft rounded-xl p-6 mb-8">
                 <h2 class="text-xl font-semibold text-gray-900 mb-6">Module Progress</h2>
                 
                 <div class="space-y-6">
-                    @foreach($student->studentModuleEnrolments as $moduleEnrolment)
+                    @foreach($moduleGroups as $moduleInstanceId => $gradeRecords)
                     @php
-                        $module = $moduleEnrolment->moduleInstance->module;
-                        $assessments = $moduleEnrolment->studentAssessments;
-                        $moduleTotal = $assessments->count();
-                        $moduleCompleted = $assessments->whereIn('status', ['graded', 'passed', 'failed'])->count();
-                        $modulePassRate = $moduleCompleted > 0 ? round(($assessments->where('status', 'passed')->count() / $moduleCompleted) * 100, 1) : 0;
+                        $moduleInstance = $gradeRecords->first()->moduleInstance;
+                        $module = $moduleInstance->module;
+                        $moduleTotal = $gradeRecords->count();
+                        $moduleCompleted = $gradeRecords->whereNotNull('percentage')->count();
+                        $modulePassRate = $moduleCompleted > 0 ? round(($gradeRecords->where('percentage', '>=', 40)->count() / $moduleCompleted) * 100, 1) : 0;
                         $moduleProgress = $moduleTotal > 0 ? round(($moduleCompleted / $moduleTotal) * 100, 1) : 0;
 
                         $finalGrade = null;
-                        if ($moduleEnrolment->final_grade) {
-                            $finalGrade = $moduleEnrolment->final_grade;
-                        } elseif ($moduleCompleted === $moduleTotal && $moduleTotal > 0) {
+                        if ($moduleCompleted === $moduleTotal && $moduleTotal > 0) {
                             $weightedSum = 0;
                             $totalWeight = 0;
-                            foreach ($assessments as $assessment) {
-                                if ($assessment->grade !== null) {
-                                    $weight = $assessment->assessmentComponent->weight;
-                                    $weightedSum += ($assessment->grade * $weight);
-                                    $totalWeight += $weight;
+                            foreach ($gradeRecords as $gradeRecord) {
+                                if ($gradeRecord->percentage !== null && isset($module->assessment_strategy)) {
+                                    $component = collect($module->assessment_strategy)->firstWhere('component_name', $gradeRecord->assessment_component_name);
+                                    if ($component) {
+                                        $weight = $component['weighting'];
+                                        $weightedSum += ($gradeRecord->percentage * $weight);
+                                        $totalWeight += $weight;
+                                    }
                                 }
                             }
                             if ($totalWeight > 0) {
@@ -138,28 +142,16 @@
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
                             <div class="flex-1">
                                 <h3 class="text-lg font-semibold text-gray-900">{{ $module->title }}</h3>
-                                <p class="text-sm text-gray-600">{{ $module->code }}</p>
-                                @if($moduleEnrolment->moduleInstance->cohort)
-                                    <p class="text-sm text-gray-600">Cohort: {{ $moduleEnrolment->moduleInstance->cohort->name }}</p>
-                                @endif
+                                <p class="text-sm text-gray-600">{{ $module->module_code }}</p>
+                                <p class="text-sm text-gray-600">{{ ucfirst($moduleInstance->delivery_style) }} delivery</p>
                             </div>
 
                             <div class="mt-3 lg:mt-0 flex items-center space-x-4">
-                                @if($finalGrade && ($moduleEnrolment->is_final_grade_visible ?? true))
+                                @if($finalGrade)
                                     <div class="text-center">
                                         <p class="text-sm text-gray-500">Final Grade</p>
                                         <p class="text-2xl font-bold {{ $finalGrade >= 40 ? 'text-green-600' : 'text-red-600' }}">
                                             {{ $finalGrade }}%
-                                        </p>
-                                    </div>
-                                @elseif($finalGrade && !($moduleEnrolment->is_final_grade_visible ?? true))
-                                    <div class="text-center">
-                                        <p class="text-sm text-gray-500">Final Grade</p>
-                                        <p class="text-lg text-gray-400">
-                                            <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                            </svg>
-                                            Pending
                                         </p>
                                     </div>
                                 @endif
@@ -170,11 +162,8 @@
                                 </div>
 
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                                    {{ $moduleEnrolment->status === 'completed' ? 'bg-green-100 text-green-800' : '' }}
-                                    {{ $moduleEnrolment->status === 'active' ? 'bg-blue-100 text-blue-800' : '' }}
-                                    {{ $moduleEnrolment->status === 'enrolled' ? 'bg-gray-100 text-gray-800' : '' }}
-                                    {{ $moduleEnrolment->status === 'failed' ? 'bg-red-100 text-red-800' : '' }}">
-                                    {{ ucfirst(str_replace('_', ' ', $moduleEnrolment->status)) }}
+                                    {{ $moduleProgress === 100 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' }}">
+                                    {{ $moduleProgress === 100 ? 'Completed' : 'In Progress' }}
                                 </span>
                             </div>
                         </div>
@@ -187,28 +176,34 @@
                         </div>
 
                         <!-- Assessment Grid -->
-                        @if($assessments->count() > 0)
+                        @if($gradeRecords->count() > 0)
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            @foreach($assessments->sortBy('assessmentComponent.sequence') as $assessment)
+                            @foreach($gradeRecords->sortBy('assessment_component_name') as $gradeRecord)
+                            @php
+                                $component = collect($module->assessment_strategy)->firstWhere('component_name', $gradeRecord->assessment_component_name);
+                            @endphp
                             <div class="border border-gray-100 rounded-lg p-4 hover:border-gray-200 transition-colors">
                                 <div class="flex items-start justify-between">
                                     <div class="flex-1">
-                                        <h4 class="font-medium text-gray-900">{{ $assessment->assessmentComponent->name }}</h4>
-                                        <p class="text-sm text-gray-500">{{ $assessment->assessmentComponent->weight }}% of final grade</p>
-                                        <p class="text-sm text-gray-500">Due: {{ $assessment->due_date->format('d M Y') }}</p>
+                                        <h4 class="font-medium text-gray-900">{{ $gradeRecord->assessment_component_name }}</h4>
+                                        @if($component)
+                                            <p class="text-sm text-gray-500">{{ $component['weighting'] }}% of final grade</p>
+                                        @endif
+                                        @if($gradeRecord->submission_date)
+                                            <p class="text-sm text-gray-500">Submitted: {{ $gradeRecord->submission_date->format('d M Y') }}</p>
+                                        @endif
                                     </div>
 
                                     <div class="ml-3 text-right">
-                                        @if($assessment->grade !== null && $assessment->isVisibleToStudent())
-                                            <p class="text-lg font-bold {{ $assessment->grade >= 40 ? 'text-green-600' : 'text-red-600' }}">
-                                                {{ $assessment->grade }}%
+                                        @if($gradeRecord->percentage !== null && $gradeRecord->is_visible_to_student)
+                                            <p class="text-lg font-bold {{ $gradeRecord->percentage >= 40 ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ $gradeRecord->percentage }}%
                                             </p>
                                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
-                                                {{ $assessment->status === 'passed' ? 'bg-green-100 text-green-700' : '' }}
-                                                {{ $assessment->status === 'failed' ? 'bg-red-100 text-red-700' : '' }}">
-                                                {{ $assessment->grade >= 40 ? 'PASS' : 'FAIL' }}
+                                                {{ $gradeRecord->percentage >= 40 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
+                                                {{ $gradeRecord->percentage >= 40 ? 'PASS' : 'FAIL' }}
                                             </span>
-                                        @elseif($assessment->grade !== null && !$assessment->isVisibleToStudent())
+                                        @elseif($gradeRecord->percentage !== null && !$gradeRecord->is_visible_to_student)
                                             <p class="text-sm text-gray-500">
                                                 <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -218,32 +213,18 @@
                                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
                                                 Results Pending
                                             </span>
-                                        @elseif($assessment->status === 'submitted')
-                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
-                                                Submitted
-                                            </span>
-                                        @elseif($assessment->status === 'pending')
-                                            @if($assessment->due_date->isPast())
-                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">
-                                                    Overdue
-                                                </span>
-                                            @else
-                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                                                    Pending
-                                                </span>
-                                            @endif
                                         @else
                                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                                                {{ ucfirst($assessment->status) }}
+                                                Not Graded
                                             </span>
                                         @endif
                                     </div>
                                 </div>
 
-                                @if($assessment->feedback && $assessment->isVisibleToStudent())
+                                @if($gradeRecord->feedback && $gradeRecord->is_visible_to_student)
                                 <div class="mt-3 pt-3 border-t border-gray-100">
                                     <p class="text-sm text-gray-600"><strong>Feedback:</strong></p>
-                                    <p class="text-sm text-gray-700 mt-1">{{ Str::limit($assessment->feedback, 100) }}</p>
+                                    <p class="text-sm text-gray-700 mt-1">{{ Str::limit($gradeRecord->feedback, 100) }}</p>
                                 </div>
                                 @endif
                             </div>

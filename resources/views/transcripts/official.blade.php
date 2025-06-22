@@ -330,15 +330,27 @@
                                     @if($moduleData['grade'])
                                         {{ $moduleData['grade'] }}
                                         @php
-                                            // Calculate overall percentage for this module
+                                            // Calculate overall percentage for this module using new architecture
                                             $totalMark = 0;
                                             $totalWeight = 0;
-                                            foreach($moduleData['enrolment']->studentAssessments as $assessment) {
-                                                if($assessment->isVisibleToStudent() && $assessment->grade !== null) {
-                                                    $weight = $assessment->assessmentComponent->weight ?? 100;
-                                                    $totalMark += ($assessment->grade * $weight / 100);
-                                                    $totalWeight += $weight;
+                                            $gradeRecords = \App\Models\StudentGradeRecord::where('student_id', $moduleData['enrolment']->student_id)
+                                                ->where('module_instance_id', $moduleData['enrolment']->module_instance_id)
+                                                ->where('is_visible_to_student', true)
+                                                ->whereNotNull('grade')
+                                                ->get();
+                                            
+                                            foreach($gradeRecords as $gradeRecord) {
+                                                // Find weight from module assessment strategy
+                                                $assessmentStrategy = $moduleData['module']->assessment_strategy ?? [];
+                                                $weight = 100; // Default weight
+                                                foreach($assessmentStrategy as $component) {
+                                                    if($component['component_name'] === $gradeRecord->assessment_component_name) {
+                                                        $weight = $component['weighting'] ?? 100;
+                                                        break;
+                                                    }
                                                 }
+                                                $totalMark += ($gradeRecord->grade * $weight / 100);
+                                                $totalWeight += $weight;
                                             }
                                             $percentage = $totalWeight > 0 ? round($totalMark, 1) : 0;
                                         @endphp
@@ -382,12 +394,23 @@
                                         $credits = $moduleData['credits'];
                                         $modulePercentage = 0;
                                         $moduleWeightTotal = 0;
-                                        foreach($moduleData['enrolment']->studentAssessments as $assessment) {
-                                            if($assessment->isVisibleToStudent() && $assessment->grade !== null) {
-                                                $weight = $assessment->assessmentComponent->weight ?? 100;
-                                                $modulePercentage += ($assessment->grade * $weight / 100);
-                                                $moduleWeightTotal += $weight;
+                                        $gradeRecords = \App\Models\StudentGradeRecord::where('student_id', $moduleData['enrolment']->student_id)
+                                            ->where('module_instance_id', $moduleData['enrolment']->module_instance_id)
+                                            ->where('is_visible_to_student', true)
+                                            ->whereNotNull('grade')
+                                            ->get();
+                                        
+                                        foreach($gradeRecords as $gradeRecord) {
+                                            $assessmentStrategy = $moduleData['module']->assessment_strategy ?? [];
+                                            $weight = 100;
+                                            foreach($assessmentStrategy as $component) {
+                                                if($component['component_name'] === $gradeRecord->assessment_component_name) {
+                                                    $weight = $component['weighting'] ?? 100;
+                                                    break;
+                                                }
                                             }
+                                            $modulePercentage += ($gradeRecord->grade * $weight / 100);
+                                            $moduleWeightTotal += $weight;
                                         }
                                         if($moduleWeightTotal > 0) {
                                             $finalModulePercentage = $modulePercentage;
@@ -444,12 +467,23 @@
                                             $credits = $moduleData['credits'];
                                             $modulePercentage = 0;
                                             $moduleWeightTotal = 0;
-                                            foreach($moduleData['enrolment']->studentAssessments as $assessment) {
-                                                if($assessment->isVisibleToStudent() && $assessment->grade !== null) {
-                                                    $weight = $assessment->assessmentComponent->weight ?? 100;
-                                                    $modulePercentage += ($assessment->grade * $weight / 100);
-                                                    $moduleWeightTotal += $weight;
+                                            $gradeRecords = \App\Models\StudentGradeRecord::where('student_id', $moduleData['enrolment']->student_id)
+                                                ->where('module_instance_id', $moduleData['enrolment']->module_instance_id)
+                                                ->where('is_visible_to_student', true)
+                                                ->whereNotNull('grade')
+                                                ->get();
+                                            
+                                            foreach($gradeRecords as $gradeRecord) {
+                                                $assessmentStrategy = $moduleData['module']->assessment_strategy ?? [];
+                                                $weight = 100;
+                                                foreach($assessmentStrategy as $component) {
+                                                    if($component['component_name'] === $gradeRecord->assessment_component_name) {
+                                                        $weight = $component['weighting'] ?? 100;
+                                                        break;
+                                                    }
                                                 }
+                                                $modulePercentage += ($gradeRecord->grade * $weight / 100);
+                                                $moduleWeightTotal += $weight;
                                             }
                                             if($moduleWeightTotal > 0) {
                                                 $finalModulePercentage = $modulePercentage;

@@ -6,7 +6,7 @@
             Student Details: {{ $student->full_name }}
         </h2>
         <div class="hidden sm:block">
-            <a href="{{ route('admin.student-progress', $student) }}" 
+            <a href="{{ route('students.progress', $student) }}" 
                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                 View Progress
             </a>
@@ -89,7 +89,7 @@
                             
                             <!-- Mobile Progress Button -->
                             <div class="sm:hidden mb-3">
-                                <a href="{{ route('admin.student-progress', $student) }}" 
+                                <a href="{{ route('students.progress', $student) }}" 
                                    class="w-full inline-flex justify-center items-center px-3 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                                     View Progress
                                 </a>
@@ -165,22 +165,22 @@
             <!-- Enrolments -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <h3 class="text-lg font-semibold mb-4">Programme Enrolments</h3>
+                    <h3 class="text-lg font-semibold mb-4">Enrolments</h3>
                     @if($student->enrolments->count() > 0)
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Programme
+                                        Type
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Cohort
+                                        Programme/Module
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Instance
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Enrolment Date
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Expected Completion
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
@@ -194,16 +194,27 @@
                                 @foreach($student->enrolments as $enrolment)
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {{ $enrolment->programme->code }} - {{ $enrolment->programme->title }}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                                {{ $enrolment->enrolment_type === 'programme' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                                {{ ucfirst($enrolment->enrolment_type) }}
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $enrolment->cohort ? $enrolment->cohort->code : '-' }}
+                                            @if($enrolment->enrolment_type === 'programme')
+                                                {{ $enrolment->programmeInstance->programme->title }}
+                                            @else
+                                                {{ $enrolment->moduleInstance->module->title }}
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            @if($enrolment->enrolment_type === 'programme')
+                                                {{ $enrolment->programmeInstance->label }}
+                                            @else
+                                                {{ $enrolment->moduleInstance->label ?? 'Default Instance' }}
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {{ $enrolment->enrolment_date->format('d M Y') }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $enrolment->expected_completion_date ? $enrolment->expected_completion_date->format('d M Y') : '-' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
@@ -216,26 +227,45 @@
                                                 {{ ucfirst($enrolment->status) }}
                                             </span>
                                         </td>
-                                        {{-- START: MODIFIED SECTION --}}
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            @if($enrolment->status === 'active' && $enrolment->programme->isCohortBased())
-                                                <a href="{{ route('deferrals.create', [$student, $enrolment]) }}"
-                                                   class="text-yellow-600 hover:text-yellow-900 mr-2">
-                                                    Defer
-                                                </a>
-                                            @elseif($enrolment->status === 'deferred')
-                                                <span class="text-gray-500">Deferred</span>
-                                            @endif
-                                            {{-- You might want to add other actions here, e.g., a "View Details" link for the enrolment itself --}}
-                                            {{-- or an "Edit Enrolment" link if applicable --}}
+                                            <div class="flex items-center space-x-3">
+                                                @if($enrolment->status === 'active' && $enrolment->enrolment_type === 'programme')
+                                                    <a href="{{ route('deferrals.create', [$student, $enrolment]) }}"
+                                                       class="text-yellow-600 hover:text-yellow-900">
+                                                        Defer
+                                                    </a>
+                                                @elseif($enrolment->status === 'deferred')
+                                                    <span class="text-gray-500">Deferred</span>
+                                                @endif
+                                                
+                                                @if($enrolment->enrolment_type === 'programme')
+                                                    <a href="{{ route('programme-instances.show', $enrolment->programmeInstance) }}"
+                                                       class="text-blue-600 hover:text-blue-900">
+                                                        View
+                                                    </a>
+                                                @else
+                                                    <a href="{{ route('module-instances.show', $enrolment->moduleInstance) }}"
+                                                       class="text-blue-600 hover:text-blue-900">
+                                                        View
+                                                    </a>
+                                                @endif
+                                                
+                                                {{-- Unenroll button for admin error correction --}}
+                                                @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                                                    <a href="{{ route('enrolments.unenroll-form', $enrolment) }}"
+                                                       class="text-red-600 hover:text-red-900"
+                                                       title="Unenroll student (admin correction)">
+                                                        Unenroll
+                                                    </a>
+                                                @endif
+                                            </div>
                                         </td>
-                                        {{-- END: MODIFIED SECTION --}}
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     @else
-                        <p class="text-gray-500">No programme enrolments yet.</p>
+                        <p class="text-gray-500">No enrolments yet.</p>
                     @endif
                 </div>
             </div>

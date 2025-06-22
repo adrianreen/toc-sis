@@ -4,7 +4,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Programme;
-use App\Models\Cohort;
 use App\Models\Student;
 use App\Models\Enrolment;
 use App\Models\Deferral;
@@ -19,18 +18,27 @@ class ReportController extends Controller
             'total_students' => Student::count(),
             'active_students' => Student::where('status', 'active')->count(),
             'deferred_students' => Student::where('status', 'deferred')->count(),
-            'total_programmes' => Programme::where('is_active', true)->count(),
-            'active_cohorts' => Cohort::where('status', 'active')->count(),
+            'total_programmes' => Programme::count(),
+            'active_programme_instances' => \App\Models\ProgrammeInstance::whereDate('intake_start_date', '<=', now())
+                ->whereDate('intake_end_date', '>=', now())->count(),
             'pending_deferrals' => Deferral::where('status', 'pending')->count(),
-            'pending_extensions' => \App\Models\Extension::where('status', 'pending')->count(),
+            'total_module_instances' => \App\Models\ModuleInstance::count(),
         ];
 
-        // Get programme breakdown
+        // Get programme breakdown with active enrolments
         $programmeStats = Programme::withCount([
-            'enrolments' => function ($query) {
-                $query->where('status', 'active');
+            'programmeInstances as active_instances_count' => function ($query) {
+                $query->whereDate('intake_start_date', '<=', now())
+                      ->whereDate('intake_end_date', '>=', now());
             }
-        ])->where('is_active', true)->get();
+        ])->with(['programmeInstances' => function ($query) {
+            $query->withCount(['enrolments' => function ($subQuery) {
+                $subQuery->where('enrolment_type', 'programme')
+                         ->whereHas('student', function ($studentQuery) {
+                             $studentQuery->where('status', 'active');
+                         });
+            }]);
+        }])->get();
 
         // Get recent activities
         $recentActivities = \Spatie\Activitylog\Models\Activity::with(['causer', 'subject'])
@@ -41,39 +49,72 @@ class ReportController extends Controller
         return view('reports.dashboard', compact('stats', 'programmeStats', 'recentActivities'));
     }
 
-    public function cohortList(Cohort $cohort)
+    public function programmeInstanceList(\App\Models\ProgrammeInstance $programmeInstance)
     {
-        $students = Student::whereHas('enrolments', function ($query) use ($cohort) {
-            $query->where('cohort_id', $cohort->id)
-                  ->where('status', 'active');
-        })->with(['enrolments' => function ($query) use ($cohort) {
-            $query->where('cohort_id', $cohort->id);
+        $students = Student::whereHas('enrolments', function ($query) use ($programmeInstance) {
+            $query->where('programme_instance_id', $programmeInstance->id)
+                  ->where('enrolment_type', 'programme')
+                  ->whereHas('student', function ($studentQuery) {
+                      $studentQuery->where('status', 'active');
+                  });
+        })->with(['enrolments' => function ($query) use ($programmeInstance) {
+            $query->where('programme_instance_id', $programmeInstance->id);
         }])->get();
 
-        return view('reports.cohort-list', compact('cohort', 'students'));
+        return view('reports.programme-instance-list', compact('programmeInstance', 'students'));
     }
 
     public function studentProgress(Student $student)
     {
         $student->load([
-            'enrolments.programme',
-            'enrolments.deferrals',
-            'studentModuleEnrolments.moduleInstance.module',
-            'studentModuleEnrolments.studentAssessments.assessmentComponent'
+            'enrolments.programmeInstance.programme',
+            'enrolments.moduleInstance.module',
+            'studentGradeRecords' => function($query) {
+                $query->with('moduleInstance.module')
+                      ->where(function ($q) {
+                          $q->where('is_visible_to_student', true)
+                            ->orWhere(function ($subQ) {
+                                $subQ->whereNotNull('release_date')
+                                     ->where('release_date', '<=', now());
+                            });
+                      });
+            }
         ]);
 
-        $moduleProgress = DB::table('student_module_enrolments as sme')
-            ->join('module_instances as mi', 'sme.module_instance_id', '=', 'mi.id')
-            ->join('modules as m', 'mi.module_id', '=', 'm.id')
-            ->where('sme.student_id', $student->id)
-            ->select(
-                'm.code',
-                'm.title',
-                'sme.status',
-                'sme.final_grade',
-                'sme.attempt_number'
-            )
-            ->get();
+        // Calculate module progress from grade records
+        $moduleProgress = $student->studentGradeRecords
+            ->groupBy('module_instance_id')
+            ->map(function ($gradeRecords) {
+                $moduleInstance = $gradeRecords->first()->moduleInstance;
+                $module = $moduleInstance->module;
+                
+                $totalComponents = count($module->assessment_strategy ?? []);
+                $gradedComponents = $gradeRecords->whereNotNull('grade')->count();
+                
+                // Calculate overall grade from assessment strategy
+                $totalWeightedMark = 0;
+                $totalWeight = 0;
+                
+                foreach ($module->assessment_strategy ?? [] as $component) {
+                    $gradeRecord = $gradeRecords->where('assessment_component_name', $component['component_name'])->first();
+                    if ($gradeRecord && $gradeRecord->grade !== null) {
+                        $totalWeightedMark += ($gradeRecord->percentage * $component['weighting'] / 100);
+                        $totalWeight += $component['weighting'];
+                    }
+                }
+                
+                $finalGrade = $totalWeight > 0 ? round($totalWeightedMark, 1) : null;
+                $status = $gradedComponents === $totalComponents ? 'completed' : 'in_progress';
+                
+                return (object) [
+                    'code' => $module->module_code,
+                    'title' => $module->title,
+                    'status' => $status,
+                    'final_grade' => $finalGrade,
+                    'progress' => $totalComponents > 0 ? round(($gradedComponents / $totalComponents) * 100) : 0
+                ];
+            })
+            ->values();
 
         return view('reports.student-progress', compact('student', 'moduleProgress'));
     }

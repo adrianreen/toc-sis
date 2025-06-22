@@ -140,18 +140,18 @@
                                 </div>
 
                                 <div>
-                                    <label for="prospective_cohort_id" class="block text-sm font-medium text-gray-700 mb-2">Prospective Cohort</label>
-                                    <select id="prospective_cohort_id" name="prospective_cohort_id"
+                                    <label for="prospective_programme_instance_id" class="block text-sm font-medium text-gray-700 mb-2">Prospective Programme Instance</label>
+                                    <select id="prospective_programme_instance_id" name="prospective_programme_instance_id"
                                             class="block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                        <option value="">Select a cohort (optional)</option>
-                                        @foreach($cohorts as $cohort)
-                                            <option value="{{ $cohort->id }}" data-programme="{{ $cohort->programme_id }}" 
-                                                    {{ old('prospective_cohort_id', $enquiry->prospective_cohort_id) == $cohort->id ? 'selected' : '' }}>
-                                                {{ $cohort->name }} ({{ $cohort->programme->title }})
+                                        <option value="">Select a programme instance (optional)</option>
+                                        @foreach($programmeInstances as $instance)
+                                            <option value="{{ $instance->id }}" data-programme="{{ $instance->programme_id }}" 
+                                                    {{ old('prospective_programme_instance_id', $enquiry->prospective_programme_instance_id) == $instance->id ? 'selected' : '' }}>
+                                                {{ $instance->label }} ({{ $instance->programme->title }})
                                             </option>
                                         @endforeach
                                     </select>
-                                    @error('prospective_cohort_id')
+                                    @error('prospective_programme_instance_id')
                                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>

@@ -8,10 +8,10 @@
                 </h2>
                 <p class="text-sm text-gray-600 mt-1">
                     {{ $moduleInstance->module->title }} - 
-                    @if($moduleInstance->cohort)
-                        {{ $moduleInstance->cohort->code }} ({{ $moduleInstance->cohort->name }})
+                    @if($moduleInstance->programmeInstances->count() > 0)
+                        {{ $moduleInstance->programmeInstances->pluck('label')->implode(', ') }}
                     @else
-                        Rolling Enrolment
+                        Standalone Module
                     @endif
                 </p>
             </div>
@@ -52,9 +52,9 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-medium text-gray-500">Students</h3>
-                            <p class="text-lg font-semibold">{{ $moduleInstance->studentEnrolments->count() }}</p>
+                            <p class="text-lg font-semibold">{{ $moduleInstance->enrolments->count() }}</p>
                             <p class="text-sm text-gray-600">
-                                {{ $moduleInstance->studentEnrolments->where('status', 'active')->count() }} active
+                                {{ $moduleInstance->enrolments->where('status', 'active')->count() }} active
                             </p>
                         </div>
                         <div>
@@ -72,32 +72,30 @@
                 <div class="p-6">
                     <h3 class="text-lg font-semibold mb-4">Assessment Components Detail</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach($moduleInstance->module->assessmentComponents as $component)
+                        @foreach($moduleInstance->module->assessment_strategy ?? [] as $component)
                             @php
-                                $totalStudents = $moduleInstance->studentEnrolments->count();
-                                $gradedCount = $moduleInstance->studentEnrolments->sum(function($enrolment) use ($component) {
-                                    return $enrolment->studentAssessments
-                                        ->where('assessment_component_id', $component->id)
-                                        ->whereIn('status', ['graded', 'passed', 'failed'])
-                                        ->count();
-                                });
-                                $submittedCount = $moduleInstance->studentEnrolments->sum(function($enrolment) use ($component) {
-                                    return $enrolment->studentAssessments
-                                        ->where('assessment_component_id', $component->id)
-                                        ->where('status', 'submitted')
-                                        ->count();
-                                });
-                                $averageGrade = $moduleInstance->studentEnrolments->flatMap->studentAssessments
-                                    ->where('assessment_component_id', $component->id)
+                                $totalStudents = $moduleInstance->enrolments->count();
+                                $gradedCount = \App\Models\StudentGradeRecord::where('module_instance_id', $moduleInstance->id)
+                                    ->where('assessment_component_name', $component['component_name'])
+                                    ->whereNotNull('grade')
+                                    ->whereNotNull('grade')
+                                    ->count();
+                                $submittedCount = \App\Models\StudentGradeRecord::where('module_instance_id', $moduleInstance->id)
+                                    ->where('assessment_component_name', $component['component_name'])
+                                    ->whereNotNull('grade')
+                                    ->whereNull('grade')
+                                    ->count();
+                                $averageGrade = \App\Models\StudentGradeRecord::where('module_instance_id', $moduleInstance->id)
+                                    ->where('assessment_component_name', $component['component_name'])
                                     ->whereNotNull('grade')
                                     ->avg('grade');
                             @endphp
                             <div class="border rounded-lg p-4">
                                 <div class="flex justify-between items-start mb-2">
-                                    <h4 class="font-medium">{{ $component->name }}</h4>
-                                    <span class="text-sm font-semibold text-blue-600">{{ $component->weight }}%</span>
+                                    <h4 class="font-medium">{{ $component['component_name'] ?? 'Unknown' }}</h4>
+                                    <span class="text-sm font-semibold text-blue-600">{{ $component['weighting'] ?? 0 }}%</span>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-3">{{ ucfirst($component->type) }}</p>
+                                <p class="text-sm text-gray-600 mb-3">Assessment</p>
                                 
                                 <div class="space-y-2">
                                     <div class="flex justify-between text-sm">
@@ -137,20 +135,18 @@
                                     <!-- Bulk Visibility Controls -->
                                     @if($gradedCount > 0)
                                         @php
-                                            $componentId = $component->id;
-                                            $visibleCount = $moduleInstance->studentEnrolments->sum(function($enrolment) use ($componentId) {
-                                                return $enrolment->studentAssessments
-                                                    ->where('assessment_component_id', $componentId)
-                                                    ->where('is_visible_to_student', true)
-                                                    ->count();
-                                            });
+                                            $componentName = $component['component_name'];
+                                            $visibleCount = \App\Models\StudentGradeRecord::where('module_instance_id', $moduleInstance->id)
+                                                ->where('assessment_component_name', $componentName)
+                                                ->where('is_visible_to_student', true)
+                                                ->count();
                                         @endphp
                                         <div class="pt-2 border-t border-gray-200">
                                             <div class="text-xs text-gray-600 mb-2 text-center">
                                                 Visibility: {{ $visibleCount }}/{{ $gradedCount }} visible to students
                                             </div>
                                             <div class="grid grid-cols-2 gap-1">
-                                                <button onclick="bulkVisibilityAction({{ $moduleInstance->id }}, {{ $component->id }}, 'show_all')" 
+                                                <button onclick="bulkVisibilityAction({{ $moduleInstance->id }}, '{{ $component['component_name'] }}', 'show_all')" 
                                                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-xs transition-colors flex items-center justify-center">
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -158,7 +154,7 @@
                                                     </svg>
                                                     Show All
                                                 </button>
-                                                <button onclick="bulkVisibilityAction({{ $moduleInstance->id }}, {{ $component->id }}, 'hide_all')" 
+                                                <button onclick="bulkVisibilityAction({{ $moduleInstance->id }}, '{{ $component['component_name'] }}', 'hide_all')" 
                                                         class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs transition-colors flex items-center justify-center">
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
@@ -186,7 +182,7 @@
                         </div>
                     </div>
                     
-                    @if($moduleInstance->studentEnrolments->count() > 0)
+                    @if($moduleInstance->enrolments->count() > 0)
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -341,7 +337,7 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div class="flex flex-col space-y-1">
-                                                    <a href="{{ route('admin.student-progress', $enrolment->student) }}" 
+                                                    <a href="{{ route('students.progress', $enrolment->student) }}" 
                                                        class="text-indigo-600 hover:text-indigo-900 text-xs">
                                                         View Progress
                                                     </a>

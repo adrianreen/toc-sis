@@ -4,10 +4,9 @@ namespace App\Services;
 
 use App\Models\Student;
 use App\Models\Enrolment;
+use App\Models\ProgrammeInstance;
 use App\Models\ModuleInstance;
-use App\Models\StudentModuleEnrolment;
-use App\Models\StudentAssessment;
-use App\Models\AssessmentComponent;
+use App\Models\StudentGradeRecord;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,188 +14,261 @@ use Illuminate\Support\Facades\Log;
 class EnrolmentService
 {
     /**
-     * Enrol a student in a programme and handle all related enrollments
+     * Enrol a student in a programme instance (two-path system)
      */
-    public function enrolStudent(Student $student, array $enrolmentData): Enrolment
+    public function enrolStudentInProgramme(Student $student, ProgrammeInstance $programmeInstance, array $enrolmentData = []): Enrolment
     {
         try {
-            return DB::transaction(function () use ($student, $enrolmentData) {
-                // Create the main programme enrolment
+            return DB::transaction(function () use ($student, $programmeInstance, $enrolmentData) {
+                // Validate no existing active enrolment in this programme instance
+                $existingEnrolment = Enrolment::where([
+                    'student_id' => $student->id,
+                    'programme_instance_id' => $programmeInstance->id,
+                    'enrolment_type' => 'programme'
+                ])->whereIn('status', ['active', 'deferred'])->first();
+
+                if ($existingEnrolment) {
+                    throw new \Exception('Student is already enrolled in this programme instance');
+                }
+
+                // Create the programme enrolment
                 $enrolment = Enrolment::create([
                     'student_id' => $student->id,
-                    'programme_id' => $enrolmentData['programme_id'],
-                    'cohort_id' => $enrolmentData['cohort_id'] ?? null,
-                    'enrolment_date' => $enrolmentData['enrolment_date'],
+                    'enrolment_type' => 'programme',
+                    'programme_instance_id' => $programmeInstance->id,
+                    'module_instance_id' => null,
+                    'enrolment_date' => $enrolmentData['enrolment_date'] ?? now(),
                     'status' => 'active',
                 ]);
 
-                // If this is a cohort-based programme, enrol in module instances
-                if ($enrolment->cohort_id) {
-                    $this->enrolInModuleInstances($student, $enrolment);
-                }
+                // Create student grade records for all assessment components in curriculum
+                $this->createGradeRecordsForProgrammeEnrolment($student, $programmeInstance);
 
                 // Update student status to active if not already
-                if ($student->status === 'enquiry' || $student->status === 'enrolled') {
+                if (in_array($student->status, ['enquiry', 'enrolled'])) {
                     $student->update(['status' => 'active']);
                 }
 
-                Log::info('Student enrolled successfully', [
+                Log::info('Student enrolled in programme successfully', [
                     'student_id' => $student->id,
-                    'programme_id' => $enrolmentData['programme_id'],
-                    'cohort_id' => $enrolmentData['cohort_id'],
+                    'programme_instance_id' => $programmeInstance->id,
+                    'programme_title' => $programmeInstance->programme->title,
                 ]);
 
                 return $enrolment;
             });
         } catch (\Exception $e) {
-            Log::error('Failed to enroll student', [
+            Log::error('Failed to enroll student in programme', [
                 'student_id' => $student->id,
-                'programme_id' => $enrolmentData['programme_id'] ?? null,
+                'programme_instance_id' => $programmeInstance->id,
                 'error' => $e->getMessage()
             ]);
-            throw $e; // Re-throw to let controller handle user feedback
+            throw $e;
         }
     }
 
     /**
-     * Enrol student in all module instances for their cohort
+     * Enrol a student in a standalone module instance (two-path system)
      */
-    protected function enrolInModuleInstances(Student $student, Enrolment $enrolment): void
+    public function enrolStudentInModule(Student $student, ModuleInstance $moduleInstance, array $enrolmentData = []): Enrolment
     {
-        // Get all module instances for this cohort
-        $moduleInstances = ModuleInstance::where('cohort_id', $enrolment->cohort_id)
-            ->with(['module.assessmentComponents'])
-            ->get();
+        try {
+            return DB::transaction(function () use ($student, $moduleInstance, $enrolmentData) {
+                // Validate module allows standalone enrolment
+                if (!$moduleInstance->module->allows_standalone_enrolment) {
+                    throw new \Exception('This module does not allow standalone enrolment');
+                }
 
-        foreach ($moduleInstances as $moduleInstance) {
-            $this->enrolInSingleModuleInstance($student, $enrolment, $moduleInstance);
+                // Validate no existing active enrolment in this module instance
+                $existingEnrolment = Enrolment::where([
+                    'student_id' => $student->id,
+                    'module_instance_id' => $moduleInstance->id,
+                    'enrolment_type' => 'module'
+                ])->whereIn('status', ['active', 'deferred'])->first();
+
+                if ($existingEnrolment) {
+                    throw new \Exception('Student is already enrolled in this module instance');
+                }
+
+                // Create the module enrolment
+                $enrolment = Enrolment::create([
+                    'student_id' => $student->id,
+                    'enrolment_type' => 'module',
+                    'programme_instance_id' => null,
+                    'module_instance_id' => $moduleInstance->id,
+                    'enrolment_date' => $enrolmentData['enrolment_date'] ?? now(),
+                    'status' => 'active',
+                ]);
+
+                // Create student grade records for all assessment components in this module
+                $this->createGradeRecordsForModuleEnrolment($student, $moduleInstance);
+
+                Log::info('Student enrolled in standalone module successfully', [
+                    'student_id' => $student->id,
+                    'module_instance_id' => $moduleInstance->id,
+                    'module_title' => $moduleInstance->module->title,
+                ]);
+
+                return $enrolment;
+            });
+        } catch (\Exception $e) {
+            Log::error('Failed to enroll student in module', [
+                'student_id' => $student->id,
+                'module_instance_id' => $moduleInstance->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
     }
 
     /**
-     * Enrol student in a single module instance and create assessments
+     * Create grade records for all modules in a programme instance curriculum
      */
-    public function enrolInSingleModuleInstance(Student $student, Enrolment $enrolment, ModuleInstance $moduleInstance): StudentModuleEnrolment
+    protected function createGradeRecordsForProgrammeEnrolment(Student $student, ProgrammeInstance $programmeInstance): void
     {
-        // Check if already enrolled (avoid duplicates)
-        $existingEnrolment = StudentModuleEnrolment::where([
-            'student_id' => $student->id,
-            'module_instance_id' => $moduleInstance->id,
-        ])->first();
-
-        if ($existingEnrolment) {
-            return $existingEnrolment;
+        foreach ($programmeInstance->moduleInstances as $moduleInstance) {
+            $this->createGradeRecordsForModuleInstance($student, $moduleInstance);
         }
-
-        // Create the module enrolment
-        $studentModuleEnrolment = StudentModuleEnrolment::create([
-            'student_id' => $student->id,
-            'enrolment_id' => $enrolment->id,
-            'module_instance_id' => $moduleInstance->id,
-            'status' => 'enrolled',
-            'attempt_number' => 1,
-        ]);
-
-        // Create individual assessments for all assessment components
-        $this->createAssessmentsForStudent($studentModuleEnrolment, $moduleInstance);
-
-        Log::info('Student enrolled in module instance', [
-            'student_id' => $student->id,
-            'module_instance_id' => $moduleInstance->id,
-            'instance_code' => $moduleInstance->instance_code,
-        ]);
-
-        return $studentModuleEnrolment;
     }
 
     /**
-     * Create individual assessment records for a student
+     * Create grade records for a standalone module enrolment
      */
-    protected function createAssessmentsForStudent(StudentModuleEnrolment $studentModuleEnrolment, ModuleInstance $moduleInstance): void
+    protected function createGradeRecordsForModuleEnrolment(Student $student, ModuleInstance $moduleInstance): void
     {
-        $assessmentComponents = $moduleInstance->module->assessmentComponents()
-            ->where('is_active', true)
-            ->orderBy('sequence')
-            ->get();
+        $this->createGradeRecordsForModuleInstance($student, $moduleInstance);
+    }
 
+    /**
+     * Create individual grade records for all assessment components in a module instance
+     */
+    protected function createGradeRecordsForModuleInstance(Student $student, ModuleInstance $moduleInstance): void
+    {
+        $assessmentComponents = $moduleInstance->module->assessment_strategy ?? [];
+        
         foreach ($assessmentComponents as $component) {
-            $dueDate = $this->calculateDueDate($moduleInstance, $component);
+            // Check if grade record already exists (avoid duplicates)
+            $existingRecord = StudentGradeRecord::where([
+                'student_id' => $student->id,
+                'module_instance_id' => $moduleInstance->id,
+                'assessment_component_name' => $component['component_name']
+            ])->first();
 
-            StudentAssessment::create([
-                'student_module_enrolment_id' => $studentModuleEnrolment->id,
-                'assessment_component_id' => $component->id,
-                'attempt_number' => 1,
-                'status' => 'pending',
-                'due_date' => $dueDate,
+            if ($existingRecord) {
+                continue; // Skip if already exists
+            }
+
+            StudentGradeRecord::create([
+                'student_id' => $student->id,
+                'module_instance_id' => $moduleInstance->id,
+                'assessment_component_name' => $component['component_name'],
+                'grade' => null,
+                'max_grade' => 100,
+                'feedback' => null,
+                'submission_date' => null,
+                'graded_date' => null,
+                'graded_by_staff_id' => null,
+                'is_visible_to_student' => false,
+                'release_date' => null,
             ]);
         }
 
-        Log::info('Created assessments for student', [
-            'student_id' => $studentModuleEnrolment->student_id,
+        Log::info('Created grade records for student in module instance', [
+            'student_id' => $student->id,
             'module_instance_id' => $moduleInstance->id,
-            'assessment_count' => $assessmentComponents->count(),
+            'assessment_count' => count($assessmentComponents),
         ]);
     }
 
     /**
-     * Calculate due date for an assessment component
-     * This is a simple implementation - you can make it more sophisticated
+     * Process a deferral and move student to new programme instance
      */
-    public function calculateDueDate(ModuleInstance $moduleInstance, AssessmentComponent $component): Carbon
+    public function processDeferralReturn(Student $student, Enrolment $originalEnrolment, ProgrammeInstance $newProgrammeInstance): void
     {
-        // Simple logic: spread assessments evenly across the module duration
-        $startDate = Carbon::parse($moduleInstance->start_date);
-        $endDate = Carbon::parse($moduleInstance->end_date);
-        $totalDuration = $startDate->diffInDays($endDate);
-        
-        // Calculate percentage through module based on sequence
-        $maxSequence = $moduleInstance->module->assessmentComponents()->max('sequence') ?? 1;
-        $percentageThrough = ($component->sequence / $maxSequence) * 0.8; // Use 80% of duration
-        
-        $daysToAdd = (int) ($totalDuration * $percentageThrough);
-        
-        return $startDate->copy()->addDays($daysToAdd);
-    }
+        if ($originalEnrolment->enrolment_type !== 'programme') {
+            throw new \Exception('Deferrals only apply to programme enrolments');
+        }
 
-    /**
-     * Process a deferral and move student to new cohort
-     */
-    public function processDeferralReturn(Student $student, Enrolment $originalEnrolment, $newCohortId): void
-    {
-        DB::transaction(function () use ($student, $originalEnrolment, $newCohortId) {
-            // Update the original enrolment
+        DB::transaction(function () use ($student, $originalEnrolment, $newProgrammeInstance) {
+            // Update the original enrolment to point to new programme instance
             $originalEnrolment->update([
-                'cohort_id' => $newCohortId,
+                'programme_instance_id' => $newProgrammeInstance->id,
                 'status' => 'active',
             ]);
 
-            // Remove old module enrolments
-            StudentModuleEnrolment::where('enrolment_id', $originalEnrolment->id)
+            // Remove old grade records
+            StudentGradeRecord::where('student_id', $student->id)
+                ->whereIn('module_instance_id', $originalEnrolment->programmeInstance->moduleInstances->pluck('id'))
                 ->delete();
 
-            // Enrol in new cohort's module instances
-            $this->enrolInModuleInstances($student, $originalEnrolment);
+            // Create new grade records for new programme instance curriculum
+            $this->createGradeRecordsForProgrammeEnrolment($student, $newProgrammeInstance);
 
             // Update student status
             $student->update(['status' => 'active']);
+
+            Log::info('Processed deferral return', [
+                'student_id' => $student->id,
+                'old_programme_instance_id' => $originalEnrolment->programme_instance_id,
+                'new_programme_instance_id' => $newProgrammeInstance->id,
+            ]);
         });
     }
 
     /**
-     * Add a student to an existing module instance (for late enrollments)
+     * Withdraw a student from an enrolment
      */
-    public function addStudentToModuleInstance(Student $student, ModuleInstance $moduleInstance): StudentModuleEnrolment
+    public function withdrawStudent(Enrolment $enrolment, array $withdrawalData = []): void
     {
-        // Find their programme enrolment
-        $enrolment = $student->enrolments()
-            ->where('programme_id', $moduleInstance->cohort->programme_id)
-            ->where('status', 'active')
-            ->first();
+        DB::transaction(function () use ($enrolment, $withdrawalData) {
+            $enrolment->update([
+                'status' => 'withdrawn',
+            ]);
 
-        if (!$enrolment) {
-            throw new \Exception('Student must be enrolled in the programme first');
-        }
+            // Optionally update student status if they have no other active enrolments
+            $activeEnrolments = Enrolment::where('student_id', $enrolment->student_id)
+                ->where('status', 'active')
+                ->count();
 
-        return $this->enrolInSingleModuleInstance($student, $enrolment, $moduleInstance);
+            if ($activeEnrolments === 0) {
+                $enrolment->student->update(['status' => 'cancelled']);
+            }
+
+            Log::info('Student withdrawn from enrolment', [
+                'student_id' => $enrolment->student_id,
+                'enrolment_id' => $enrolment->id,
+                'enrolment_type' => $enrolment->enrolment_type,
+            ]);
+        });
+    }
+
+    /**
+     * Get available programme instances for enrolment
+     */
+    public function getAvailableProgrammeInstances(): \Illuminate\Database\Eloquent\Collection
+    {
+        return ProgrammeInstance::with('programme')
+            ->where('intake_start_date', '<=', now())
+            ->where(function ($query) {
+                $query->where('intake_end_date', '>=', now())
+                      ->orWhereNull('intake_end_date');
+            })
+            ->orderBy('intake_start_date', 'desc')
+            ->get();
+    }
+
+    /**
+     * Get available standalone module instances for enrolment
+     */
+    public function getAvailableModuleInstances(): \Illuminate\Database\Eloquent\Collection
+    {
+        return ModuleInstance::with('module')
+            ->whereHas('module', function ($query) {
+                $query->where('allows_standalone_enrolment', true);
+            })
+            ->where('start_date', '>=', now()) // Module must start today or in the future
+            ->where('start_date', '<=', now()->addMonths(6)) // But not more than 6 months out
+            ->orderBy('start_date', 'asc') // Order by soonest first
+            ->get();
     }
 }

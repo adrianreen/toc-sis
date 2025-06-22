@@ -143,7 +143,7 @@ class EmailTemplateController extends Controller
     public function preview(Request $request, EmailTemplate $emailTemplate)
     {
         // Get a sample student for preview
-        $sampleStudent = Student::with('enrolments.programme', 'enrolments.cohort')->first();
+        $sampleStudent = Student::with('enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module')->first();
         
         if (!$sampleStudent) {
             return back()->with('error', 'No students available for preview. Please add a student first.');

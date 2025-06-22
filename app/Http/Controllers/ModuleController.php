@@ -1,52 +1,127 @@
 <?php
-// app/Http/Controllers/ModuleController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\Module;
-use App\Models\Programme;
 use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $modules = Module::with('programmes')
-            ->orderBy('code')
-            ->paginate(20);
+        $query = Module::withCount(['moduleInstances']);
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('module_code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filter by standalone enrolment
+        if ($request->filled('standalone')) {
+            $standalone = $request->standalone === 'yes';
+            $query->where('allows_standalone_enrolment', $standalone);
+        }
+
+        // Filter by credit range
+        if ($request->filled('credit_range')) {
+            switch($request->credit_range) {
+                case '1-5':
+                    $query->whereBetween('credit_value', [1, 5]);
+                    break;
+                case '6-10':
+                    $query->whereBetween('credit_value', [6, 10]);
+                    break;
+                case '11-15':
+                    $query->whereBetween('credit_value', [11, 15]);
+                    break;
+                case '16+':
+                    $query->where('credit_value', '>=', 16);
+                    break;
+            }
+        }
+
+        // Filter by instance count
+        if ($request->filled('instance_count')) {
+            switch($request->instance_count) {
+                case 'none':
+                    $query->having('module_instances_count', '=', 0);
+                    break;
+                case 'low':
+                    $query->having('module_instances_count', '>=', 1)
+                          ->having('module_instances_count', '<=', 2);
+                    break;
+                case 'medium':
+                    $query->having('module_instances_count', '>=', 3)
+                          ->having('module_instances_count', '<=', 5);
+                    break;
+                case 'high':
+                    $query->having('module_instances_count', '>', 5);
+                    break;
+            }
+        }
+
+        // Filter by async cadence
+        if ($request->filled('cadence')) {
+            $query->where('async_instance_cadence', $request->cadence);
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort_by', 'module_code');
+        $sortDirection = $request->get('sort_direction', 'asc');
+        
+        switch($sortBy) {
+            case 'instances_count':
+                $query->orderBy('module_instances_count', $sortDirection);
+                break;
+            default:
+                $query->orderBy($sortBy, $sortDirection);
+        }
+
+        $modules = $query->paginate(20)->withQueryString();
             
         return view('modules.index', compact('modules'));
     }
 
     public function create()
     {
-        $programmes = Programme::where('is_active', true)->get();
-        return view('modules.create', compact('programmes'));
+        return view('modules.create');
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:modules',
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'credits' => 'required|integer|min:0',
-            'hours' => 'nullable|integer|min:0',
-            'programme_ids' => 'nullable|array',
-            'programme_ids.*' => 'exists:programmes,id',
-        ]);
+        $validated = $request->validate(Module::rules());
 
-        $module = Module::create($validated);
-
-        // Attach to programmes
-        if (!empty($validated['programme_ids'])) {
-            foreach ($validated['programme_ids'] as $index => $programmeId) {
-                $module->programmes()->attach($programmeId, [
-                    'sequence' => $index + 1,
-                    'is_mandatory' => true
-                ]);
-            }
+        // Validate total weighting adds up to 100
+        $totalWeight = collect($validated['assessment_strategy'])->sum('weighting');
+        if ($totalWeight != 100) {
+            return back()->withErrors(['assessment_strategy' => 'Assessment component weightings must total 100%.'])
+                         ->withInput();
         }
+
+        // Transform assessment components for storage
+        $assessmentStrategy = collect($validated['assessment_strategy'])->map(function ($component) {
+            return [
+                'component_name' => $component['component_name'],
+                'weighting' => (float) $component['weighting'],
+                'is_must_pass' => (bool) ($component['is_must_pass'] ?? false),
+                'component_pass_mark' => $component['component_pass_mark'] ? (float) $component['component_pass_mark'] : null,
+            ];
+        })->toArray();
+
+        $module = Module::create([
+            'title' => $validated['title'],
+            'module_code' => $validated['module_code'],
+            'credit_value' => $validated['credit_value'],
+            'description' => $validated['description'],
+            'nfq_level' => $validated['nfq_level'],
+            'assessment_strategy' => $assessmentStrategy,
+            'allows_standalone_enrolment' => $validated['allows_standalone_enrolment'] ?? false,
+            'async_instance_cadence' => $validated['async_instance_cadence'],
+        ]);
 
         return redirect()->route('modules.show', $module)
             ->with('success', 'Module created successfully.');
@@ -54,44 +129,85 @@ class ModuleController extends Controller
 
     public function show(Module $module)
     {
-        $module->load('programmes');
+        $module->load([
+            'moduleInstances' => function ($query) {
+                $query->with(['tutor', 'programmeInstances'])
+                      ->withCount('enrolments')
+                      ->orderBy('start_date', 'desc');
+            }
+        ]);
+
         return view('modules.show', compact('module'));
     }
 
     public function edit(Module $module)
     {
-        $programmes = Programme::where('is_active', true)->get();
-        $attachedProgrammes = $module->programmes->pluck('id')->toArray();
-        
-        return view('modules.edit', compact('module', 'programmes', 'attachedProgrammes'));
+        // Transform assessment strategy back to form format
+        $assessmentComponents = collect($module->assessment_strategy)->map(function ($component) {
+            return [
+                'component_name' => $component['component_name'],
+                'weighting' => $component['weighting'],
+                'is_must_pass' => $component['is_must_pass'],
+                'component_pass_mark' => $component['component_pass_mark'],
+            ];
+        })->toArray();
+
+        return view('modules.edit', compact('module', 'assessmentComponents'));
     }
 
     public function update(Request $request, Module $module)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'credits' => 'required|integer|min:0',
-            'hours' => 'nullable|integer|min:0',
-            'is_active' => 'boolean',
-            'programme_ids' => 'nullable|array',
-            'programme_ids.*' => 'exists:programmes,id',
-        ]);
+        $validated = $request->validate(Module::rules($module->id));
 
-        $module->update($validated);
-
-        // Sync programmes
-        $module->programmes()->detach();
-        if (!empty($validated['programme_ids'])) {
-            foreach ($validated['programme_ids'] as $index => $programmeId) {
-                $module->programmes()->attach($programmeId, [
-                    'sequence' => $index + 1,
-                    'is_mandatory' => true
-                ]);
-            }
+        // Validate total weighting adds up to 100
+        $totalWeight = collect($validated['assessment_strategy'])->sum('weighting');
+        if ($totalWeight != 100) {
+            return back()->withErrors(['assessment_strategy' => 'Assessment component weightings must total 100%.'])
+                         ->withInput();
         }
+
+        // Transform assessment components for storage
+        $assessmentStrategy = collect($validated['assessment_strategy'])->map(function ($component) {
+            return [
+                'component_name' => $component['component_name'],
+                'weighting' => (float) $component['weighting'],
+                'is_must_pass' => (bool) ($component['is_must_pass'] ?? false),
+                'component_pass_mark' => $component['component_pass_mark'] ? (float) $component['component_pass_mark'] : null,
+            ];
+        })->toArray();
+
+        $module->update([
+            'title' => $validated['title'],
+            'module_code' => $validated['module_code'],
+            'credit_value' => $validated['credit_value'],
+            'description' => $validated['description'],
+            'nfq_level' => $validated['nfq_level'],
+            'assessment_strategy' => $assessmentStrategy,
+            'allows_standalone_enrolment' => $validated['allows_standalone_enrolment'] ?? false,
+            'async_instance_cadence' => $validated['async_instance_cadence'],
+        ]);
 
         return redirect()->route('modules.show', $module)
             ->with('success', 'Module updated successfully.');
+    }
+
+    public function destroy(Module $module)
+    {
+        // Check if module has any instances with active enrolments
+        $activeInstances = $module->moduleInstances()
+            ->whereHas('enrolments', function ($query) {
+                $query->whereIn('status', ['active', 'deferred']);
+            })
+            ->count();
+
+        if ($activeInstances > 0) {
+            return redirect()->route('modules.index')
+                ->with('error', 'Cannot delete module with active enrolments.');
+        }
+
+        $module->delete();
+
+        return redirect()->route('modules.index')
+            ->with('success', 'Module deleted successfully.');
     }
 }

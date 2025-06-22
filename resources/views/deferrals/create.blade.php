@@ -16,34 +16,34 @@
                             <strong>Name:</strong> {{ $student->full_name }}<br>
                             <strong>Student Number:</strong> {{ $student->student_number }}<br>
                             <strong>Programme:</strong> {{ $enrolment->programme->code }} - {{ $enrolment->programme->title }}<br>
-                            <strong>Current Cohort:</strong> {{ $enrolment->cohort->code }} - {{ $enrolment->cohort->name }}
+                            <strong>Current Intake:</strong> {{ $enrolment->programmeInstance->label }}
                         </p>
                     </div>
 
                     <form method="POST" action="{{ route('deferrals.store', [$student, $enrolment]) }}">
                         @csrf
 
-                        <!-- Target Cohort -->
+                        <!-- Target Programme Instance -->
                         <div class="mb-6">
-                            <label for="to_cohort_id" class="block text-sm font-medium text-gray-700">
-                                Select Return Cohort *
+                            <label for="to_programme_instance_id" class="block text-sm font-medium text-gray-700">
+                                Select Return Programme Instance *
                             </label>
-                            <select name="to_cohort_id" id="to_cohort_id" required
+                            <select name="to_programme_instance_id" id="to_programme_instance_id" required
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <option value="">Select a cohort</option>
-                                @foreach($futureCohorts as $cohort)
-                                    <option value="{{ $cohort->id }}" {{ old('to_cohort_id') == $cohort->id ? 'selected' : '' }}>
-                                        {{ $cohort->code }} - {{ $cohort->name }} 
-                                        (Starts: {{ $cohort->start_date->format('d M Y') }})
+                                <option value="">Select a programme instance</option>
+                                @foreach($futureProgrammeInstances as $instance)
+                                    <option value="{{ $instance->id }}" {{ old('to_programme_instance_id') == $instance->id ? 'selected' : '' }}>
+                                        {{ $instance->label }} 
+                                        (Starts: {{ $instance->start_date->format('d M Y') }})
                                     </option>
                                 @endforeach
                             </select>
-                            @error('to_cohort_id')
+                            @error('to_programme_instance_id')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
-                            @if($futureCohorts->isEmpty())
+                            @if($futureProgrammeInstances->isEmpty())
                                 <p class="mt-1 text-sm text-yellow-600">
-                                    No future cohorts available. Please contact administration.
+                                    No future programme instances available. Please contact administration.
                                 </p>
                             @endif
                         </div>

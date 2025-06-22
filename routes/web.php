@@ -2,17 +2,16 @@
 
 use App\Http\Controllers\Auth\AzureController;
 use App\Http\Controllers\StudentController;
-use App\Http\Controllers\CohortController;
 use App\Http\Controllers\ProgrammeController;
+use App\Http\Controllers\ProgrammeInstanceController;
 use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\EnrolmentController;
-use App\Http\Controllers\DeferralController;
 use App\Http\Controllers\ModuleInstanceController;
+use App\Http\Controllers\EnrolmentController;
+use App\Http\Controllers\StudentGradeRecordController;
+use App\Http\Controllers\DeferralController;
 use App\Http\Controllers\ExtensionController;
 use App\Http\Controllers\RepeatAssessmentController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\AssessmentComponentController;
-use App\Http\Controllers\StudentAssessmentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\EnquiryController;
@@ -60,84 +59,49 @@ Route::middleware(['auth'])->group(function () {
     
     
     // =================================================================
-    // STUDENT-ONLY ROUTES - Simplified, direct access
+    // STUDENT-ONLY ROUTES - New Architecture
     // =================================================================
     Route::middleware(['role:student'])->group(function () {
         
-        Route::get('/my-enrolments', function () {
-            $student = Auth::user()->student;
-            if (!$student) {
-                abort(404, 'Student record not found');
-            }
-            $enrolments = $student->enrolments()->with(['programme', 'cohort'])->get();
-            return view('students.enrolments', compact('student', 'enrolments'));
-        })->name('students.enrolments');
+        // Student's enrolments using new two-path system
+        Route::get('/my-enrolments', [EnrolmentController::class, 'myEnrolments'])->name('students.enrolments');
         
+        // Student profile (unchanged)
         Route::get('/my-profile', function () {
             $student = Auth::user()->student;
             if (!$student) {
                 abort(404, 'Student record not found');
             }
-            $student->load(['enrolments.programme', 'enrolments.cohort']);
-            return view('students.profile', compact('student')); // Simple student view
+            $student->load(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module']);
+            return view('students.profile', compact('student'));
         })->name('students.profile');
 
-Route::get('/my-progress', function () {
-    $student = Auth::user()->student;
-    if (!$student) {
-        abort(404, 'Student record not found');
-    }
-    
-    // Load basic progress data with visibility filtering
-    $student->load([
-        'studentModuleEnrolments.moduleInstance.module',
-        'studentModuleEnrolments.studentAssessments' => function($query) {
-            // Show all assessments but filter results by visibility in the view
-            $query->with('assessmentComponent');
-        }
-    ]);
-    
-    return view('students.progress', compact('student'));
-})->name('students.progress');
+        // Student grades using new StudentGradeRecord system
+        Route::get('/my-grades', [StudentGradeRecordController::class, 'myGrades'])->name('students.grades');
         
-      Route::get('/my-assessments', function () {
-    $student = Auth::user()->student;
-    if (!$student) {
-        abort(404, 'Student record not found');
-    }
-    
-    // Get upcoming and recent assessments - ONLY VISIBLE ONES for results
-    $allAssessments = $student->studentModuleEnrolments->flatMap->studentAssessments;
-    
-    // Upcoming assessments (always show these regardless of results visibility)
-    $upcomingAssessments = $allAssessments->filter(function($assessment) {
-        return $assessment->status === 'pending' && $assessment->due_date >= now();
-    })->sortBy('due_date')->take(5);
-    
-    // Recent assessments - ONLY show results if visible to student
-    $recentAssessments = $allAssessments->filter(function($assessment) {
-        return in_array($assessment->status, ['graded', 'passed', 'failed']) 
-               && $assessment->isVisibleToStudent(); // KEY CHANGE: Only visible results
-    })->sortByDesc('graded_date')->take(10);
-    
-    // Overdue assessments (always show)
-    $overdueAssessments = $allAssessments->filter(function($assessment) {
-        return $assessment->status === 'pending' && $assessment->due_date < now();
-    })->sortBy('due_date');
-    
-    // Submitted awaiting grading (always show)
-    $awaitingGrading = $allAssessments->filter(function($assessment) {
-        return $assessment->status === 'submitted';
-    })->sortByDesc('submission_date');
-    
-    return view('students.assessments', compact(
-        'student', 
-        'upcomingAssessments', 
-        'recentAssessments',
-        'overdueAssessments',
-        'awaitingGrading'
-    ));
-})->name('students.assessments');
+        // Student progress with new architecture
+        Route::get('/my-progress', function () {
+            $student = Auth::user()->student;
+            if (!$student) {
+                abort(404, 'Student record not found');
+            }
+            
+            // Load progress data with new architecture
+            $student->load([
+                'studentGradeRecords' => function($query) {
+                    $query->with(['moduleInstance.module'])
+                          ->where(function ($q) {
+                              $q->where('is_visible_to_student', true)
+                                ->orWhere(function ($subQ) {
+                                    $subQ->whereNotNull('release_date')
+                                         ->where('release_date', '<=', now());
+                                });
+                          });
+                }
+            ]);
+            
+            return view('students.progress', compact('student'));
+        })->name('students.progress');
         
         // Extension Request routes for students
         Route::get('my-extensions', [ExtensionRequestController::class, 'index'])->name('extension-requests.index');
@@ -162,10 +126,26 @@ Route::get('/my-progress', function () {
         Route::patch('students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
         Route::delete('students/{id}/force-delete', [StudentController::class, 'forceDelete'])->name('students.force-delete');
         
-        // Enrolment routes
+        // New Two-Path Enrolment System
         Route::get('students/{student}/enrol', [EnrolmentController::class, 'create'])->name('enrolments.create');
-        Route::post('students/{student}/enrol', [EnrolmentController::class, 'store'])->name('enrolments.store');
-        Route::patch('students/{student}/enrolments/{enrolment}/status', [EnrolmentController::class, 'updateStatus'])->name('enrolments.update-status');
+        Route::get('students/{student}/enrol/programme', [EnrolmentController::class, 'createProgramme'])->name('enrolments.create-programme');
+        Route::get('students/{student}/enrol/module', [EnrolmentController::class, 'createModule'])->name('enrolments.create-module');
+        Route::post('students/{student}/enrol/programme', [EnrolmentController::class, 'storeProgramme'])->name('enrolments.store-programme');
+        Route::post('students/{student}/enrol/module', [EnrolmentController::class, 'storeModule'])->name('enrolments.store-module');
+        
+        // Enrolment management
+        Route::get('enrolments', [EnrolmentController::class, 'index'])->name('enrolments.index');
+        Route::get('enrolments/{enrolment}', [EnrolmentController::class, 'show'])->name('enrolments.show');
+        Route::patch('enrolments/{enrolment}', [EnrolmentController::class, 'update'])->name('enrolments.update');
+        Route::post('enrolments/{enrolment}/withdraw', [EnrolmentController::class, 'withdraw'])->name('enrolments.withdraw');
+        
+        // Unenroll functionality (admin error correction)
+        Route::get('enrolments/{enrolment}/unenroll', [EnrolmentController::class, 'showUnenrollForm'])->name('enrolments.unenroll-form');
+        Route::delete('enrolments/{enrolment}/unenroll', [EnrolmentController::class, 'unenroll'])->name('enrolments.unenroll');
+        
+        // Programme Enrolment Deferral System
+        Route::get('enrolments/{enrolment}/deferral', [EnrolmentController::class, 'deferralForm'])->name('enrolments.deferral-form');
+        Route::post('enrolments/{enrolment}/deferral', [EnrolmentController::class, 'processDeferral'])->name('enrolments.process-deferral');
         
         // Deferral routes
         Route::get('deferrals', [DeferralController::class, 'index'])->name('deferrals.index');
@@ -230,58 +210,61 @@ Route::get('/my-progress', function () {
         // API endpoints
         Route::get('api/students/{student}/failed-assessments', [RepeatAssessmentController::class, 'getFailedAssessments'])->name('api.students.failed-assessments');
 
-        // Student Assessment routes
-        Route::get('assessments', [StudentAssessmentController::class, 'index'])->name('assessments.index');
-        Route::get('assessments/pending', [StudentAssessmentController::class, 'pending'])->name('assessments.pending');
-        Route::get('assessments/module-instances/{moduleInstance}', [StudentAssessmentController::class, 'moduleInstance'])->name('assessments.module-instance');
-        Route::get('assessments/{studentAssessment}/grade', [StudentAssessmentController::class, 'grade'])->name('assessments.grade');
-        Route::put('assessments/{studentAssessment}/grade', [StudentAssessmentController::class, 'storeGrade'])->name('assessments.store-grade');
-
-        Route::patch('assessments/{studentAssessment}/submit', [StudentAssessmentController::class, 'markSubmitted'])->name('assessments.mark-submitted');
-        Route::get('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'bulkGradeForm'])->name('assessments.bulk-grade-form');
-        Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-grade', [StudentAssessmentController::class, 'storeBulkGrades'])->name('assessments.bulk-grade');
-            // Visibility control routes
-    Route::patch('assessments/{studentAssessment}/quick-visibility', [StudentAssessmentController::class, 'quickVisibility'])->name('assessments.quick-visibility');
-    Route::post('assessments/module-instances/{moduleInstance}/components/{assessmentComponent}/bulk-visibility', [StudentAssessmentController::class, 'bulkVisibility'])->name('assessments.bulk-visibility');
-    Route::patch('student-module-enrolments/{studentModuleEnrolment}/final-grade-visibility', [StudentAssessmentController::class, 'toggleFinalGradeVisibility'])->name('student-module-enrolments.final-grade-visibility');
-
-        // Admin view of student progress (separate from student's own view)
-        Route::get('admin/students/{student}/progress', [StudentAssessmentController::class, 'studentProgress'])->name('admin.student-progress');
-        Route::get('assessments/module-instances/{moduleInstance}/export', [StudentAssessmentController::class, 'exportGrades'])->name('assessments.export');
+        // Legacy Assessment routes (DEPRECATED - Use StudentGradeRecord system above)
+        // These routes are kept temporarily for transition period
+        Route::get('assessments', [StudentGradeRecordController::class, 'index'])->name('assessments.index');
+        Route::get('students/{student}/progress', [StudentController::class, 'progress'])->name('students.show-progress');
     });
     
     // =================================================================
-    // MANAGER-ONLY ROUTES - System administration
+    // MANAGER-ONLY ROUTES - System administration (New Architecture)
     // =================================================================
     Route::middleware(['role:manager'])->group(function () {
-        // Programme routes
+        // Programme Blueprint routes
         Route::resource('programmes', ProgrammeController::class);
         
-        // Cohort routes
-        Route::resource('cohorts', CohortController::class);
+        // Programme Instance routes - Live programme containers
+        Route::resource('programme-instances', ProgrammeInstanceController::class);
         
-        // Module routes
+        // Programme Instance curriculum management (curriculum linker)
+        Route::get('programme-instances/{programmeInstance}/curriculum', [ProgrammeInstanceController::class, 'curriculum'])->name('programme-instances.curriculum');
+        Route::post('programme-instances/{programmeInstance}/curriculum/attach', [ProgrammeInstanceController::class, 'attachModule'])->name('programme-instances.curriculum.attach');
+        Route::delete('programme-instances/{programmeInstance}/curriculum/{moduleInstance}', [ProgrammeInstanceController::class, 'detachModule'])->name('programme-instances.curriculum.detach');
+        
+        // Module Blueprint routes  
         Route::resource('modules', ModuleController::class);
         
-        // Assessment Component routes (nested under modules)
-        Route::get('modules/{module}/assessment-components', [AssessmentComponentController::class, 'index'])->name('assessment-components.index');
-        Route::get('modules/{module}/assessment-components/create', [AssessmentComponentController::class, 'create'])->name('assessment-components.create');
-        Route::post('modules/{module}/assessment-components', [AssessmentComponentController::class, 'store'])->name('assessment-components.store');
-        Route::get('modules/{module}/assessment-components/{assessmentComponent}/edit', [AssessmentComponentController::class, 'edit'])->name('assessment-components.edit');
-        Route::put('modules/{module}/assessment-components/{assessmentComponent}', [AssessmentComponentController::class, 'update'])->name('assessment-components.update');
-        Route::delete('modules/{module}/assessment-components/{assessmentComponent}', [AssessmentComponentController::class, 'destroy'])->name('assessment-components.destroy');
-        Route::post('modules/{module}/assessment-components/reorder', [AssessmentComponentController::class, 'reorder'])->name('assessment-components.reorder');
-            // Admin visibility management
-    Route::get('assessments/scheduled-releases', [StudentAssessmentController::class, 'scheduledReleases'])->name('assessments.scheduled-releases');
-    Route::post('assessments/process-scheduled-releases', [StudentAssessmentController::class, 'processScheduledReleases'])->name('assessments.process-scheduled-releases');
-
-        // Module Instance routes
+        // Module Instance routes - Live module classes
         Route::resource('module-instances', ModuleInstanceController::class);
-        Route::patch('module-instances/{moduleInstance}/assign-teacher', [ModuleInstanceController::class, 'assignTeacher'])->name('module-instances.assign-teacher');
+        Route::get('module-instances/{moduleInstance}/students', [ModuleInstanceController::class, 'students'])->name('module-instances.students');
+        Route::get('module-instances/{moduleInstance}/grading', [ModuleInstanceController::class, 'grading'])->name('module-instances.grading');
+        Route::get('module-instances/{moduleInstance}/copy', [ModuleInstanceController::class, 'copy'])->name('module-instances.copy');
+        Route::post('module-instances/{moduleInstance}/copy', [ModuleInstanceController::class, 'storeCopy'])->name('module-instances.store-copy');
+        Route::post('module-instances/{moduleInstance}/create-next', [ModuleInstanceController::class, 'createNext'])->name('module-instances.create-next');
+        
+        // Student Grade Record routes - New grading system
+        Route::get('module-instances/{moduleInstance}/grades', [StudentGradeRecordController::class, 'moduleGrading'])->name('grade-records.module-grading');
+        Route::patch('grade-records/{gradeRecord}', [StudentGradeRecordController::class, 'update'])->name('grade-records.update');
+        Route::post('module-instances/{moduleInstance}/grades/bulk-update', [StudentGradeRecordController::class, 'bulkUpdate'])->name('grade-records.bulk-update');
+        Route::patch('module-instances/{moduleInstance}/visibility', [StudentGradeRecordController::class, 'toggleVisibility'])->name('grade-records.toggle-visibility');
+        Route::post('module-instances/{moduleInstance}/schedule-release', [StudentGradeRecordController::class, 'scheduleRelease'])->name('grade-records.schedule-release');
+        Route::get('module-instances/{moduleInstance}/export', [StudentGradeRecordController::class, 'export'])->name('grade-records.export');
+        Route::get('students/{student}/module-instances/{moduleInstance}/completion', [StudentGradeRecordController::class, 'moduleCompletion'])->name('grade-records.module-completion');
+
+        // System Health & Data Integrity Routes
+        Route::prefix('admin/system-health')->name('admin.system-health.')->group(function () {
+            Route::get('dashboard', [App\Http\Controllers\Admin\ArchitectureController::class, 'dashboard'])->name('dashboard');
+            Route::get('validation', [App\Http\Controllers\Admin\ArchitectureController::class, 'validation'])->name('validation');
+            Route::post('auto-fix', [App\Http\Controllers\Admin\ArchitectureController::class, 'autoFix'])->name('auto-fix');
+            Route::get('statistics', [App\Http\Controllers\Admin\ArchitectureController::class, 'statistics'])->name('statistics');
+            Route::get('curriculum/{programmeInstance}/validate', [App\Http\Controllers\Admin\ArchitectureController::class, 'validateCurriculum'])->name('validate-curriculum');
+            Route::get('export-report', [App\Http\Controllers\Admin\ArchitectureController::class, 'exportReport'])->name('export-report');
+            Route::post('run-validation', [App\Http\Controllers\Admin\ArchitectureController::class, 'runValidation'])->name('run-validation');
+        });
 
         // Reporting routes
         Route::get('reports/dashboard', [ReportController::class, 'dashboard'])->name('reports.dashboard');
-        Route::get('reports/cohorts/{cohort}/students', [ReportController::class, 'cohortList'])->name('reports.cohort-list');
+        Route::get('reports/programme-instances/{programmeInstance}/students', [ReportController::class, 'programmeInstanceList'])->name('reports.programme-instance-list');
         Route::get('reports/students/{student}/progress', [ReportController::class, 'studentProgress'])->name('reports.student-progress');
         
         // Analytics API routes

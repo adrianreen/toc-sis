@@ -21,7 +21,7 @@
                                 <option value="">Select a module</option>
                                 @foreach($modules as $module)
                                     <option value="{{ $module->id }}" {{ old('module_id') == $module->id ? 'selected' : '' }}>
-                                        {{ $module->code }} - {{ $module->title }}
+                                        {{ $module->module_code }} - {{ $module->title }} ({{ $module->credit_value }} credits)
                                     </option>
                                 @endforeach
                             </select>
@@ -30,23 +30,16 @@
                             @enderror
                         </div>
 
-                        <!-- Cohort -->
+                        <!-- Delivery Style -->
                         <div class="mb-6">
-                            <label for="cohort_id" class="block text-sm font-medium text-gray-700">Cohort *</label>
-                            <select name="cohort_id" id="cohort_id" required
+                            <label for="delivery_style" class="block text-sm font-medium text-gray-700">Delivery Style *</label>
+                            <select name="delivery_style" id="delivery_style" required
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <option value="">Select a cohort</option>
-                                @foreach($cohorts as $cohort)
-                                    <option value="{{ $cohort->id }}" 
-                                        data-programme="{{ $cohort->programme->code }}"
-                                        data-start="{{ $cohort->start_date->format('Y-m-d') }}"
-                                        data-end="{{ $cohort->end_date?->format('Y-m-d') }}"
-                                        {{ old('cohort_id') == $cohort->id ? 'selected' : '' }}>
-                                        {{ $cohort->programme->code }} - {{ $cohort->code }} - {{ $cohort->name }}
-                                    </option>
-                                @endforeach
+                                <option value="">Select delivery style</option>
+                                <option value="sync" {{ old('delivery_style') === 'sync' ? 'selected' : '' }}>Synchronous (Fixed schedule, cohort-based)</option>
+                                <option value="async" {{ old('delivery_style') === 'async' ? 'selected' : '' }}>Asynchronous (Self-paced, flexible)</option>
                             </select>
-                            @error('cohort_id')
+                            @error('delivery_style')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
@@ -62,54 +55,57 @@
                                 @enderror
                             </div>
 
-                            <!-- End Date -->
+                            <!-- Target End Date -->
                             <div>
-                                <label for="end_date" class="block text-sm font-medium text-gray-700">End Date *</label>
-                                <input type="date" name="end_date" id="end_date" value="{{ old('end_date') }}" required
+                                <label for="target_end_date" class="block text-sm font-medium text-gray-700">Target End Date</label>
+                                <input type="date" name="target_end_date" id="target_end_date" value="{{ old('target_end_date') }}"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                @error('end_date')
+                                @error('target_end_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
+                                <p class="mt-1 text-sm text-gray-500">Optional - estimated completion date for planning purposes</p>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            <!-- Teacher -->
+                            <!-- Tutor -->
                             <div>
-                                <label for="teacher_id" class="block text-sm font-medium text-gray-700">Teacher</label>
-                                <select name="teacher_id" id="teacher_id"
+                                <label for="tutor_id" class="block text-sm font-medium text-gray-700">Tutor</label>
+                                <select name="tutor_id" id="tutor_id"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
                                     <option value="">Not Assigned</option>
-                                    @foreach($teachers as $teacher)
-                                        <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>
-                                            {{ $teacher->name }}
+                                    @foreach($tutors as $tutor)
+                                        <option value="{{ $tutor->id }}" {{ old('tutor_id') == $tutor->id ? 'selected' : '' }}>
+                                            {{ $tutor->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                @error('teacher_id')
+                                @error('tutor_id')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            <!-- Status -->
+                            <!-- Max Students -->
                             <div>
-                                <label for="status" class="block text-sm font-medium text-gray-700">Status *</label>
-                                <select name="status" id="status" required
+                                <label for="max_students" class="block text-sm font-medium text-gray-700">Max Students</label>
+                                <input type="number" name="max_students" id="max_students" value="{{ old('max_students') }}" min="1"
+                                    placeholder="e.g., 25"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                    <option value="planned" {{ old('status') === 'planned' ? 'selected' : '' }}>Planned</option>
-                                    <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
-                                    <option value="completed" {{ old('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-                                </select>
-                                @error('status')
+                                @error('max_students')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
                         </div>
 
-                        <!-- Instance Code Preview -->
-                        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                            <p class="text-sm text-gray-600">Instance Code will be generated as:</p>
-                            <p class="text-lg font-medium text-gray-900" id="instance-code-preview">-</p>
+                        <!-- Description -->
+                        <div class="mt-6">
+                            <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea name="description" id="description" rows="3"
+                                placeholder="Optional description or notes for this module instance"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">{{ old('description') }}</textarea>
+                            @error('description')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <div class="mt-6 flex justify-end">
@@ -126,42 +122,4 @@
         </div>
     </div>
 
-    <script>
-        // Auto-generate instance code preview
-        function updateInstanceCodePreview() {
-            const moduleSelect = document.getElementById('module_id');
-            const cohortSelect = document.getElementById('cohort_id');
-            const preview = document.getElementById('instance-code-preview');
-            
-            if (moduleSelect.selectedIndex > 0 && cohortSelect.selectedIndex > 0) {
-                const moduleCode = moduleSelect.options[moduleSelect.selectedIndex].text.split(' - ')[0];
-                const cohortCode = cohortSelect.options[cohortSelect.selectedIndex].text.split(' - ')[1];
-                preview.textContent = moduleCode + '-' + cohortCode;
-            } else {
-                preview.textContent = '-';
-            }
-        }
-
-        // Auto-populate dates based on cohort selection
-        document.getElementById('cohort_id').addEventListener('change', function() {
-            const selected = this.options[this.selectedIndex];
-            if (selected.value) {
-                const startDate = selected.getAttribute('data-start');
-                const endDate = selected.getAttribute('data-end');
-                
-                if (startDate) {
-                    document.getElementById('start_date').value = startDate;
-                }
-                if (endDate) {
-                    document.getElementById('end_date').value = endDate;
-                }
-            }
-            updateInstanceCodePreview();
-        });
-
-        document.getElementById('module_id').addEventListener('change', updateInstanceCodePreview);
-
-        // Initial preview update
-        updateInstanceCodePreview();
-    </script>
 </x-app-layout>

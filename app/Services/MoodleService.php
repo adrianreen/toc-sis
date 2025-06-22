@@ -63,10 +63,10 @@ class MoodleService
     public function createCourse(ModuleInstance $moduleInstance): array
     {
         $courseData = [
-            'courses[0][fullname]' => $moduleInstance->getFullCourseName(),
-            'courses[0][shortname]' => $moduleInstance->instance_code,
+            'courses[0][fullname]' => $moduleInstance->module->title . ' - ' . $moduleInstance->start_date->format('M Y'),
+            'courses[0][shortname]' => $moduleInstance->module->module_code . '_' . $moduleInstance->id,
             'courses[0][categoryid]' => config('moodle.default_category_id', 1),
-            'courses[0][summary]' => $moduleInstance->module->description ?? '',
+            'courses[0][summary]' => 'Module: ' . $moduleInstance->module->title . ' (Credits: ' . $moduleInstance->module->credit_value . ')',
             'courses[0][summaryformat]' => 1, // HTML format
             'courses[0][format]' => 'topics',
             'courses[0][showgrades]' => 1,
@@ -346,9 +346,9 @@ class MoodleService
     public function setupRepeatAssessmentCourse($repeatAssessment): ?string
     {
         try {
-            $moduleInstance = $repeatAssessment->moduleInstance;
+            $moduleInstance = $repeatAssessment->module_instance;
             $student = $repeatAssessment->student;
-            $assessmentComponent = $repeatAssessment->studentAssessment->assessmentComponent;
+            // Get assessment component name from the repeat assessment record
 
             // Check if a course already exists for this module instance
             if ($moduleInstance->moodle_course_id) {
@@ -369,13 +369,13 @@ class MoodleService
             }
 
             // Create a new course for this repeat assessment
-            $courseName = "Repeat Assessment - {$moduleInstance->module->name} - {$assessmentComponent->name}";
-            $courseShortName = "REPEAT_{$moduleInstance->module->code}_{$repeatAssessment->id}";
+            $courseName = "Repeat Assessment - {$moduleInstance->module->title} - {$repeatAssessment->assessment_component_name}";
+            $courseShortName = "REPEAT_{$moduleInstance->module->module_code}_{$repeatAssessment->id}";
             
             $courseData = [
                 'fullname' => $courseName,
                 'shortname' => $courseShortName,
-                'summary' => "Repeat assessment course for {$assessmentComponent->name} in {$moduleInstance->module->name}",
+                'summary' => "Repeat assessment course for {$repeatAssessment->assessment_component_name} in {$moduleInstance->module->title}",
                 'categoryid' => config('moodle.default_category_id', 1),
                 'visible' => 1,
                 'startdate' => now()->timestamp,

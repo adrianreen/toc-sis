@@ -174,7 +174,7 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @php
-                                    $moduleInstances = \App\Models\ModuleInstance::with(['module', 'cohort', 'studentEnrolments.student'])->get();
+                                    $moduleInstances = \App\Models\ModuleInstance::with(['module', 'enrolments.student'])->get();
                                 @endphp
                                 @foreach($moduleInstances as $moduleInstance)
                                 <tr>
@@ -182,13 +182,17 @@
                                         {{ $moduleInstance->instance_code }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $moduleInstance->module->name }}
+                                        {{ $moduleInstance->module->title }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $moduleInstance->cohort->name }}
+                                        @if($moduleInstance->programmeInstances->count() > 0)
+                                            {{ $moduleInstance->programmeInstances->pluck('label')->implode(', ') }}
+                                        @else
+                                            Standalone Module
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ $moduleInstance->studentEnrolments->count() }}
+                                        {{ $moduleInstance->enrolments->count() }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if($moduleInstance->moodle_course_id)
@@ -210,11 +214,11 @@
                                                 </form>
                                             @else
                                                 <a href="{{ route('moodle.show-course', $moduleInstance) }}" class="text-green-600 hover:text-green-900">View Course</a>
-                                                @if($moduleInstance->studentEnrolments->count() > 0)
+                                                @if($moduleInstance->enrolments->count() > 0)
                                                     <form method="POST" action="{{ route('moodle.bulk-enroll', $moduleInstance) }}" class="inline">
                                                         @csrf
                                                         <button type="submit" class="text-purple-600 hover:text-purple-900"
-                                                                onclick="return confirm('Enroll all {{ $moduleInstance->studentEnrolments->count() }} students in Moodle?')">
+                                                                onclick="return confirm('Enroll all {{ $moduleInstance->enrolments->count() }} students in Moodle?')">
                                                             Bulk Enroll
                                                         </button>
                                                     </form>

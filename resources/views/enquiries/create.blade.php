@@ -120,14 +120,14 @@
                             </x-form.select>
 
                             <x-form.select 
-                                name="prospective_cohort_id" 
-                                label="Prospective Cohort" 
-                                :value="old('prospective_cohort_id')" 
-                                placeholder="Select a cohort (optional)"
+                                name="prospective_programme_instance_id" 
+                                label="Prospective Programme Instance" 
+                                :value="old('prospective_programme_instance_id')" 
+                                placeholder="Select a programme instance (optional)"
                             >
-                                @foreach($cohorts as $cohort)
-                                    <option value="{{ $cohort->id }}" data-programme="{{ $cohort->programme_id }}">
-                                        {{ $cohort->name }} ({{ $cohort->programme->title }})
+                                @foreach($programmeInstances as $instance)
+                                    <option value="{{ $instance->id }}" data-programme="{{ $instance->programme_id }}">
+                                        {{ $instance->label }} ({{ $instance->programme->title }})
                                     </option>
                                 @endforeach
                             </x-form.select>

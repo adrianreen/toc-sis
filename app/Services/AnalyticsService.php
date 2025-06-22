@@ -7,8 +7,8 @@ use App\Models\AnalyticsCache;
 use App\Models\Student;
 use App\Models\Programme;
 use App\Models\Enrolment;
-use App\Models\StudentAssessment;
-use App\Models\StudentModuleEnrolment;
+use App\Models\StudentGradeRecord;
+use App\Models\ProgrammeInstance;
 use App\Models\ModuleInstance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,15 +32,15 @@ class AnalyticsService
         try {
             $startDate = now()->subMonths($months);
 
-            // Get assessment completion rates by period
-            $assessmentTrends = StudentAssessment::select(
-                DB::raw('DATE_FORMAT(graded_date, "%Y-%m") as period'),
+            // Get assessment completion rates by period using new grade records
+            $assessmentTrends = StudentGradeRecord::select(
+                DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
                 DB::raw('COUNT(*) as total_assessments'),
-                DB::raw('SUM(CASE WHEN status = "passed" THEN 1 ELSE 0 END) as passed_assessments'),
+                DB::raw('SUM(CASE WHEN grade >= 40 THEN 1 ELSE 0 END) as passed_assessments'),
                 DB::raw('AVG(CASE WHEN grade IS NOT NULL THEN grade ELSE 0 END) as avg_grade')
             )
-            ->where('graded_date', '>=', $startDate)
-            ->whereNotNull('graded_date')
+            ->where('created_at', '>=', $startDate)
+            ->whereNotNull('grade')
             ->groupBy('period')
             ->orderBy('period')
             ->get();
@@ -101,17 +101,19 @@ class AnalyticsService
 
         try {
             // Use raw SQL queries for better performance and to avoid memory issues
-            $programmes = Programme::where('is_active', true)->get();
+            $programmes = Programme::all();
             $data = [];
 
             foreach ($programmes as $programme) {
                 // Get enrollment statistics with single queries
-                $enrollmentStats = DB::table('enrolments')
-                    ->where('programme_id', $programme->id)
+                $enrollmentStats = DB::table('enrolments as e')
+                    ->join('programme_instances as pi', 'e.programme_instance_id', '=', 'pi.id')
+                    ->where('pi.programme_id', $programme->id)
+                    ->where('e.enrolment_type', 'programme')
                     ->selectRaw('
                         COUNT(*) as total_enrollments,
-                        SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_enrollments,
-                        SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_enrollments
+                        SUM(CASE WHEN e.status = "active" THEN 1 ELSE 0 END) as active_enrollments,
+                        SUM(CASE WHEN e.status = "completed" THEN 1 ELSE 0 END) as completed_enrollments
                     ')
                     ->first();
 
@@ -122,17 +124,18 @@ class AnalyticsService
                 // Calculate completion rate
                 $completionRate = $totalEnrolments > 0 ? ($completedEnrolments / $totalEnrolments) * 100 : 0;
                 
-                // Get assessment performance with optimized query
-                $assessmentStats = DB::table('student_assessments')
-                    ->join('student_module_enrolments', 'student_assessments.student_module_enrolment_id', '=', 'student_module_enrolments.id')
-                    ->join('enrolments', 'student_module_enrolments.student_id', '=', 'enrolments.student_id')
-                    ->where('enrolments.programme_id', $programme->id)
-                    ->whereIn('student_assessments.status', ['graded', 'passed', 'failed'])
-                    ->whereNotNull('student_assessments.grade')
+                // Get assessment performance with new architecture
+                $assessmentStats = DB::table('student_grade_records as sgr')
+                    ->join('module_instances as mi', 'sgr.module_instance_id', '=', 'mi.id')
+                    ->join('programme_instance_curriculum as pic', 'mi.id', '=', 'pic.module_instance_id')
+                    ->join('programme_instances as pi', 'pic.programme_instance_id', '=', 'pi.id')
+                    ->where('pi.programme_id', $programme->id)
+                    ->whereNotNull('sgr.grade')
+                    ->whereNotNull('sgr.grade')
                     ->selectRaw('
                         COUNT(*) as total_graded,
-                        AVG(student_assessments.grade) as avg_grade,
-                        SUM(CASE WHEN student_assessments.status = "passed" THEN 1 ELSE 0 END) as passed_count
+                        AVG(sgr.grade) as avg_grade,
+                        SUM(CASE WHEN sgr.grade >= 40 THEN 1 ELSE 0 END) as passed_count
                     ')
                     ->first();
 
@@ -143,8 +146,8 @@ class AnalyticsService
 
                 $data[] = [
                     'programme_id' => $programme->id,
-                    'programme_code' => $programme->code,
                     'programme_title' => $programme->title,
+                    'awarding_body' => $programme->awarding_body,
                     'total_enrollments' => (int) $totalEnrolments,
                     'active_enrollments' => (int) $activeEnrolments,
                     'completed_enrollments' => (int) $completedEnrolments,
@@ -201,15 +204,13 @@ class AnalyticsService
             ],
             'programmes' => [
                 'total' => Programme::count(),
-                'active' => Programme::where('is_active', true)->count(),
+                'active' => Programme::count(),
             ],
-            'assessments' => [
-                'total' => StudentAssessment::count(),
-                'pending' => StudentAssessment::where('status', 'pending')->count(),
-                'submitted' => StudentAssessment::where('status', 'submitted')->count(),
-                'graded' => StudentAssessment::where('status', 'graded')->count(),
-                'passed' => StudentAssessment::where('status', 'passed')->count(),
-                'failed' => StudentAssessment::where('status', 'failed')->count(),
+            'grade_records' => [
+                'total' => StudentGradeRecord::count(),
+                'graded' => StudentGradeRecord::whereNotNull('grade')->count(),
+                'passed' => StudentGradeRecord::where('grade', '>=', 40)->count(),
+                'failed' => StudentGradeRecord::where('grade', '<', 40)->whereNotNull('grade')->count(),
             ],
             'enrollments' => [
                 'total' => Enrolment::count(),
@@ -244,11 +245,11 @@ class AnalyticsService
                 ? now()->subWeeks($periods) 
                 : now()->subMonths($periods);
 
-            $completionRates = StudentAssessment::select(
+            $completionRates = StudentGradeRecord::select(
                 DB::raw("DATE_FORMAT(created_at, '{$dateFormat}') as period"),
                 DB::raw('COUNT(*) as total_assessments'),
-                DB::raw('SUM(CASE WHEN status IN ("graded", "passed", "failed") THEN 1 ELSE 0 END) as completed_assessments'),
-                DB::raw('SUM(CASE WHEN status = "pending" AND due_date < NOW() THEN 1 ELSE 0 END) as overdue_assessments')
+                DB::raw('SUM(CASE WHEN grade IS NOT NULL THEN 1 ELSE 0 END) as completed_assessments'),
+                DB::raw('0 as overdue_assessments')
             )
             ->where('created_at', '>=', $startDate)
             ->groupBy('period')
@@ -312,7 +313,7 @@ class AnalyticsService
             // Get recent activity metrics
             $thirtyDaysAgo = now()->subDays(30);
             
-            $recentlyActive = Student::whereHas('studentModuleEnrolments.studentAssessments', function ($query) use ($thirtyDaysAgo) {
+            $recentlyActive = Student::whereHas('studentGradeRecords', function ($query) use ($thirtyDaysAgo) {
                 $query->where('updated_at', '>=', $thirtyDaysAgo);
             })->count();
 
@@ -320,12 +321,12 @@ class AnalyticsService
             $engagementRate = $totalActiveStudents > 0 ? ($recentlyActive / $totalActiveStudents) * 100 : 0;
 
             // Get submission patterns
-            $submissionPatterns = StudentAssessment::select(
-                DB::raw('DAYOFWEEK(submission_date) as day_of_week'),
+            $submissionPatterns = StudentGradeRecord::select(
+                DB::raw('DAYOFWEEK(created_at) as day_of_week'),
                 DB::raw('COUNT(*) as submission_count')
             )
-            ->where('submission_date', '>=', $thirtyDaysAgo)
-            ->whereNotNull('submission_date')
+            ->where('created_at', '>=', $thirtyDaysAgo)
+            ->whereNotNull('grade')
             ->groupBy('day_of_week')
             ->orderBy('day_of_week')
             ->get()
@@ -530,7 +531,7 @@ class AnalyticsService
             ];
         }
         
-        $labels = array_column($data['programmes'], 'programme_code');
+        $labels = array_column($data['programmes'], 'programme_title');
         $completionRates = array_column($data['programmes'], 'completion_rate');
         $enrollments = array_column($data['programmes'], 'total_enrollments');
 

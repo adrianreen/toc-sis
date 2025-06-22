@@ -14,8 +14,8 @@ class Deferral extends Model
     protected $fillable = [
         'student_id',
         'enrolment_id',
-        'from_cohort_id',
-        'to_cohort_id',
+        'from_programme_instance_id',
+        'to_programme_instance_id',
         'deferral_date',
         'expected_return_date',
         'actual_return_date',
@@ -43,14 +43,14 @@ class Deferral extends Model
         return $this->belongsTo(Enrolment::class);
     }
 
-    public function fromCohort(): BelongsTo
+    public function fromProgrammeInstance(): BelongsTo
     {
-        return $this->belongsTo(Cohort::class, 'from_cohort_id');
+        return $this->belongsTo(ProgrammeInstance::class, 'from_programme_instance_id');
     }
 
-    public function toCohort(): BelongsTo
+    public function toProgrammeInstance(): BelongsTo
     {
-        return $this->belongsTo(Cohort::class, 'to_cohort_id');
+        return $this->belongsTo(ProgrammeInstance::class, 'to_programme_instance_id');
     }
 
     public function approvedBy(): BelongsTo

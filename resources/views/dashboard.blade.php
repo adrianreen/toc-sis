@@ -225,9 +225,9 @@
                                     <i data-lucide="layers" class="w-3 h-3 mr-1.5"></i>
                                     Modules
                                 </a>
-                                <a href="{{ route('cohorts.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                                <a href="{{ route('programme-instances.index') }}" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 rounded-md hover:bg-slate-100 hover:text-slate-700 transition-colors">
                                     <i data-lucide="users-2" class="w-3 h-3 mr-1.5"></i>
-                                    Cohorts
+                                    Programme Instances
                                 </a>
                             @endif
                         </div>

@@ -3,13 +3,22 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Module: {{ $module->code }} - {{ $module->title }}
+                Module: {{ $module->module_code }} - {{ $module->title }}
             </h2>
             <div class="space-x-2">
                 @if(Auth::user()->role === 'manager')
                     <a href="{{ route('modules.edit', $module) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                         Edit Module
                     </a>
+                    <form method="POST" action="{{ route('modules.destroy', $module) }}" class="inline">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" 
+                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                                onclick="return confirm('Are you sure you want to delete this module? This will affect all module instances and assessment records.')">
+                            Delete Module
+                        </button>
+                    </form>
                 @endif
                 <a href="{{ route('modules.index') }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                     Back to Modules
@@ -33,22 +42,19 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <p class="text-sm text-gray-600">Module Code</p>
-                            <p class="font-medium">{{ $module->code }}</p>
+                            <p class="font-medium">{{ $module->module_code }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Status</p>
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                {{ $module->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $module->is_active ? 'Active' : 'Inactive' }}
-                            </span>
+                            <p class="text-sm text-gray-600">NFQ Level</p>
+                            <p class="font-medium">{{ $module->nfq_level ?? 'Not specified' }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Credits</p>
-                            <p class="font-medium">{{ $module->credits }}</p>
+                            <p class="text-sm text-gray-600">Credit Value</p>
+                            <p class="font-medium">{{ $module->credit_value }}</p>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600">Hours</p>
-                            <p class="font-medium">{{ $module->hours ?? 'Not specified' }}</p>
+                            <p class="text-sm text-gray-600">Module Instances</p>
+                            <p class="font-medium">{{ $module->moduleInstances->count() }}</p>
                         </div>
                     </div>
                     @if($module->description)
@@ -60,25 +66,28 @@
                 </div>
             </div>
 
-            <!-- Programmes -->
+            <!-- Module Instances -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6">
-                    <h3 class="text-lg font-semibold mb-4">Assigned to Programmes ({{ $module->programmes->count() }})</h3>
-                    @if($module->programmes->count() > 0)
+                    <h3 class="text-lg font-semibold mb-4">Module Instances ({{ $module->moduleInstances->count() }})</h3>
+                    @if($module->moduleInstances->count() > 0)
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Programme Code
+                                        Instance Label
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Programme Title
+                                        Delivery Style
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Sequence
+                                        Start Date
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Type
+                                        Tutor
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Enrolled Students
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
@@ -86,27 +95,29 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($module->programmes as $programme)
+                                @foreach($module->moduleInstances as $instance)
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {{ $programme->code }}
+                                            {{ $instance->label ?? 'Default Instance' }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $programme->title }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $programme->pivot->sequence }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                {{ $programme->pivot->is_mandatory ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800' }}">
-                                                {{ $programme->pivot->is_mandatory ? 'Mandatory' : 'Elective' }}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                {{ ucfirst($instance->delivery_style) }}
                                             </span>
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $instance->start_date->format('d M Y') }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $instance->tutor?->name ?? '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $instance->studentGradeRecords->pluck('student_id')->unique()->count() }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <a href="{{ route('programmes.show', $programme) }}" 
+                                            <a href="{{ route('module-instances.show', $instance) }}" 
                                                class="text-indigo-600 hover:text-indigo-900">
-                                                View Programme
+                                                View Instance
                                             </a>
                                         </td>
                                     </tr>
@@ -114,161 +125,68 @@
                             </tbody>
                         </table>
                     @else
-                        <p class="text-gray-500">This module is not assigned to any programmes yet.</p>
+                        <p class="text-gray-500">No module instances have been created yet.</p>
                     @endif
                 </div>
             </div>
 
-            <!-- Module Instances -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold">Module Instances</h3>
-                        @if(Auth::user()->role === 'manager')
-                            <a href="{{ route('module-instances.create') }}?module_id={{ $module->id }}" 
-                               class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">
-                                Create Instance
-                            </a>
-                        @endif
-                    </div>
-                    @php
-                        $instances = \App\Models\ModuleInstance::where('module_id', $module->id)
-                            ->with(['cohort', 'teacher'])
-                            ->orderBy('start_date', 'desc')
-                            ->get();
-                    @endphp
-                    @if($instances->count() > 0)
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Instance Code
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Cohort
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Teacher
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Start Date
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Students
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($instances as $instance)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {{ $instance->instance_code }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            @if($instance->cohort)
-                                                <a href="{{ route('cohorts.show', $instance->cohort) }}" 
-                                                   class="text-indigo-600 hover:text-indigo-900">
-                                                    {{ $instance->cohort->code }} - {{ $instance->cohort->name }}
-                                                </a>
-                                            @else
-                                                Rolling
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $instance->teacher ? $instance->teacher->name : 'Not assigned' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $instance->start_date->format('d M Y') }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                @if($instance->status === 'active') bg-green-100 text-green-800
-                                                @elseif($instance->status === 'planned') bg-yellow-100 text-yellow-800
-                                                @else bg-gray-100 text-gray-800
-                                                @endif">
-                                                {{ ucfirst($instance->status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $instance->studentEnrolments->count() }}
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    @else
-                        <p class="text-gray-500">No instances of this module have been created yet.</p>
-                    @endif
-                </div>
-            </div>
 
-            <!-- Assessment Components -->
+            <!-- Assessment Strategy -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold">Assessment Components</h3>
+                        <h3 class="text-lg font-semibold">Assessment Strategy</h3>
                         @if(Auth::user()->role === 'manager')
-                            <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">
-                                Add Component
-                            </button>
+                            <a href="{{ route('modules.edit', $module) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">
+                                Edit Strategy
+                            </a>
                         @endif
                     </div>
-                    @php
-                        $components = \App\Models\AssessmentComponent::where('module_id', $module->id)
-                            ->orderBy('sequence')
-                            ->get();
-                    @endphp
-                    @if($components->count() > 0)
+                    @if($module->assessment_strategy && count($module->assessment_strategy) > 0)
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Sequence
+                                        Component Name
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Name
+                                        Weighting
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Type
+                                        Pass Mark
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Weight
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
+                                        Must Pass
                                     </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                @foreach($components as $component)
+                                @foreach($module->assessment_strategy as $component)
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $component->sequence }}
-                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {{ $component->name }}
+                                            {{ $component['component_name'] }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ ucfirst($component->type) }}
+                                            {{ $component['weighting'] }}%
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {{ $component->weight }}%
+                                            {{ $component['component_pass_mark'] ?? 40 }}%
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                {{ $component->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                                {{ $component->is_active ? 'Active' : 'Inactive' }}
+                                                {{ $component['is_must_pass'] ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800' }}">
+                                                {{ $component['is_must_pass'] ? 'Yes' : 'No' }}
                                             </span>
                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                        <div class="mt-4 text-sm text-gray-600">
+                            <p><strong>Total Weighting:</strong> {{ collect($module->assessment_strategy)->sum('weighting') }}%</p>
+                        </div>
                     @else
-                        <p class="text-gray-500">No assessment components defined for this module yet.</p>
+                        <p class="text-gray-500">No assessment strategy defined for this module yet.</p>
                     @endif
                 </div>
             </div>

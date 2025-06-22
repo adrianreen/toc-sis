@@ -4,7 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RepeatAssessment;
-use App\Models\StudentAssessment;
+use App\Models\StudentGradeRecord;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\ModuleInstance;
@@ -141,38 +141,39 @@ class RepeatAssessmentController extends Controller
     {
         // If no student specified, show student selection
         if (!$student) {
-            // Get students with failed assessments that don't already have repeat assessments
-            $studentsWithFailures = Student::whereHas('studentModuleEnrolments.studentAssessments', function ($query) {
-                $query->where('status', 'failed');
-            })->with(['studentModuleEnrolments.studentAssessments' => function ($query) {
-                $query->where('status', 'failed')
-                      ->with('assessmentComponent');
+            // Get students with failed grade records that don't already have repeat assessments
+            $studentsWithFailures = Student::whereHas('studentGradeRecords', function ($query) {
+                $query->where('percentage', '<', 40)
+                      ->whereNotNull('percentage');
+            })->with(['studentGradeRecords' => function ($query) {
+                $query->where('percentage', '<', 40)
+                      ->whereNotNull('percentage')
+                      ->with('moduleInstance.module');
             }])->get();
 
             return view('repeat-assessments.select-student', compact('studentsWithFailures'));
         }
 
-        // Get failed assessments for the specific student
-        $failedAssessments = StudentAssessment::whereHas('studentModuleEnrolment', function ($query) use ($student) {
-                $query->where('student_id', $student->id);
-            })
-            ->where('status', 'failed')
+        // Get failed grade records for the specific student
+        $failedGradeRecords = StudentGradeRecord::where('student_id', $student->id)
+            ->where('percentage', '<', 40)
+            ->whereNotNull('percentage')
             ->whereDoesntHave('repeatAssessments') // Don't show assessments that already have repeat assessments
-            ->with(['assessmentComponent.module', 'studentModuleEnrolment.moduleInstance'])
+            ->with(['moduleInstance.module'])
             ->get();
 
         $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
                      ->orderBy('name')
                      ->get();
 
-        return view('repeat-assessments.create', compact('student', 'failedAssessments', 'staff'));
+        return view('repeat-assessments.create', compact('student', 'failedGradeRecords', 'staff'));
     }
 
     public function store(Request $request, Student $student = null)
     {
         $validated = $request->validate([
             'student_id' => $student ? 'nullable' : 'required|exists:students,id',
-            'student_assessment_id' => 'required|exists:student_assessments,id',
+            'student_grade_record_id' => 'required|exists:student_grade_records,id',
             'reason' => 'required|string|max:1000',
             'repeat_due_date' => 'required|date|after:today',
             'cap_grade' => 'nullable|numeric|min:0|max:100',
@@ -189,20 +190,20 @@ class RepeatAssessmentController extends Controller
             $student = Student::findOrFail($validated['student_id']);
         }
 
-        $assessment = StudentAssessment::findOrFail($validated['student_assessment_id']);
+        $gradeRecord = StudentGradeRecord::findOrFail($validated['student_grade_record_id']);
 
-        // Check if repeat assessment already exists for this student assessment
-        $existingRepeat = RepeatAssessment::where('student_assessment_id', $assessment->id)->first();
+        // Check if repeat assessment already exists for this grade record
+        $existingRepeat = RepeatAssessment::where('student_grade_record_id', $gradeRecord->id)->first();
         if ($existingRepeat) {
-            return back()->withErrors(['student_assessment_id' => 'A repeat assessment already exists for this assessment.']);
+            return back()->withErrors(['student_grade_record_id' => 'A repeat assessment already exists for this grade record.']);
         }
 
-        DB::transaction(function () use ($validated, $student, $assessment) {
+        DB::transaction(function () use ($validated, $student, $gradeRecord) {
             // Create repeat assessment
             $repeat = RepeatAssessment::create([
-                'student_assessment_id' => $assessment->id,
+                'student_grade_record_id' => $gradeRecord->id,
                 'student_id' => $student->id,
-                'module_instance_id' => $assessment->studentModuleEnrolment->module_instance_id,
+                'module_instance_id' => $gradeRecord->module_instance_id,
                 'reason' => $validated['reason'],
                 'repeat_due_date' => $validated['repeat_due_date'],
                 'cap_grade' => $validated['cap_grade'] ?? 40, // Default cap at 40%
@@ -216,14 +217,17 @@ class RepeatAssessmentController extends Controller
                 'moodle_setup_status' => ($validated['moodle_setup_required'] ?? true) ? 'pending' : 'not_required',
             ]);
 
-            // Create new assessment attempt
-            StudentAssessment::create([
-                'student_module_enrolment_id' => $assessment->student_module_enrolment_id,
-                'assessment_component_id' => $assessment->assessment_component_id,
-                'attempt_number' => $assessment->attempt_number + 1,
-                'due_date' => $validated['repeat_due_date'],
-                'status' => 'pending',
-                'is_visible' => false, // Keep hidden until approved
+            // Create new grade record attempt
+            StudentGradeRecord::create([
+                'student_id' => $student->id,
+                'module_instance_id' => $gradeRecord->module_instance_id,
+                'assessment_component_name' => $gradeRecord->assessment_component_name,
+                'attempts' => $gradeRecord->attempts + 1,
+                'submission_date' => null,
+                'grade' => null,
+                'percentage' => null,
+                'is_visible_to_student' => false, // Keep hidden until graded
+                'release_date' => $validated['repeat_due_date'],
             ]);
 
             activity()
@@ -245,7 +249,7 @@ class RepeatAssessmentController extends Controller
     {
         $repeatAssessment->load([
             'student',
-            'studentAssessment.assessmentComponent',
+            'studentGradeRecord',
             'moduleInstance.module'
         ]);
 
@@ -547,32 +551,34 @@ class RepeatAssessmentController extends Controller
     public function getFailedAssessments(Student $student)
     {
         try {
-            $failedAssessments = StudentAssessment::with([
-                'studentModuleEnrolment.moduleInstance.module'
+            $failedAssessments = StudentGradeRecord::with([
+                'moduleInstance.module',
+                'student'
             ])
-            ->whereHas('studentModuleEnrolment', function($query) use ($student) {
-                $query->where('student_id', $student->id);
-            })
+            ->where('student_id', $student->id)
             ->where(function($query) {
-                $query->where('status', 'failed')
-                      ->orWhere(function($subQuery) {
-                          $subQuery->where('status', 'graded')
-                                   ->where('grade', '<', 40);
-                      });
+                $query->where('percentage', '<', 40)
+                      ->whereNotNull('percentage');
             })
             ->whereDoesntHave('repeatAssessments') // Don't include assessments that already have repeat assessments
             ->get()
-            ->map(function($assessment) {
+            ->groupBy('module_instance_id')
+            ->map(function($gradeRecords) {
+                $moduleInstance = $gradeRecords->first()->moduleInstance;
+                $failedComponents = $gradeRecords->where('percentage', '<', 40)->count();
+                $totalComponents = count($moduleInstance->module->assessment_strategy ?? []);
+                
                 return [
-                    'id' => $assessment->id,
-                    'module_title' => $assessment->studentModuleEnrolment->moduleInstance->module->title,
-                    'module_code' => $assessment->studentModuleEnrolment->moduleInstance->module->code,
-                    'grade' => $assessment->grade,
-                    'status' => $assessment->status,
-                    'due_date' => $assessment->due_date?->format('Y-m-d'),
-                    'graded_date' => $assessment->graded_date?->format('Y-m-d'),
+                    'module_instance_id' => $moduleInstance->id,
+                    'module_title' => $moduleInstance->module->title,
+                    'module_code' => $moduleInstance->module->module_code,
+                    'failed_components' => $failedComponents,
+                    'total_components' => $totalComponents,
+                    'lowest_grade' => $gradeRecords->min('percentage'),
+                    'last_graded' => $gradeRecords->whereNotNull('graded_at')->max('graded_at')?->format('Y-m-d'),
                 ];
-            });
+            })
+            ->values();
 
             return response()->json([
                 'success' => true,

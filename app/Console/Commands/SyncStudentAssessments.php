@@ -36,7 +36,9 @@ class SyncStudentAssessments extends Command
      */
     public function handle()
     {
-        $this->info('🎯 Starting Student Assessment Sync...');
+        $this->error('❌ This command is deprecated and incompatible with the new 4-level architecture.');
+        $this->info('   Please use the EnrolmentService methods instead.');
+        return Command::FAILURE;
         
         $dryRun = $this->option('dry-run');
         if ($dryRun) {

@@ -52,19 +52,19 @@
                             <div class="text-sm font-medium text-gray-500">Active Programmes</div>
                             <div class="mt-1 text-3xl font-semibold text-gray-900">{{ $stats['total_programmes'] }}</div>
                             <div class="mt-2 text-sm text-gray-600">
-                                <span class="text-blue-600">{{ $stats['active_cohorts'] }} cohorts</span>
+                                <span class="text-blue-600">{{ $stats['active_programme_instances'] }} active instances</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div class="p-6">
-                            <div class="text-sm font-medium text-gray-500">Pending Actions</div>
+                            <div class="text-sm font-medium text-gray-500">Module Instances</div>
                             <div class="mt-1 text-3xl font-semibold text-gray-900">
-                                {{ $stats['pending_deferrals'] + $stats['pending_extensions'] }}
+                                {{ $stats['total_module_instances'] }}
                             </div>
                             <div class="mt-2 text-sm text-gray-600">
-                                <span class="text-orange-600">Require attention</span>
+                                <span class="text-orange-600">{{ $stats['pending_deferrals'] }} pending deferrals</span>
                             </div>
                         </div>
                     </div>
@@ -118,7 +118,10 @@
                                     <span class="text-sm text-gray-500 ml-2">({{ ucfirst(str_replace('_', ' ', $programme->enrolment_type)) }})</span>
                                 </div>
                                 <div class="flex items-center">
-                                    <span class="text-2xl font-semibold text-gray-900 mr-2">{{ $programme->enrolments_count }}</span>
+                                    @php
+                                        $totalEnrolments = $programme->programmeInstances->sum('enrolments_count');
+                                    @endphp
+                                    <span class="text-2xl font-semibold text-gray-900 mr-2">{{ $totalEnrolments }}</span>
                                     <span class="text-sm text-gray-500">active students</span>
                                 </div>
                             </div>

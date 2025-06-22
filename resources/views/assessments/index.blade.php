@@ -10,14 +10,11 @@
                 @endif
             </h2>
             <div class="space-x-2">
-                <a href="{{ route('assessments.pending') }}" class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
-                    Pending Grading
-                    @if($stats['pending_grading'] > 0)
-                        <span class="ml-1 bg-white text-orange-500 rounded-full px-2 py-1 text-xs">
-                            {{ $stats['pending_grading'] }}
-                        </span>
-                    @endif
-                </a>
+                @if($stats['pending_grading'] > 0)
+                    <span class="bg-orange-500 text-white font-bold py-2 px-4 rounded">
+                        Pending Grading: {{ $stats['pending_grading'] }}
+                    </span>
+                @endif
             </div>
         </div>
     </x-slot>
@@ -48,9 +45,9 @@
                         <div class="mt-1 text-3xl font-semibold {{ $stats['pending_grading'] > 0 ? 'text-orange-600' : 'text-gray-900' }}">
                             {{ $stats['pending_grading'] }}
                         </div>
-                        @if($stats['overdue'] > 0)
+                        @if($stats['overdue_release'] > 0)
                             <div class="mt-2 text-sm text-red-600">
-                                {{ $stats['overdue'] }} overdue
+                                {{ $stats['overdue_release'] }} overdue for release
                             </div>
                         @else
                             <div class="mt-2 text-sm text-gray-600">All up to date</div>
@@ -60,16 +57,12 @@
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <div class="text-sm font-medium text-gray-500">Average Grade</div>
+                        <div class="text-sm font-medium text-gray-500">Graded Today</div>
                         <div class="mt-1 text-3xl font-semibold text-gray-900">
-                            @if($stats['average_grade'])
-                                {{ number_format($stats['average_grade'], 1) }}%
-                            @else
-                                -
-                            @endif
+                            {{ $stats['graded_today'] }}
                         </div>
                         <div class="mt-2 text-sm text-gray-600">
-                            <span class="text-green-600">{{ $stats['pass_rate'] }}% pass rate</span>
+                            Recent activity
                         </div>
                     </div>
                 </div>
@@ -111,21 +104,18 @@
                                             Module
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Cohort
+                                            Period
                                         </th>
                                         @if(Auth::user()->role !== 'teacher')
                                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Teacher
+                                                Tutor
                                             </th>
                                         @endif
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Students
+                                            Grade Records
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Progress
-                                        </th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
                                         </th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions
@@ -135,23 +125,16 @@
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($moduleInstances as $instance)
                                         @php
-                                            $totalStudents = $instance->studentEnrolments->count();
-                                            $activeStudents = $instance->studentEnrolments->where('status', 'active')->count();
-                                            $completedStudents = $instance->studentEnrolments->where('status', 'completed')->count();
-                                            
-                                            // Calculate assessment progress
-                                            $totalAssessments = $instance->studentEnrolments->sum(function($enrolment) {
-                                                return $enrolment->studentAssessments->count();
-                                            });
-                                            $gradedAssessments = $instance->studentEnrolments->sum(function($enrolment) {
-                                                return $enrolment->studentAssessments->whereIn('status', ['graded', 'passed', 'failed'])->count();
-                                            });
-                                            $progressPercent = $totalAssessments > 0 ? round(($gradedAssessments / $totalAssessments) * 100) : 0;
+                                            $totalGradeRecords = $instance->studentGradeRecords->count();
+                                            $gradedRecords = $instance->studentGradeRecords->whereNotNull('grade')->count();
+                                            $pendingRecords = $instance->studentGradeRecords->whereNull('grade')->count();
+                                            $visibleRecords = $instance->studentGradeRecords->where('is_visible_to_student', true)->count();
+                                            $progressPercent = $totalGradeRecords > 0 ? round(($gradedRecords / $totalGradeRecords) * 100) : 0;
                                         @endphp
                                         <tr>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm font-medium text-gray-900">
-                                                    {{ $instance->instance_code }}
+                                                    {{ $instance->module->module_code }}
                                                 </div>
                                                 <div class="text-sm text-gray-500">
                                                     {{ $instance->module->title }}
@@ -159,25 +142,24 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">
-                                                    @if($instance->cohort)
-                                                        {{ $instance->cohort->code }} - {{ $instance->cohort->name }}
-                                                    @else
-                                                        <span class="text-gray-500">Rolling Enrolment</span>
+                                                    {{ $instance->start_date ? $instance->start_date->format('M Y') : 'TBD' }}
+                                                    @if($instance->end_date)
+                                                        - {{ $instance->end_date->format('M Y') }}
                                                     @endif
                                                 </div>
                                                 <div class="text-sm text-gray-500">
-                                                    {{ $instance->cohort->programme->code ?? 'N/A' }}
+                                                    {{ ucfirst($instance->delivery_style) }}
                                                 </div>
                                             </td>
                                             @if(Auth::user()->role !== 'teacher')
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {{ $instance->teacher?->name ?? 'Not Assigned' }}
+                                                    {{ $instance->tutor?->name ?? 'Not Assigned' }}
                                                 </td>
                                             @endif
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm text-gray-900">{{ $totalStudents }} total</div>
+                                                <div class="text-sm text-gray-900">{{ $totalGradeRecords }} total</div>
                                                 <div class="text-sm text-gray-500">
-                                                    {{ $activeStudents }} active, {{ $completedStudents }} completed
+                                                    {{ $gradedRecords }} graded, {{ $pendingRecords }} pending
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
@@ -188,27 +170,18 @@
                                                     <span class="text-sm text-gray-700">{{ $progressPercent }}%</span>
                                                 </div>
                                                 <div class="text-xs text-gray-500 mt-1">
-                                                    {{ $gradedAssessments }}/{{ $totalAssessments }} assessments graded
+                                                    {{ $visibleRecords }} visible to students
                                                 </div>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                    @if($instance->status === 'active') bg-green-100 text-green-800
-                                                    @elseif($instance->status === 'planned') bg-yellow-100 text-yellow-800
-                                                    @else bg-gray-100 text-gray-800
-                                                    @endif">
-                                                    {{ ucfirst($instance->status) }}
-                                                </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div class="flex space-x-2">
-                                                    <a href="{{ route('assessments.module-instance', $instance) }}" 
+                                                    <a href="{{ route('grade-records.module-grading', $instance) }}" 
                                                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-xs">
                                                         Grade Students
                                                     </a>
                                                     
-                                                    @if($totalStudents > 0)
-                                                        <a href="{{ route('assessments.export', $instance) }}" 
+                                                    @if($totalGradeRecords > 0)
+                                                        <a href="{{ route('grade-records.export', $instance) }}" 
                                                            class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded text-xs">
                                                             Export
                                                         </a>
@@ -253,7 +226,7 @@
             </div>
 
             <!-- Quick Actions -->
-            @if($stats['pending_grading'] > 0 || $stats['overdue'] > 0)
+            @if($stats['pending_grading'] > 0 || $stats['overdue_release'] > 0)
                 <div class="mt-6 bg-orange-50 border-l-4 border-orange-400 p-4">
                     <div class="flex">
                         <div class="flex-shrink-0">
@@ -264,18 +237,13 @@
                         <div class="ml-3">
                             <p class="text-sm text-orange-700">
                                 <strong>Action Required:</strong> 
-                                You have {{ $stats['pending_grading'] }} assessment(s) waiting for grading
-                                @if($stats['overdue'] > 0)
-                                    ({{ $stats['overdue'] }} overdue)
+                                @if($stats['pending_grading'] > 0)
+                                    You have {{ $stats['pending_grading'] }} assessment(s) waiting for grading.
                                 @endif
-                                .
+                                @if($stats['overdue_release'] > 0)
+                                    {{ $stats['overdue_release'] }} graded assessment(s) are overdue for release to students.
+                                @endif
                             </p>
-                            <div class="mt-2">
-                                <a href="{{ route('assessments.pending') }}" 
-                                   class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-1 px-3 rounded text-sm">
-                                    Review Pending Assessments
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>

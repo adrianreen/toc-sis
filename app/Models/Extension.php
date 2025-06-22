@@ -12,7 +12,7 @@ class Extension extends Model
     use HasFactory;
 
     protected $fillable = [
-        'student_assessment_id',
+        'student_grade_record_id',
         'student_id',
         'original_due_date',
         'new_due_date',
@@ -30,9 +30,9 @@ class Extension extends Model
         'approved_at' => 'datetime',
     ];
 
-    public function studentAssessment(): BelongsTo
+    public function studentGradeRecord(): BelongsTo
     {
-        return $this->belongsTo(StudentAssessment::class);
+        return $this->belongsTo(StudentGradeRecord::class);
     }
 
     public function student(): BelongsTo

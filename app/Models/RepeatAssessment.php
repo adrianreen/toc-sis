@@ -14,7 +14,7 @@ class RepeatAssessment extends Model
     use HasFactory, LogsActivity;
 
     protected $fillable = [
-        'student_assessment_id',
+        'student_grade_record_id',
         'student_id',
         'module_instance_id',
         'reason',
@@ -83,9 +83,14 @@ class RepeatAssessment extends Model
             ->dontSubmitEmptyLogs();
     }
 
-    public function studentAssessment(): BelongsTo
+    public function studentGradeRecord(): BelongsTo
     {
-        return $this->belongsTo(StudentAssessment::class);
+        return $this->belongsTo(StudentGradeRecord::class);
+    }
+
+    public function getAssessmentComponentNameAttribute(): string
+    {
+        return $this->studentGradeRecord->assessment_component_name ?? 'Unknown Assessment';
     }
 
     public function student(): BelongsTo

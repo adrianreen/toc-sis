@@ -87,9 +87,14 @@ class Student extends Model
         return $this->hasMany(ExtensionRequest::class);
     }
 
-public function studentModuleEnrolments(): HasMany
+public function studentGradeRecords(): HasMany
 {
-    return $this->hasMany(StudentModuleEnrolment::class);
+    return $this->hasMany(StudentGradeRecord::class);
+}
+
+public function gradeRecords(): HasMany
+{
+    return $this->hasMany(StudentGradeRecord::class);
 }
 
 public function deferrals(): HasMany
@@ -114,5 +119,45 @@ public function emailLogs(): HasMany
 public function user()
 {
     return $this->hasOne(User::class, 'student_id');
+}
+
+// New architecture helper methods
+public function programmeEnrolments(): HasMany
+{
+    return $this->hasMany(Enrolment::class)->where('enrolment_type', 'programme');
+}
+
+public function moduleEnrolments(): HasMany
+{
+    return $this->hasMany(Enrolment::class)->where('enrolment_type', 'module');
+}
+
+public function getCurrentProgrammeEnrolments()
+{
+    return $this->programmeEnrolments()->where('status', 'active')->with(['programmeInstance.programme']);
+}
+
+public function getCurrentModuleEnrolments()
+{
+    return $this->moduleEnrolments()->where('status', 'active')->with(['moduleInstance.module', 'moduleInstance.tutor']);
+}
+
+public function getActiveModuleInstances()
+{
+    // Get module instances from both programme and standalone enrolments
+    $programmeModules = collect();
+    $standaloneModules = collect();
+    
+    // From programme enrolments
+    foreach ($this->getCurrentProgrammeEnrolments()->get() as $enrolment) {
+        $programmeModules = $programmeModules->concat($enrolment->programmeInstance->moduleInstances);
+    }
+    
+    // From standalone module enrolments
+    foreach ($this->getCurrentModuleEnrolments()->get() as $enrolment) {
+        $standaloneModules->push($enrolment->moduleInstance);
+    }
+    
+    return $programmeModules->concat($standaloneModules)->unique('id');
 }
 }

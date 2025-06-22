@@ -11,8 +11,7 @@ use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Azure\Provider as AzureProvider;
 
 // Observer imports
-use App\Models\StudentAssessment;
-use App\Observers\StudentAssessmentObserver;
+// TODO: Re-add observers for new architecture models when implemented
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Register model observers
-        StudentAssessment::observe(StudentAssessmentObserver::class);
+        // TODO: Re-add observers for new architecture models when implemented
         
         Event::listen(SocialiteWasCalled::class, function (SocialiteWasCalled $event) {
             $event->extendSocialite('azure', AzureProvider::class);
