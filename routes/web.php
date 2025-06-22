@@ -63,10 +63,7 @@ Route::middleware(['auth'])->group(function () {
     // =================================================================
     Route::middleware(['role:student'])->group(function () {
         
-        // Student's enrolments using new two-path system
-        Route::get('/my-enrolments', [EnrolmentController::class, 'myEnrolments'])->name('students.enrolments');
-        
-        // Student profile (unchanged)
+        // Student profile (basic access)
         Route::get('/my-profile', function () {
             $student = Auth::user()->student;
             if (!$student) {
@@ -75,33 +72,26 @@ Route::middleware(['auth'])->group(function () {
             $student->load(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module']);
             return view('students.profile', compact('student'));
         })->name('students.profile');
-
-        // Student grades using new StudentGradeRecord system
-        Route::get('/my-grades', [StudentGradeRecordController::class, 'myGrades'])->name('students.grades');
         
-        // Student progress with new architecture
-        Route::get('/my-progress', function () {
-            $student = Auth::user()->student;
-            if (!$student) {
-                abort(404, 'Student record not found');
-            }
+        // Routes requiring active enrollment
+        Route::middleware(['require_active_enrollment'])->group(function () {
+            // Student's enrolments using new two-path system
+            Route::get('/my-enrolments', [EnrolmentController::class, 'myEnrolments'])->name('students.enrolments');
+
+            // Student grades using new StudentGradeRecord system
+            Route::get('/my-grades', [StudentGradeRecordController::class, 'myGrades'])->name('students.grades');
             
-            // Load progress data with new architecture
-            $student->load([
-                'studentGradeRecords' => function($query) {
-                    $query->with(['moduleInstance.module'])
-                          ->where(function ($q) {
-                              $q->where('is_visible_to_student', true)
-                                ->orWhere(function ($subQ) {
-                                    $subQ->whereNotNull('release_date')
-                                         ->where('release_date', '<=', now());
-                                });
-                          });
+            // Student progress with new architecture - only show current enrolments
+            Route::get('/my-progress', function () {
+                $student = Auth::user()->student;
+                if (!$student) {
+                    abort(404, 'Student record not found');
                 }
-            ]);
-            
-            return view('students.progress', compact('student'));
-        })->name('students.progress');
+                
+                // No need to load grade records here - the view will use getCurrentGradeRecords()
+                return view('students.progress', compact('student'));
+            })->name('students.progress');
+        });
         
         // Extension Request routes for students
         Route::get('my-extensions', [ExtensionRequestController::class, 'index'])->name('extension-requests.index');
@@ -237,6 +227,10 @@ Route::middleware(['auth'])->group(function () {
         // Module Instance routes - Live module classes
         Route::resource('module-instances', ModuleInstanceController::class);
         Route::get('module-instances/{moduleInstance}/students', [ModuleInstanceController::class, 'students'])->name('module-instances.students');
+        
+        // System Health Dashboard
+        Route::get('admin/system-health', [App\Http\Controllers\SystemHealthController::class, 'index'])->name('admin.system-health');
+        Route::get('admin/system-health/api', [App\Http\Controllers\SystemHealthController::class, 'api'])->name('admin.system-health.api');
         Route::get('module-instances/{moduleInstance}/grading', [ModuleInstanceController::class, 'grading'])->name('module-instances.grading');
         Route::get('module-instances/{moduleInstance}/copy', [ModuleInstanceController::class, 'copy'])->name('module-instances.copy');
         Route::post('module-instances/{moduleInstance}/copy', [ModuleInstanceController::class, 'storeCopy'])->name('module-instances.store-copy');
@@ -349,5 +343,44 @@ Route::middleware(['auth'])->group(function () {
         Route::post('admin/moodle/courses/{moduleInstance}/enroll/{student}', [App\Http\Controllers\Admin\MoodleController::class, 'enrollStudent'])->name('moodle.enroll-student');
         Route::post('admin/moodle/courses/{moduleInstance}/bulk-enroll', [App\Http\Controllers\Admin\MoodleController::class, 'bulkEnrollCohort'])->name('moodle.bulk-enroll');
     });
+
+    // =================================================================
+    // STUDENT DOCUMENT MANAGEMENT ROUTES
+    // =================================================================
+    
+    // Student document management
+    Route::get('/students/{student}/documents', [App\Http\Controllers\StudentDocumentController::class, 'index'])
+        ->name('students.documents.index');
+    
+    Route::get('/students/{student}/documents/create', [App\Http\Controllers\StudentDocumentController::class, 'create'])
+        ->name('students.documents.create');
+    
+    Route::post('/students/{student}/documents', [App\Http\Controllers\StudentDocumentController::class, 'store'])
+        ->name('students.documents.store');
+    
+    Route::get('/student-documents/{document}/download', [App\Http\Controllers\StudentDocumentController::class, 'download'])
+        ->name('student-documents.download');
+    
+    Route::get('/student-documents/{document}/view', [App\Http\Controllers\StudentDocumentController::class, 'view'])
+        ->name('student-documents.view');
+    
+    Route::delete('/student-documents/{document}', [App\Http\Controllers\StudentDocumentController::class, 'destroy'])
+        ->name('student-documents.destroy');
+    
+    // Staff-only document verification routes
+    Route::post('/student-documents/{document}/verify', [App\Http\Controllers\StudentDocumentController::class, 'verify'])
+        ->name('student-documents.verify');
+    
+    Route::post('/student-documents/{document}/reject', [App\Http\Controllers\StudentDocumentController::class, 'reject'])
+        ->name('student-documents.reject');
+    
+    // Student's own document routes (simplified paths)
+    Route::get('/my-documents', function () {
+        $student = auth()->user()->student;
+        if (!$student) {
+            abort(404, 'Student profile not found');
+        }
+        return redirect()->route('students.documents.index', $student);
+    })->name('my-documents');
 
 });

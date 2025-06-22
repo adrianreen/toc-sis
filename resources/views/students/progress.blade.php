@@ -1,24 +1,47 @@
+@php
+    // Determine if this is an admin view or student view - MUST BE FIRST
+    $isAdminView = Auth::user()->role !== 'student';
+@endphp
+
 <x-app-layout>
     <div class="py-6 sm:py-8">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             
             <!-- Header -->
             <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">My Academic Progress</h1>
-                <p class="mt-2 text-gray-600">Track your progress across all modules and assessments</p>
+                @if($isAdminView)
+                    <h1 class="text-3xl font-bold text-gray-900">{{ $student->full_name }}'s Academic Progress</h1>
+                    <p class="mt-2 text-gray-600">Student Number: {{ $student->student_number }} • Complete academic history</p>
+                @else
+                    <h1 class="text-3xl font-bold text-gray-900">My Academic Progress</h1>
+                    <p class="mt-2 text-gray-600">Track your progress across all modules and assessments</p>
+                @endif
             </div>
 
             @php
-                // Calculate overall statistics from grade records
-                $totalGradeRecords = $student->studentGradeRecords->count();
-                $completedGradeRecords = $student->studentGradeRecords->whereNotNull('percentage')->count();
-                $passedGradeRecords = $student->studentGradeRecords->where('percentage', '>=', 40)->count();
+                // Get appropriate grade records based on context
+                if ($isAdminView) {
+                    // Admin view: show all historical grade records
+                    $gradeRecords = $student->studentGradeRecords;
+                } else {
+                    // Student view: only show current enrollment grade records
+                    $gradeRecords = $student->getCurrentGradeRecords()->get();
+                }
                 
-                // Only include visible grade records in overall average
-                $visibleGradeRecords = $student->studentGradeRecords->filter(function($gradeRecord) {
-                    return $gradeRecord->percentage !== null && $gradeRecord->is_visible_to_student;
-                });
-                $overallAverage = $visibleGradeRecords->count() > 0 ? $visibleGradeRecords->avg('percentage') : null;
+                // Calculate overall statistics from appropriate grade records
+                $totalGradeRecords = $gradeRecords->count();
+                $completedGradeRecords = $gradeRecords->whereNotNull('percentage')->count();
+                $passedGradeRecords = $gradeRecords->where('percentage', '>=', 40)->count();
+                
+                // For students, only include visible records; for admin, include all
+                if ($isAdminView) {
+                    $averageGradeRecords = $gradeRecords->whereNotNull('percentage');
+                } else {
+                    $averageGradeRecords = $gradeRecords->filter(function($gradeRecord) {
+                        return $gradeRecord->percentage !== null && $gradeRecord->is_visible_to_student;
+                    });
+                }
+                $overallAverage = $averageGradeRecords->count() > 0 ? $averageGradeRecords->avg('percentage') : null;
                 
                 $completionPercentage = $totalGradeRecords > 0 ? round(($completedGradeRecords / $totalGradeRecords) * 100, 1) : 0;
                 $passRate = $completedGradeRecords > 0 ? round(($passedGradeRecords / $completedGradeRecords) * 100, 1) : 0;
@@ -101,7 +124,7 @@
 
             <!-- Module Progress -->
             @php
-                $moduleGroups = $student->studentGradeRecords->groupBy('module_instance_id');
+                $moduleGroups = $gradeRecords->groupBy('module_instance_id');
             @endphp
             @if($moduleGroups->count() > 0)
             <div class="bg-white shadow-soft rounded-xl p-6 mb-8">

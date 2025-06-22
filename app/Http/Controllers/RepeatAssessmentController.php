@@ -32,8 +32,7 @@ class RepeatAssessmentController extends Controller
     {
         $query = RepeatAssessment::with([
             'student',
-            'studentAssessment.assessmentComponent',
-            'moduleInstance.module',
+            'studentGradeRecord.moduleInstance.module',
             'approvedBy',
             'assignedTo'
         ]);
@@ -128,8 +127,7 @@ class RepeatAssessmentController extends Controller
     {
         $repeatAssessment->load([
             'student',
-            'studentAssessment.assessmentComponent',
-            'moduleInstance.module',
+            'studentGradeRecord.moduleInstance.module',
             'approvedBy',
             'assignedTo'
         ]);
@@ -529,7 +527,7 @@ class RepeatAssessmentController extends Controller
         }
 
         $studentName = $repeatAssessment->student->full_name;
-        $assessmentName = $repeatAssessment->studentAssessment->assessmentComponent->name;
+        $assessmentName = $repeatAssessment->studentGradeRecord->assessment_component_name;
 
         $repeatAssessment->delete();
 

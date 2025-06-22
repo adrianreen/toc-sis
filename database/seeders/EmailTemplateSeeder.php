@@ -36,11 +36,11 @@ class EmailTemplateSeeder extends Seeder
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Programme:</span>
-                            <span class="detail-value">{{programme.title}} ({{programme.code}})</span>
+                            <span class="detail-value">{{programme.title}} ({{programme.awarding_body}})</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">Cohort:</span>
-                            <span class="detail-value">{{cohort.code}}</span>
+                            <span class="detail-label">Intake:</span>
+                            <span class="detail-value">{{programme_instance.label}}</span>
                         </div>
                     </div>
                     
@@ -67,8 +67,8 @@ We are pleased to share your academic results for your programme: {{programme.ti
 
 Student Information:
 - Student Number: {{student.student_number}}
-- Programme: {{programme.title}} ({{programme.code}})
-- Cohort: {{cohort.code}}
+- Programme: {{programme.title}} ({{programme.awarding_body}})
+- Intake: {{programme_instance.label}}
 
 Please find your official academic transcript attached to this email. This document contains your complete academic record including all completed assessments and grades.
 
@@ -105,12 +105,12 @@ Best regards,
                             <span class="detail-value">{{programme.title}}</span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">Cohort:</span>
-                            <span class="detail-value">{{cohort.name}}</span>
+                            <span class="detail-label">Intake:</span>
+                            <span class="detail-value">{{programme_instance.label}}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Start Date:</span>
-                            <span class="detail-value">{{cohort.start_date}}</span>
+                            <span class="detail-value">{{programme_instance.intake_start_date}}</span>
                         </div>
                     </div>
                     
@@ -143,8 +143,8 @@ We are delighted to welcome you to {{college.name}} and congratulate you on taki
 Your Programme Details:
 - Student Number: {{student.student_number}}
 - Programme: {{programme.title}}
-- Cohort: {{cohort.name}}
-- Start Date: {{cohort.start_date}}
+- Intake: {{programme_instance.label}}
+- Start Date: {{programme_instance.intake_start_date}}
 
 Getting Started:
 Here are the next steps to begin your studies:

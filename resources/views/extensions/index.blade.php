@@ -55,7 +55,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm text-gray-900">
-                                            {{ $extension->studentGradeRecord->moduleInstance->module->code }}
+                                            {{ $extension->studentGradeRecord->moduleInstance->module->module_code }}
                                         </div>
                                         <div class="text-sm text-gray-500">
                                             {{ $extension->studentGradeRecord->assessment_component_name }}

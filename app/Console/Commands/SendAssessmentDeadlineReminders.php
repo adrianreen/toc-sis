@@ -35,41 +35,32 @@ class SendAssessmentDeadlineReminders extends Command
      */
     public function handle(): int
     {
+        $this->warn('⚠️  Assessment deadline reminders may not be needed with new architecture.');
+        $this->info('   Students submit assessments via Moodle, not the SIS.');
+        $this->info('   This command is maintained for compatibility but may be deprecated.');
+        
         $daysArray = explode(',', $this->option('days'));
         $sentCount = 0;
 
+        $this->info('Checking for grade records with future submission dates...');
+
+        // Since the new architecture uses StudentGradeRecord and students submit via Moodle,
+        // we'll look for any assessment components that might have deadline tracking
+        // This is mainly for compatibility - most notifications will come from Moodle integration
+        
         foreach ($daysArray as $days) {
             $days = (int) trim($days);
             $targetDate = Carbon::now()->addDays($days)->startOfDay();
             
-            $this->info("Checking for assessments due in {$days} days ({$targetDate->format('Y-m-d')})...");
-
-            // Find assessments due on the target date that haven't been notified
-            $assessments = StudentAssessment::whereDate('due_date', $targetDate)
-                ->where('status', 'pending')
-                ->whereHas('studentModuleEnrolment.student.user')
-                ->get();
-
-            foreach ($assessments as $assessment) {
-                // Check if we've already sent a notification for this assessment and timeframe
-                $existingNotification = Notification::where('user_id', $assessment->studentModuleEnrolment->student->user->id)
-                    ->where('type', Notification::TYPE_ASSESSMENT_DUE)
-                    ->whereJsonContains('data->assessment_id', $assessment->id)
-                    ->whereJsonContains('data->days_before', $days)
-                    ->exists();
-
-                if (!$existingNotification) {
-                    $this->notificationService->notifyAssessmentDue($assessment, $days);
-                    $sentCount++;
-                    
-                    $studentName = $assessment->studentModuleEnrolment->student->user->name;
-                    $assessmentName = $assessment->assessmentComponent->name;
-                    $this->line("  ✓ Sent reminder to {$studentName} for {$assessmentName}");
-                }
-            }
+            $this->info("Would check for assessments due in {$days} days ({$targetDate->format('Y-m-d')})...");
+            
+            // In new architecture, we don't track individual assessment due dates in the SIS
+            // Students get deadline reminders from Moodle directly
+            // This could be enhanced later if needed for specific use cases
         }
 
-        $this->info("Sent {$sentCount} assessment deadline reminders.");
+        $this->info("Assessment deadline reminders: {$sentCount} notifications sent.");
+        $this->info("💡 Most assessment reminders now come from Moodle integration.");
 
         return 0;
     }

@@ -30,6 +30,24 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
+            {{-- Check for active enrollments --}}
+            @if(!Auth::user()->student->hasActiveEnrollments())
+                <div class="mb-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-amber-800">No Active Enrollments</h3>
+                            <div class="mt-2 text-sm text-amber-700">
+                                <p>You currently do not have any active enrollments. Some features may not be available.</p>
+                                <p class="mt-1">Please contact Student Services if you believe this is an error.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+            
             <!-- Quick Actions for Students -->
             <div class="mb-8">
                 <h2 class="text-xl font-semibold text-slate-900 mb-6">Quick Actions</h2>
@@ -209,16 +227,9 @@
                         </div>
                         <div class="p-6">
                             @php
-                                $recentGrades = Auth::user()->student->studentGradeRecords()
+                                $recentGrades = Auth::user()->student->getCurrentGradeRecords()
                                     ->with(['moduleInstance.module'])
                                     ->whereNotNull('grade')
-                                    ->where(function ($query) {
-                                        $query->where('is_visible_to_student', true)
-                                              ->orWhere(function ($q) {
-                                                  $q->whereNotNull('release_date')
-                                                    ->where('release_date', '<=', now());
-                                              });
-                                    })
                                     ->latest('graded_date')
                                     ->limit(4)
                                     ->get();

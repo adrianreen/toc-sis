@@ -453,10 +453,13 @@ class StudentController extends Controller
     public function progress(Student $student)
     {
         $student->load([
-            'studentGradeRecords.moduleInstance.module',
             'enrolments.programmeInstance.programme',
             'enrolments.moduleInstance.module'
         ]);
+
+        // For admin/staff: show all historical grade records
+        // For students: this route shouldn't be accessible (they use /my-progress)
+        $student->load(['studentGradeRecords.moduleInstance.module']);
 
         return view('students.progress', compact('student'));
     }

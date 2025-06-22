@@ -345,7 +345,7 @@
                                     Email Templates
                                 </a>
                             @endif
-                            <a href="{{ route('admin.system-health.dashboard') }}" 
+                            <a href="{{ route('admin.system-health') }}" 
                                class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
                                       {{ request()->routeIs('admin.system-health.*') 
                                          ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 

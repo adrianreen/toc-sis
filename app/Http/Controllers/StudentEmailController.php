@@ -198,13 +198,17 @@ class StudentEmailController extends Controller
     {
         // Load student data with all related information for transcript
         $student->load([
-            'enrolments.programme',
-            'enrolments.cohort',
-            'studentModuleEnrolments.moduleInstance.module',
-            'studentModuleEnrolments.moduleInstance.cohort.programme',
-            'studentModuleEnrolments.studentAssessments' => function($query) {
+            'enrolments.programmeInstance.programme',
+            'enrolments.moduleInstance.module',
+            'studentGradeRecords' => function($query) {
                 // Only show visible results
-                $query->visibleToStudents()->with('assessmentComponent');
+                $query->where(function($q) {
+                    $q->where('is_visible_to_student', true)
+                      ->orWhere(function($subQ) {
+                          $subQ->whereNotNull('release_date')
+                               ->where('release_date', '<=', now());
+                      });
+                })->with('moduleInstance.module');
             }
         ]);
 

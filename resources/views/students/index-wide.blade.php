@@ -200,7 +200,7 @@
                                             📄
                                         </x-button>
                                         <x-button 
-                                            href="{{ route('admin.students.progress', $student) }}"
+                                            href="{{ route('students.show-progress', $student) }}"
                                             variant="secondary" 
                                             size="xs"
                                             title="View detailed progress"

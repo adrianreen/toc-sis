@@ -65,8 +65,13 @@ class NotificationService
         }
     }
 
+    /**
+     * @deprecated Use notifyAssessmentDeadline() for new architecture
+     */
     public function notifyAssessmentDue(StudentAssessment $assessment, int $daysBeforeDue = 3): void
     {
+        \Log::warning('Deprecated method notifyAssessmentDue called - use notifyAssessmentDeadline for new architecture');
+        
         $student = $assessment->studentModuleEnrolment->student;
         $user = $student->user;
 
@@ -93,8 +98,13 @@ class NotificationService
         );
     }
 
+    /**
+     * @deprecated Use notifyStudentGradeRecord() for new architecture
+     */
     public function notifyGradeReleased(StudentAssessment $assessment): void
     {
+        \Log::warning('Deprecated method notifyGradeReleased called - use notifyStudentGradeRecord for new architecture');
+        
         $student = $assessment->studentModuleEnrolment->student;
         $user = $student->user;
 

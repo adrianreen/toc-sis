@@ -97,9 +97,9 @@ class Enquiry extends Model
         return $this->belongsTo(Programme::class);
     }
 
-    public function prospectiveCohort(): BelongsTo
+    public function prospectiveProgrammeInstance(): BelongsTo
     {
-        return $this->belongsTo(Cohort::class, 'prospective_cohort_id');
+        return $this->belongsTo(ProgrammeInstance::class, 'prospective_cohort_id');
     }
 
     public function convertedStudent(): BelongsTo

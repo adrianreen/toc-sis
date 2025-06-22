@@ -6,7 +6,7 @@
             Student Details: {{ $student->full_name }}
         </h2>
         <div class="hidden sm:block">
-            <a href="{{ route('students.progress', $student) }}" 
+            <a href="{{ route('students.show-progress', $student) }}" 
                class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                 View Progress
             </a>
@@ -89,7 +89,7 @@
                             
                             <!-- Mobile Progress Button -->
                             <div class="sm:hidden mb-3">
-                                <a href="{{ route('students.progress', $student) }}" 
+                                <a href="{{ route('students.show-progress', $student) }}" 
                                    class="w-full inline-flex justify-center items-center px-3 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                                     View Progress
                                 </a>
@@ -266,6 +266,82 @@
                         </table>
                     @else
                         <p class="text-gray-500">No enrolments yet.</p>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Documents Section -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Documents</h3>
+                        <div class="flex items-center space-x-2">
+                            <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
+                               class="inline-flex items-center px-3 py-2 bg-toc-600 text-white text-sm rounded-md hover:bg-toc-700 transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Upload RPL Documents
+                            </a>
+                            <a href="{{ route('students.documents.index', $student) }}" 
+                               class="text-toc-600 hover:text-toc-800 text-sm font-medium">
+                                View All
+                            </a>
+                        </div>
+                    </div>
+                    
+                    @if($student->documents->count() > 0)
+                        <div class="space-y-3">
+                            @foreach($student->documents->take(5) as $document)
+                                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3">
+                                            <p class="font-medium text-gray-900">{{ $document->title }}</p>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {{ $document->status_color }}">
+                                                {{ ucfirst($document->status) }}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            {{ $document->document_type_label }} • 
+                                            {{ $document->formatted_file_size }} • 
+                                            Uploaded {{ $document->uploaded_at->diffForHumans() }}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        @if($document->mime_type === 'application/pdf')
+                                            <a href="{{ route('student-documents.view', $document) }}" 
+                                               class="text-blue-600 hover:text-blue-800 text-sm font-medium" target="_blank">
+                                                View
+                                            </a>
+                                        @endif
+                                        <a href="{{ route('student-documents.download', $document) }}" 
+                                           class="text-green-600 hover:text-green-800 text-sm font-medium">
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                        
+                        @if($student->documents->count() > 5)
+                            <div class="mt-4 text-center">
+                                <a href="{{ route('students.documents.index', $student) }}" 
+                                   class="text-toc-600 hover:text-toc-800 text-sm font-medium">
+                                    View all {{ $student->documents->count() }} documents →
+                                </a>
+                            </div>
+                        @endif
+                    @else
+                        <div class="text-center py-4">
+                            <svg class="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-gray-600 text-sm">No documents uploaded yet.</p>
+                            <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
+                               class="mt-2 inline-flex items-center text-toc-600 hover:text-toc-800 text-sm font-medium">
+                                Upload your first document →
+                            </a>
+                        </div>
                     @endif
                 </div>
             </div>

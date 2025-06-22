@@ -101,14 +101,16 @@ class EmailTemplate extends Model
             ],
             'programme' => [
                 'programme.title' => 'Programme title',
-                'programme.code' => 'Programme code',
+                'programme.awarding_body' => 'Awarding body',
+                'programme.nfq_level' => 'NFQ level',
+                'programme.total_credits' => 'Total credits',
                 'programme.description' => 'Programme description',
             ],
-            'cohort' => [
-                'cohort.code' => 'Cohort code',
-                'cohort.name' => 'Cohort name',
-                'cohort.start_date' => 'Cohort start date',
-                'cohort.end_date' => 'Cohort end date',
+            'programme_instance' => [
+                'programme_instance.label' => 'Programme instance label',
+                'programme_instance.intake_start_date' => 'Intake start date',
+                'programme_instance.intake_end_date' => 'Intake end date',
+                'programme_instance.delivery_style' => 'Delivery style',
             ],
             'system' => [
                 'college.name' => 'College name',
@@ -138,7 +140,7 @@ class EmailTemplate extends Model
             'portal_url' => url('/'),
             'current_date' => now()->format('d M Y'),
             'transcript_link' => route('transcripts.download', $student),
-            'progress_link' => route('admin.student-progress', $student),
+            'progress_link' => route('students.show-progress', $student),
             'profile_link' => route('students.show', $student),
         ], $customVariables);
 
@@ -173,23 +175,33 @@ class EmailTemplate extends Model
             'student.status' => ucfirst($student->status),
         ];
 
-        // Add programme and cohort variables if student has active enrolment
-        $activeEnrolment = $student->enrolments()->where('status', 'active')->first();
-        if ($activeEnrolment) {
+        // Add programme and programme instance variables if student has active programme enrolment
+        $activeProgrammeEnrolment = $student->enrolments()
+            ->where('status', 'active')
+            ->where('enrolment_type', 'programme')
+            ->with(['programmeInstance.programme'])
+            ->first();
+            
+        if ($activeProgrammeEnrolment && $activeProgrammeEnrolment->programmeInstance) {
+            $programmeInstance = $activeProgrammeEnrolment->programmeInstance;
+            $programme = $programmeInstance->programme;
+            
+            // Programme variables
             $variables = array_merge($variables, [
-                'programme.title' => $activeEnrolment->programme->title,
-                'programme.code' => $activeEnrolment->programme->code,
-                'programme.description' => $activeEnrolment->programme->description,
+                'programme.title' => $programme->title,
+                'programme.awarding_body' => $programme->awarding_body,
+                'programme.nfq_level' => $programme->nfq_level,
+                'programme.total_credits' => $programme->total_credits,
+                'programme.description' => $programme->description,
             ]);
-
-            if ($activeEnrolment->cohort) {
-                $variables = array_merge($variables, [
-                    'cohort.code' => $activeEnrolment->cohort->code,
-                    'cohort.name' => $activeEnrolment->cohort->name,
-                    'cohort.start_date' => $activeEnrolment->cohort->start_date?->format('d M Y'),
-                    'cohort.end_date' => $activeEnrolment->cohort->end_date?->format('d M Y'),
-                ]);
-            }
+            
+            // Programme instance variables (replaces cohort)
+            $variables = array_merge($variables, [
+                'programme_instance.label' => $programmeInstance->label,
+                'programme_instance.intake_start_date' => $programmeInstance->intake_start_date?->format('d M Y'),
+                'programme_instance.intake_end_date' => $programmeInstance->intake_end_date?->format('d M Y'),
+                'programme_instance.delivery_style' => ucfirst($programmeInstance->default_delivery_style),
+            ]);
         }
 
         return $variables;

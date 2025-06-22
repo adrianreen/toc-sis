@@ -118,7 +118,7 @@
                                                 <div class="space-y-1">
                                                     @foreach($variables as $variable => $description)
                                                         <div class="text-sm">
-                                                            <code class="bg-gray-200 px-2 py-1 rounded text-xs font-mono">{{ '{{' . $variable . '}}' }}</code>
+                                                            <code class="bg-gray-200 px-2 py-1 rounded text-xs font-mono">{{{{ $variable }}}}</code>
                                                             <span class="text-gray-600 ml-2">{{ $description }}</span>
                                                         </div>
                                                     @endforeach

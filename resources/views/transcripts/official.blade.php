@@ -301,11 +301,59 @@
         </div>
     </div>
 
+    <!-- Grading System and Legend -->
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; margin: 20px 0; font-size: 11px;">
+        <div style="text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 12px; color: #1f2937;">
+            IRISH NATIONAL FRAMEWORK OF QUALIFICATIONS (NFQ) - GRADING SYSTEM
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+            <!-- Grade Scale -->
+            <div>
+                <div style="font-weight: bold; margin-bottom: 8px; color: #374151;">QQI Grade Scale:</div>
+                <div style="display: grid; grid-template-columns: 30px 1fr 50px; gap: 8px; font-size: 10px;">
+                    <div style="font-weight: bold;">D</div><div>Distinction</div><div>80-100%</div>
+                    <div style="font-weight: bold;">M</div><div>Merit</div><div>65-79%</div>
+                    <div style="font-weight: bold;">P</div><div>Pass</div><div>50-64%</div>
+                    <div style="font-weight: bold;">F</div><div>Fail</div><div>40-49%</div>
+                    <div style="font-weight: bold;">U</div><div>Unsuccessful</div><div>0-39%</div>
+                </div>
+            </div>
+            
+            <!-- Component Indicators -->
+            <div>
+                <div style="font-weight: bold; margin-bottom: 8px; color: #374151;">Component Indicators:</div>
+                <div style="font-size: 10px; line-height: 1.4;">
+                    <div><span style="color: #dc2626; font-weight: bold;">[MUST PASS]</span> - Required for module completion</div>
+                    <div><span style="background: #059669; color: white; padding: 1px 4px; border-radius: 6px; font-size: 8px;">PASS</span> - Component passed</div>
+                    <div><span style="background: #dc2626; color: white; padding: 1px 4px; border-radius: 6px; font-size: 8px;">FAIL</span> - Component failed</div>
+                    <div style="margin-top: 4px; color: #6b7280;">Grading dates show assessment completion</div>
+                </div>
+            </div>
+            
+            <!-- Credit System -->
+            <div>
+                <div style="font-weight: bold; margin-bottom: 8px; color: #374151;">Credit System:</div>
+                <div style="font-size: 10px; line-height: 1.4;">
+                    <div>• 1 Credit = 10 hours learning time</div>
+                    <div>• Module weightings shown as percentages</div>
+                    <div>• Overall grades calculated from weighted components</div>
+                    <div>• Must-pass components override overall calculation</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="border-top: 1px solid #e5e7eb; padding-top: 10px; font-size: 9px; color: #6b7280; text-align: center;">
+            <strong>Document Authenticity:</strong> All grades are verified and released according to institutional policy. 
+            Component breakdowns show detailed assessment performance and grading dates for verification.
+        </div>
+    </div>
+
     <!-- Academic Records by Programme -->
     @foreach($programmeModules as $programmeData)
         <div class="programme-section">
             <div class="programme-header">
-                {{ $programmeData['programme']->title }} ({{ $programmeData['programme']->code }})
+                {{ $programmeData['programme']->title }} ({{ $programmeData['programme']->programme_code }})
             </div>
             
             @if(count($programmeData['modules']) > 0)
@@ -323,38 +371,15 @@
                     <tbody>
                         @foreach($programmeData['modules'] as $moduleData)
                             <tr>
-                                <td>{{ $moduleData['module']->code }}</td>
+                                <td>{{ $moduleData['module']->module_code }}</td>
                                 <td>{{ $moduleData['module']->title }}</td>
                                 <td style="text-align: center;">{{ $moduleData['credits'] }}</td>
                                 <td class="grade-cell">
                                     @if($moduleData['grade'])
                                         {{ $moduleData['grade'] }}
-                                        @php
-                                            // Calculate overall percentage for this module using new architecture
-                                            $totalMark = 0;
-                                            $totalWeight = 0;
-                                            $gradeRecords = \App\Models\StudentGradeRecord::where('student_id', $moduleData['enrolment']->student_id)
-                                                ->where('module_instance_id', $moduleData['enrolment']->module_instance_id)
-                                                ->where('is_visible_to_student', true)
-                                                ->whereNotNull('grade')
-                                                ->get();
-                                            
-                                            foreach($gradeRecords as $gradeRecord) {
-                                                // Find weight from module assessment strategy
-                                                $assessmentStrategy = $moduleData['module']->assessment_strategy ?? [];
-                                                $weight = 100; // Default weight
-                                                foreach($assessmentStrategy as $component) {
-                                                    if($component['component_name'] === $gradeRecord->assessment_component_name) {
-                                                        $weight = $component['weighting'] ?? 100;
-                                                        break;
-                                                    }
-                                                }
-                                                $totalMark += ($gradeRecord->grade * $weight / 100);
-                                                $totalWeight += $weight;
-                                            }
-                                            $percentage = $totalWeight > 0 ? round($totalMark, 1) : 0;
-                                        @endphp
-                                        <br><small style="color: #666;">({{ $percentage }}%)</small>
+                                        @if($moduleData['percentage'])
+                                            <br><small style="color: #666;">({{ $moduleData['percentage'] }}%)</small>
+                                        @endif
                                     @else
                                         -
                                     @endif
@@ -366,6 +391,85 @@
                                     {{ $moduleData['completion_date'] ? $moduleData['completion_date']->format('M Y') : '-' }}
                                 </td>
                             </tr>
+                            
+                            {{-- Assessment Components Breakdown --}}
+                            @if(!empty($moduleData['components']))
+                                <tr>
+                                    <td colspan="6" style="padding: 0; border: none;">
+                                        <div style="background: #f8f9fa; margin: 3px 0; padding: 12px; border-left: 4px solid #3b82f6; font-size: 10px; border-radius: 0 4px 4px 0;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                                <strong style="color: #1f2937; font-size: 11px;">Assessment Component Breakdown</strong>
+                                                <div style="font-size: 9px; color: #6b7280;">
+                                                    Module Pass Mark: {{ $moduleData['module']->pass_mark ?? 40 }}% • 
+                                                    Overall Result: <strong style="color: {{ $moduleData['status'] === 'Completed' ? '#059669' : ($moduleData['status'] === 'Failed' ? '#dc2626' : '#f59e0b') }};">{{ $moduleData['status'] }}</strong>
+                                                </div>
+                                            </div>
+                                            
+                                            <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                                                <thead>
+                                                    <tr style="background: #e5e7eb;">
+                                                        <th style="padding: 6px 8px; text-align: left; font-weight: 600; color: #374151; border: 1px solid #d1d5db;">Assessment Component</th>
+                                                        <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 60px;">Weight</th>
+                                                        <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 80px;">Score</th>
+                                                        <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 60px;">Mark %</th>
+                                                        <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 60px;">Result</th>
+                                                        <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 80px;">Graded</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($moduleData['components'] as $component)
+                                                        <tr style="background: white;">
+                                                            <td style="padding: 6px 8px; border: 1px solid #d1d5db; color: #1f2937;">
+                                                                {{ $component['name'] }}
+                                                                @if($component['is_must_pass'])
+                                                                    <span style="color: #dc2626; font-weight: bold; font-size: 9px;"> [MUST PASS]</span>
+                                                                @endif
+                                                            </td>
+                                                            <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; color: #374151;">
+                                                                {{ $component['weighting'] }}%
+                                                            </td>
+                                                            <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; color: #374151;">
+                                                                {{ $component['grade'] }}/{{ $component['max_grade'] }}
+                                                            </td>
+                                                            <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db;">
+                                                                <strong style="color: {{ $component['percentage'] >= ($component['component_pass_mark'] ?? 40) ? '#059669' : '#dc2626' }};">
+                                                                    {{ $component['percentage'] }}%
+                                                                </strong>
+                                                            </td>
+                                                            <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db;">
+                                                                <span style="
+                                                                    padding: 2px 6px; 
+                                                                    border-radius: 10px; 
+                                                                    font-size: 8px; 
+                                                                    font-weight: bold; 
+                                                                    color: white;
+                                                                    background: {{ $component['passed'] ? '#059669' : '#dc2626' }};
+                                                                ">
+                                                                    {{ $component['passed'] ? 'PASS' : 'FAIL' }}
+                                                                </span>
+                                                            </td>
+                                                            <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; color: #6b7280; font-size: 9px;">
+                                                                {{ $component['graded_date'] ? $component['graded_date']->format('d/m/Y') : 'Pending' }}
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                            
+                                            <div style="margin-top: 8px; font-size: 9px; color: #6b7280; display: flex; justify-content: space-between;">
+                                                <div>
+                                                    @if(collect($moduleData['components'])->where('is_must_pass', true)->count() > 0)
+                                                        <span style="color: #dc2626;">⚠</span> Must-pass components are required for module completion
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    Components weighted average: <strong>{{ $moduleData['percentage'] }}%</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>
@@ -386,37 +490,14 @@
                                 elseif ($avgPoints >= 1.0) $programmeGrade = 'Pass';
                                 elseif ($avgPoints > 0) $programmeGrade = 'Unsuccessful';
                                 
-                                // Calculate overall programme percentage
+                                // Calculate overall programme percentage from module percentages
                                 $totalMark = 0;
                                 $totalWeight = 0;
                                 foreach($programmeData['modules'] as $moduleData) {
-                                    if($moduleData['grade'] && $moduleData['status'] === 'Completed') {
+                                    if($moduleData['percentage'] && $moduleData['status'] === 'Completed') {
                                         $credits = $moduleData['credits'];
-                                        $modulePercentage = 0;
-                                        $moduleWeightTotal = 0;
-                                        $gradeRecords = \App\Models\StudentGradeRecord::where('student_id', $moduleData['enrolment']->student_id)
-                                            ->where('module_instance_id', $moduleData['enrolment']->module_instance_id)
-                                            ->where('is_visible_to_student', true)
-                                            ->whereNotNull('grade')
-                                            ->get();
-                                        
-                                        foreach($gradeRecords as $gradeRecord) {
-                                            $assessmentStrategy = $moduleData['module']->assessment_strategy ?? [];
-                                            $weight = 100;
-                                            foreach($assessmentStrategy as $component) {
-                                                if($component['component_name'] === $gradeRecord->assessment_component_name) {
-                                                    $weight = $component['weighting'] ?? 100;
-                                                    break;
-                                                }
-                                            }
-                                            $modulePercentage += ($gradeRecord->grade * $weight / 100);
-                                            $moduleWeightTotal += $weight;
-                                        }
-                                        if($moduleWeightTotal > 0) {
-                                            $finalModulePercentage = $modulePercentage;
-                                            $totalMark += ($finalModulePercentage * $credits);
-                                            $totalWeight += $credits;
-                                        }
+                                        $totalMark += ($moduleData['percentage'] * $credits);
+                                        $totalWeight += $credits;
                                     }
                                 }
                                 $programmePercentage = $totalWeight > 0 ? round($totalMark / $totalWeight, 1) : 0;
@@ -436,72 +517,279 @@
         </div>
     @endforeach
 
+    <!-- Standalone Modules -->
+    @if(count($standaloneModules) > 0)
+        <div class="programme-section">
+            <div class="programme-header">
+                Standalone Modules
+            </div>
+            
+            <table class="module-table">
+                <thead>
+                    <tr>
+                        <th style="width: 15%;">Module Code</th>
+                        <th style="width: 40%;">Module Title</th>
+                        <th style="width: 10%;">Credits</th>
+                        <th style="width: 10%;">Grade</th>
+                        <th style="width: 15%;">Status</th>
+                        <th style="width: 10%;">Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($standaloneModules as $moduleData)
+                        <tr>
+                            <td>{{ $moduleData['module']->module_code }}</td>
+                            <td>{{ $moduleData['module']->title }}</td>
+                            <td style="text-align: center;">{{ $moduleData['credits'] }}</td>
+                            <td class="grade-cell">
+                                @if($moduleData['grade'])
+                                    {{ $moduleData['grade'] }}
+                                    @if($moduleData['percentage'])
+                                        <br><small style="color: #666;">({{ $moduleData['percentage'] }}%)</small>
+                                    @endif
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="@if($moduleData['status'] === 'Completed') status-completed @elseif($moduleData['status'] === 'Failed') status-failed @else status-progress @endif">
+                                {{ $moduleData['status'] }}
+                            </td>
+                            <td style="text-align: center;">
+                                {{ $moduleData['completion_date'] ? $moduleData['completion_date']->format('M Y') : '-' }}
+                            </td>
+                        </tr>
+                        
+                        {{-- Assessment Components Breakdown --}}
+                        @if(!empty($moduleData['components']))
+                            <tr>
+                                <td colspan="6" style="padding: 0; border: none;">
+                                    <div style="background: #f8f9fa; margin: 3px 0; padding: 12px; border-left: 4px solid #3b82f6; font-size: 10px; border-radius: 0 4px 4px 0;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                            <strong style="color: #1f2937; font-size: 11px;">Assessment Component Breakdown</strong>
+                                            <div style="font-size: 9px; color: #6b7280;">
+                                                Module Pass Mark: {{ $moduleData['module']->pass_mark ?? 40 }}% • 
+                                                Overall Result: <strong style="color: {{ $moduleData['status'] === 'Completed' ? '#059669' : ($moduleData['status'] === 'Failed' ? '#dc2626' : '#f59e0b') }};">{{ $moduleData['status'] }}</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                                            <thead>
+                                                <tr style="background: #e5e7eb;">
+                                                    <th style="padding: 6px 8px; text-align: left; font-weight: 600; color: #374151; border: 1px solid #d1d5db;">Assessment Component</th>
+                                                    <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 60px;">Weight</th>
+                                                    <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 80px;">Score</th>
+                                                    <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 60px;">Mark %</th>
+                                                    <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 60px;">Result</th>
+                                                    <th style="padding: 6px 8px; text-align: center; font-weight: 600; color: #374151; border: 1px solid #d1d5db; width: 80px;">Graded</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($moduleData['components'] as $component)
+                                                    <tr style="background: white;">
+                                                        <td style="padding: 6px 8px; border: 1px solid #d1d5db; color: #1f2937;">
+                                                            {{ $component['name'] }}
+                                                            @if($component['is_must_pass'])
+                                                                <span style="color: #dc2626; font-weight: bold; font-size: 9px;"> [MUST PASS]</span>
+                                                            @endif
+                                                        </td>
+                                                        <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; color: #374151;">
+                                                            {{ $component['weighting'] }}%
+                                                        </td>
+                                                        <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; color: #374151;">
+                                                            {{ $component['grade'] }}/{{ $component['max_grade'] }}
+                                                        </td>
+                                                        <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db;">
+                                                            <strong style="color: {{ $component['percentage'] >= ($component['component_pass_mark'] ?? 40) ? '#059669' : '#dc2626' }};">
+                                                                {{ $component['percentage'] }}%
+                                                            </strong>
+                                                        </td>
+                                                        <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db;">
+                                                            <span style="
+                                                                padding: 2px 6px; 
+                                                                border-radius: 10px; 
+                                                                font-size: 8px; 
+                                                                font-weight: bold; 
+                                                                color: white;
+                                                                background: {{ $component['passed'] ? '#059669' : '#dc2626' }};
+                                                            ">
+                                                                {{ $component['passed'] ? 'PASS' : 'FAIL' }}
+                                                            </span>
+                                                        </td>
+                                                        <td style="padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; color: #6b7280; font-size: 9px;">
+                                                            {{ $component['graded_date'] ? $component['graded_date']->format('d/m/Y') : 'Pending' }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                        
+                                        <div style="margin-top: 8px; font-size: 9px; color: #6b7280; display: flex; justify-content: space-between;">
+                                            <div>
+                                                @if(collect($moduleData['components'])->where('is_must_pass', true)->count() > 0)
+                                                    <span style="color: #dc2626;">⚠</span> Must-pass components are required for module completion
+                                                @endif
+                                            </div>
+                                            <div>
+                                                Components weighted average: <strong>{{ $moduleData['percentage'] }}%</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endif
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     <!-- Overall Summary -->
     @if($totalCredits > 0)
-        <div class="overall-summary">
-            <div style="font-size: 18px; font-weight: bold; margin-bottom: 15px;">
-                ACADEMIC SUMMARY
+        <div style="background: #f9fafb; border: 2px solid #3b82f6; border-radius: 10px; padding: 20px; margin: 25px 0; page-break-inside: avoid;">
+            <div style="text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #1f2937; text-transform: uppercase;">
+                🎓 ACADEMIC ACHIEVEMENT SUMMARY
             </div>
-            <div style="display: table; width: 100%; margin: 0 auto;">
-                <div style="display: table-row;">
-                    <div style="display: table-cell; padding: 10px; text-align: center;">
-                        <div style="font-size: 14px;">Total Credits Earned</div>
-                        <div style="font-size: 20px; font-weight: bold;">{{ $totalCredits }}</div>
+            
+            @php
+                $overallGrade = 'N/A';
+                if ($overallGPA >= 2.5) $overallGrade = 'Distinction';
+                elseif ($overallGPA >= 1.5) $overallGrade = 'Merit';
+                elseif ($overallGPA >= 1.0) $overallGrade = 'Pass';
+                elseif ($overallGPA > 0) $overallGrade = 'Unsuccessful';
+                
+                // Calculate detailed statistics
+                $overallTotalMark = 0;
+                $overallTotalWeight = 0;
+                $completedModules = 0;
+                $inProgressModules = 0;
+                $failedModules = 0;
+                $distinctionCount = 0;
+                $meritCount = 0;
+                $passCount = 0;
+                
+                // Programme modules
+                foreach($programmeModules as $progData) {
+                    foreach($progData['modules'] as $moduleData) {
+                        if($moduleData['status'] === 'Completed') {
+                            $completedModules++;
+                            $credits = $moduleData['credits'];
+                            $overallTotalMark += ($moduleData['percentage'] * $credits);
+                            $overallTotalWeight += $credits;
+                            
+                            // Count grade distribution
+                            if($moduleData['grade'] === 'D') $distinctionCount++;
+                            elseif($moduleData['grade'] === 'M') $meritCount++;
+                            elseif($moduleData['grade'] === 'P') $passCount++;
+                        } elseif($moduleData['status'] === 'Failed') {
+                            $failedModules++;
+                        } else {
+                            $inProgressModules++;
+                        }
+                    }
+                }
+                
+                // Standalone modules
+                foreach($standaloneModules as $moduleData) {
+                    if($moduleData['status'] === 'Completed') {
+                        $completedModules++;
+                        $credits = $moduleData['credits'];
+                        $overallTotalMark += ($moduleData['percentage'] * $credits);
+                        $overallTotalWeight += $credits;
+                        
+                        // Count grade distribution
+                        if($moduleData['grade'] === 'D') $distinctionCount++;
+                        elseif($moduleData['grade'] === 'M') $meritCount++;
+                        elseif($moduleData['grade'] === 'P') $passCount++;
+                    } elseif($moduleData['status'] === 'Failed') {
+                        $failedModules++;
+                    } else {
+                        $inProgressModules++;
+                    }
+                }
+                
+                $overallPercentage = $overallTotalWeight > 0 ? round($overallTotalMark / $overallTotalWeight, 1) : 0;
+                $totalModules = $completedModules + $inProgressModules + $failedModules;
+            @endphp
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <!-- Total Credits -->
+                <div style="text-align: center; background: white; border-radius: 8px; padding: 15px; border: 1px solid #e5e7eb;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 5px;">TOTAL CREDITS</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{ $totalCredits }}</div>
+                    <div style="font-size: 10px; color: #6b7280;">{{ $totalCredits * 10 }} learning hours</div>
+                </div>
+                
+                <!-- Overall Result -->
+                <div style="text-align: center; background: white; border-radius: 8px; padding: 15px; border: 1px solid #e5e7eb;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 5px;">OVERALL RESULT</div>
+                    <div style="font-size: 20px; font-weight: bold; color: {{ $overallGrade === 'Distinction' ? '#059669' : ($overallGrade === 'Merit' ? '#3b82f6' : ($overallGrade === 'Pass' ? '#10b981' : '#dc2626')) }};">
+                        {{ $overallGrade }}
                     </div>
-                    <div style="display: table-cell; padding: 10px; text-align: center;">
-                        <div style="font-size: 14px;">Overall Result</div>
-                        <div class="overall-gpa">
-                            @php
-                                $overallGrade = 'N/A';
-                                if ($overallGPA >= 2.5) $overallGrade = 'Distinction';
-                                elseif ($overallGPA >= 1.5) $overallGrade = 'Merit';
-                                elseif ($overallGPA >= 1.0) $overallGrade = 'Pass';
-                                elseif ($overallGPA > 0) $overallGrade = 'Unsuccessful';
-                                
-                                // Calculate overall percentage across all programmes
-                                $overallTotalMark = 0;
-                                $overallTotalWeight = 0;
-                                foreach($programmeModules as $progData) {
-                                    foreach($progData['modules'] as $moduleData) {
-                                        if($moduleData['grade'] && $moduleData['status'] === 'Completed') {
-                                            $credits = $moduleData['credits'];
-                                            $modulePercentage = 0;
-                                            $moduleWeightTotal = 0;
-                                            $gradeRecords = \App\Models\StudentGradeRecord::where('student_id', $moduleData['enrolment']->student_id)
-                                                ->where('module_instance_id', $moduleData['enrolment']->module_instance_id)
-                                                ->where('is_visible_to_student', true)
-                                                ->whereNotNull('grade')
-                                                ->get();
-                                            
-                                            foreach($gradeRecords as $gradeRecord) {
-                                                $assessmentStrategy = $moduleData['module']->assessment_strategy ?? [];
-                                                $weight = 100;
-                                                foreach($assessmentStrategy as $component) {
-                                                    if($component['component_name'] === $gradeRecord->assessment_component_name) {
-                                                        $weight = $component['weighting'] ?? 100;
-                                                        break;
-                                                    }
-                                                }
-                                                $modulePercentage += ($gradeRecord->grade * $weight / 100);
-                                                $moduleWeightTotal += $weight;
-                                            }
-                                            if($moduleWeightTotal > 0) {
-                                                $finalModulePercentage = $modulePercentage;
-                                                $overallTotalMark += ($finalModulePercentage * $credits);
-                                                $overallTotalWeight += $credits;
-                                            }
-                                        }
-                                    }
-                                }
-                                $overallPercentage = $overallTotalWeight > 0 ? round($overallTotalMark / $overallTotalWeight, 1) : 0;
-                            @endphp
-                            {{ $overallGrade }}
-                            @if($overallPercentage > 0)
-                                <br><small style="color: #ddd; font-size: 16px;">({{ $overallPercentage }}%)</small>
-                            @endif
+                    @if($overallPercentage > 0)
+                        <div style="font-size: 12px; color: #6b7280;">({{ $overallPercentage }}%)</div>
+                    @endif
+                </div>
+                
+                <!-- Modules Completed -->
+                <div style="text-align: center; background: white; border-radius: 8px; padding: 15px; border: 1px solid #e5e7eb;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 5px;">MODULES COMPLETED</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #059669;">{{ $completedModules }}</div>
+                    <div style="font-size: 10px; color: #6b7280;">of {{ $totalModules }} total</div>
+                </div>
+                
+                <!-- Success Rate -->
+                <div style="text-align: center; background: white; border-radius: 8px; padding: 15px; border: 1px solid #e5e7eb;">
+                    <div style="font-size: 12px; color: #6b7280; margin-bottom: 5px;">SUCCESS RATE</div>
+                    <div style="font-size: 24px; font-weight: bold; color: #10b981;">
+                        {{ $totalModules > 0 ? round(($completedModules / $totalModules) * 100, 1) : 0 }}%
+                    </div>
+                    <div style="font-size: 10px; color: #6b7280;">completion rate</div>
+                </div>
+            </div>
+            
+            <!-- Grade Distribution -->
+            @if($completedModules > 0)
+                <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #e5e7eb;">
+                    <div style="font-size: 14px; font-weight: bold; margin-bottom: 10px; color: #374151; text-align: center;">
+                        GRADE DISTRIBUTION BREAKDOWN
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center; font-size: 11px;">
+                        <div style="background: #f0fdf4; padding: 8px; border-radius: 6px; border: 1px solid #22c55e;">
+                            <div style="font-weight: bold; color: #15803d;">DISTINCTION (D)</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #15803d;">{{ $distinctionCount }}</div>
+                            <div style="color: #15803d;">{{ $completedModules > 0 ? round(($distinctionCount / $completedModules) * 100, 1) : 0 }}%</div>
+                        </div>
+                        <div style="background: #eff6ff; padding: 8px; border-radius: 6px; border: 1px solid #3b82f6;">
+                            <div style="font-weight: bold; color: #1d4ed8;">MERIT (M)</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">{{ $meritCount }}</div>
+                            <div style="color: #1d4ed8;">{{ $completedModules > 0 ? round(($meritCount / $completedModules) * 100, 1) : 0 }}%</div>
+                        </div>
+                        <div style="background: #f0f9ff; padding: 8px; border-radius: 6px; border: 1px solid #0ea5e9;">
+                            <div style="font-weight: bold; color: #0369a1;">PASS (P)</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #0369a1;">{{ $passCount }}</div>
+                            <div style="color: #0369a1;">{{ $completedModules > 0 ? round(($passCount / $completedModules) * 100, 1) : 0 }}%</div>
+                        </div>
+                        <div style="background: #fef2f2; padding: 8px; border-radius: 6px; border: 1px solid #ef4444;">
+                            <div style="font-weight: bold; color: #dc2626;">FAILED (F)</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #dc2626;">{{ $failedModules }}</div>
+                            <div style="color: #dc2626;">{{ $totalModules > 0 ? round(($failedModules / $totalModules) * 100, 1) : 0 }}%</div>
                         </div>
                     </div>
                 </div>
+            @endif
+            
+            <!-- Summary Statement -->
+            <div style="text-align: center; margin-top: 15px; padding: 10px; background: white; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 11px; color: #374151;">
+                <strong>Academic Standing:</strong> 
+                @if($overallGrade === 'Distinction')
+                    Exceptional performance demonstrating comprehensive understanding and superior achievement across all assessed areas.
+                @elseif($overallGrade === 'Merit') 
+                    Very good performance demonstrating clear understanding and proficient achievement in assessed areas.
+                @elseif($overallGrade === 'Pass')
+                    Satisfactory performance demonstrating adequate understanding and competent achievement meeting minimum requirements.
+                @else
+                    Performance below minimum academic standards required for successful completion.
+                @endif
             </div>
         </div>
     @endif

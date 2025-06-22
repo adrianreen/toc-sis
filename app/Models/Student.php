@@ -116,6 +116,22 @@ public function emailLogs(): HasMany
 {
     return $this->hasMany(EmailLog::class);
 }
+
+public function documents(): HasMany
+{
+    return $this->hasMany(StudentDocument::class);
+}
+
+public function rplDocuments(): HasMany
+{
+    return $this->hasMany(StudentDocument::class)
+        ->where('document_type', 'rpl_proof');
+}
+
+public function getDocumentsByType(string $type): \Illuminate\Database\Eloquent\Collection
+{
+    return $this->documents()->where('document_type', $type)->get();
+}
 public function user()
 {
     return $this->hasOne(User::class, 'student_id');
@@ -159,5 +175,28 @@ public function getActiveModuleInstances()
     }
     
     return $programmeModules->concat($standaloneModules)->unique('id');
+}
+
+public function getCurrentGradeRecords()
+{
+    // Only return grade records for currently active module instances
+    $activeModuleInstanceIds = $this->getActiveModuleInstances()->pluck('id')->toArray();
+    
+    return $this->studentGradeRecords()
+        ->whereIn('module_instance_id', $activeModuleInstanceIds)
+        ->where(function($query) {
+            $query->where('is_visible_to_student', true)
+                  ->orWhere(function($subQ) {
+                      $subQ->whereNotNull('release_date')
+                           ->where('release_date', '<=', now());
+                  });
+        });
+}
+
+public function hasActiveEnrollments(): bool
+{
+    return $this->enrolments()
+        ->where('status', 'active')
+        ->exists();
 }
 }

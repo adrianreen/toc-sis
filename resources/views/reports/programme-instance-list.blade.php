@@ -203,7 +203,7 @@
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                                 <a href="{{ route('students.show', $student) }}" 
                                                    class="text-indigo-600 hover:text-indigo-900">View</a>
-                                                <a href="{{ route('students.progress', ['student' => $student->id]) }}" 
+                                                <a href="{{ route('students.show-progress', $student) }}" 
                                                    class="text-blue-600 hover:text-blue-900">Progress</a>
                                                 <a href="{{ route('students.assessments', ['student' => $student->id]) }}" 
                                                    class="text-green-600 hover:text-green-900">Assessments</a>

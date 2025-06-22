@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register custom middleware aliases
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'require_active_enrollment' => \App\Http\Middleware\RequireActiveEnrollment::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

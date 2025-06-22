@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Enquiry;
 use App\Models\Programme;
-use App\Models\Cohort;
+use App\Models\ProgrammeInstance;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\EnrolmentService;
@@ -22,7 +22,7 @@ class EnquiryController extends Controller
 
     public function index(Request $request)
     {
-        $query = Enquiry::with(['programme', 'prospectiveCohort', 'convertedStudent', 'createdBy']);
+        $query = Enquiry::with(['programme', 'prospectiveProgrammeInstance', 'convertedStudent', 'createdBy']);
         
         if ($request->filled('search')) {
             $search = $request->get('search');
@@ -57,9 +57,9 @@ class EnquiryController extends Controller
     public function create()
     {
         $programmes = Programme::orderBy('title')->get();
-        $cohorts = Cohort::with('programme')->where('status', 'active')->orderBy('start_date')->get();
+        $programmeInstances = ProgrammeInstance::with('programme')->orderBy('start_date')->get();
         
-        return view('enquiries.create', compact('programmes', 'cohorts'));
+        return view('enquiries.create', compact('programmes', 'programmeInstances'));
     }
 
     public function store(Request $request)
@@ -92,7 +92,7 @@ class EnquiryController extends Controller
 
     public function show(Enquiry $enquiry)
     {
-        $enquiry->load(['programme', 'prospectiveCohort', 'convertedStudent', 'createdBy', 'updatedBy']);
+        $enquiry->load(['programme', 'prospectiveProgrammeInstance', 'convertedStudent', 'createdBy', 'updatedBy']);
         
         return view('enquiries.show', compact('enquiry'));
     }
@@ -100,9 +100,9 @@ class EnquiryController extends Controller
     public function edit(Enquiry $enquiry)
     {
         $programmes = Programme::orderBy('title')->get();
-        $cohorts = Cohort::with('programme')->where('status', 'active')->orderBy('start_date')->get();
+        $programmeInstances = ProgrammeInstance::with('programme')->orderBy('start_date')->get();
         
-        return view('enquiries.edit', compact('enquiry', 'programmes', 'cohorts'));
+        return view('enquiries.edit', compact('enquiry', 'programmes', 'programmeInstances'));
     }
 
     public function update(Request $request, Enquiry $enquiry)

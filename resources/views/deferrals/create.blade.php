@@ -15,8 +15,8 @@
                         <p class="text-gray-600">
                             <strong>Name:</strong> {{ $student->full_name }}<br>
                             <strong>Student Number:</strong> {{ $student->student_number }}<br>
-                            <strong>Programme:</strong> {{ $enrolment->programme->code }} - {{ $enrolment->programme->title }}<br>
-                            <strong>Current Intake:</strong> {{ $enrolment->programmeInstance->label }}
+                            <strong>Programme:</strong> {{ $enrolment->programmeInstance->programme->title }}<br>
+                            <strong>Current Intake:</strong> {{ $enrolment->programmeInstance->intake_start_date->format('M Y') }}
                         </p>
                     </div>
 
@@ -33,8 +33,8 @@
                                 <option value="">Select a programme instance</option>
                                 @foreach($futureProgrammeInstances as $instance)
                                     <option value="{{ $instance->id }}" {{ old('to_programme_instance_id') == $instance->id ? 'selected' : '' }}>
-                                        {{ $instance->label }} 
-                                        (Starts: {{ $instance->start_date->format('d M Y') }})
+                                        {{ $instance->programme->title }} - {{ $instance->intake_start_date->format('M Y') }}
+                                        (Starts: {{ $instance->intake_start_date->format('d M Y') }})
                                     </option>
                                 @endforeach
                             </select>

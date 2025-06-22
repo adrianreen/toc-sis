@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\StudentAssessment;
+use App\Models\StudentGradeRecord;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
@@ -38,59 +38,56 @@ class ReleaseScheduledAssessments extends Command
             $this->warn('DRY RUN MODE - No changes will be made');
         }
 
-        // Find assessments ready for release
-        $assessments = StudentAssessment::where('is_visible_to_student', false)
+        // Find grade records ready for release
+        $gradeRecords = StudentGradeRecord::where('is_visible_to_student', false)
             ->whereNotNull('release_date')
             ->where('release_date', '<=', now())
             ->whereNotNull('grade')
             ->with([
-                'studentModuleEnrolment.student',
-                'studentModuleEnrolment.moduleInstance.module',
-                'assessmentComponent'
+                'student.user',
+                'moduleInstance.module'
             ])
             ->get();
 
-        if ($assessments->count() === 0) {
-            $this->info('✅ No assessments ready for release');
+        if ($gradeRecords->count() === 0) {
+            $this->info('✅ No grade records ready for release');
             return Command::SUCCESS;
         }
 
-        $this->info("Found {$assessments->count()} assessment(s) ready for release:");
+        $this->info("Found {$gradeRecords->count()} grade record(s) ready for release:");
 
         $releasedCount = 0;
         
-        foreach ($assessments as $assessment) {
-            $student = $assessment->studentModuleEnrolment->student;
-            $module = $assessment->studentModuleEnrolment->moduleInstance->module;
-            $component = $assessment->assessmentComponent;
+        foreach ($gradeRecords as $gradeRecord) {
+            $student = $gradeRecord->student;
+            $module = $gradeRecord->moduleInstance->module;
             
-            $this->line("  📋 {$student->student_number} - {$module->code} - {$component->name} (Grade: {$assessment->grade}%)");
+            $this->line("  📋 {$student->student_number} - {$module->code} - {$gradeRecord->assessment_component_name} (Grade: {$gradeRecord->grade}%)");
             
             if (!$dryRun) {
-                $assessment->update([
+                $gradeRecord->update([
                     'is_visible_to_student' => true,
-                    'visibility_changed_at' => now(),
                 ]);
 
                 activity()
-                    ->performedOn($assessment)
-                    ->log('Assessment auto-released on schedule');
+                    ->performedOn($gradeRecord)
+                    ->log('Grade record auto-released on schedule');
 
-                // Send grade release notification
-                $this->notificationService->notifyGradeReleased($assessment);
+                // Send grade release notification using new architecture method
+                $this->notificationService->notifyStudentGradeRecord($gradeRecord);
 
                 $releasedCount++;
             }
         }
 
         if ($dryRun) {
-            $this->warn("DRY RUN COMPLETE - {$assessments->count()} assessments would be released");
+            $this->warn("DRY RUN COMPLETE - {$gradeRecords->count()} grade records would be released");
             $this->info('Run without --dry-run to apply these changes');
         } else {
-            $this->info("✅ Successfully released {$releasedCount} assessments");
+            $this->info("✅ Successfully released {$releasedCount} grade records");
             
             // Log summary
-            \Log::info("Auto-released {$releasedCount} scheduled assessments", [
+            \Log::info("Auto-released {$releasedCount} scheduled grade records", [
                 'released_count' => $releasedCount,
                 'released_at' => now(),
             ]);

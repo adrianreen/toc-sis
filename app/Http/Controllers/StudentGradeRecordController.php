@@ -269,15 +269,8 @@ class StudentGradeRecordController extends Controller
             abort(404, 'Student record not found.');
         }
 
-        $gradeRecords = $student->studentGradeRecords()
+        $gradeRecords = $student->getCurrentGradeRecords()
             ->with(['moduleInstance.module'])
-            ->where(function ($query) {
-                $query->where('is_visible_to_student', true)
-                      ->orWhere(function ($q) {
-                          $q->whereNotNull('release_date')
-                            ->where('release_date', '<=', now());
-                      });
-            })
             ->orderBy('created_at', 'desc')
             ->get()
             ->groupBy('module_instance_id');
