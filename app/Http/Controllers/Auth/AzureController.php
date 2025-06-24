@@ -19,7 +19,13 @@ class AzureController extends Controller
     public function redirect()
     {
         return Socialite::driver('azure')
-            ->scopes(['User.Read', 'Group.Read.All', 'Directory.Read.All'])
+            ->scopes([
+                'User.Read', 
+                'Group.Read.All', 
+                'Directory.Read.All',
+                'https://graph.microsoft.com/Mail.Read',
+                'https://graph.microsoft.com/offline_access'
+            ])
             ->redirect();
     }
 

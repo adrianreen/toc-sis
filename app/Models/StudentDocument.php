@@ -70,7 +70,7 @@ class StudentDocument extends Model
     public static function getDocumentTypeLabels(): array
     {
         return [
-            'rpl_proof' => 'Recognition of Prior Learning (RPL) Proof',
+            'rpl_proof' => 'Prior Learning Documentation',
             'transcript' => 'Academic Transcript',
             'certificate' => 'Certificate/Diploma',
             'identity_document' => 'Identity Document',

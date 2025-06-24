@@ -242,7 +242,12 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('grade-records/{gradeRecord}', [StudentGradeRecordController::class, 'update'])->name('grade-records.update');
         Route::patch('grade-records/{gradeRecord}/toggle-visibility', [StudentGradeRecordController::class, 'toggleSingleVisibility'])->name('grade-records.toggle-single-visibility');
         Route::post('module-instances/{moduleInstance}/grades/bulk-update', [StudentGradeRecordController::class, 'bulkUpdate'])->name('grade-records.bulk-update');
+        Route::post('module-instances/{moduleInstance}/grades/modern-bulk-update', [StudentGradeRecordController::class, 'modernBulkUpdate'])->name('grade-records.modern-bulk-update');
         Route::patch('module-instances/{moduleInstance}/visibility', [StudentGradeRecordController::class, 'toggleVisibility'])->name('grade-records.toggle-visibility');
+        Route::patch('module-instances/{moduleInstance}/overall-visibility', [StudentGradeRecordController::class, 'toggleOverallVisibility'])->name('grade-records.toggle-overall-visibility');
+        Route::patch('module-instances/{moduleInstance}/student-visibility', [StudentGradeRecordController::class, 'toggleStudentVisibility'])->name('grade-records.toggle-student-visibility');
+        Route::patch('module-instances/{moduleInstance}/individual-component-visibility', [StudentGradeRecordController::class, 'toggleIndividualComponentVisibility'])->name('grade-records.toggle-individual-component-visibility');
+        Route::patch('module-instances/{moduleInstance}/individual-overall-visibility', [StudentGradeRecordController::class, 'toggleIndividualOverallVisibility'])->name('grade-records.toggle-individual-overall-visibility');
         Route::post('module-instances/{moduleInstance}/bulk-component-visibility', [StudentGradeRecordController::class, 'bulkComponentVisibility'])->name('grade-records.bulk-component-visibility');
         Route::post('module-instances/{moduleInstance}/schedule-release', [StudentGradeRecordController::class, 'scheduleRelease'])->name('grade-records.schedule-release');
         Route::post('module-instances/{moduleInstance}/schedule-component-release', [StudentGradeRecordController::class, 'scheduleComponentRelease'])->name('grade-records.schedule-component-release');

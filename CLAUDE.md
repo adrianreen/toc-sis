@@ -387,3 +387,139 @@ This document tracks the critical nuclear-level restructure to the new 4-level P
 **Status**: Nuclear-level critical restructure in progress
 **Approach**: Greenfield - complete removal of legacy architecture
 **Priority**: Highest - entire project depends on this success
+
+## Future Development Roadmap
+
+### 📋 Planned Enhancements (Future Work)
+
+#### Comprehensive Student Profile System
+**Priority**: High (Future Release)
+**Description**: Implement a comprehensive, tabbed student profile interface to replace the current basic profile system.
+
+**Proposed Features**:
+- **Personal Information Tab**: Contact details, emergency contacts, demographics
+- **Academic Progress Tab**: Complete academic history, GPA calculations, achievement timeline
+- **Documents Tab**: Integrated document management with categorization and status tracking
+- **Communications Tab**: Email history, notification preferences, contact log
+- **Support Services Tab**: Extension requests, deferral history, support case tracking
+- **Settings Tab**: Privacy preferences, notification settings, accessibility options
+
+**Technical Requirements**:
+- Modern tabbed interface using Alpine.js or similar
+- Responsive design for mobile/tablet/desktop
+- Real-time data updates without page refreshes
+- Role-based content visibility (student vs staff views)
+- Integration with existing Student, StudentDocument, and Notification systems
+- Export functionality for academic records
+
+**Implementation Notes**:
+- Replace current `/students/{student}/profile` route with comprehensive tabbed interface
+- Maintain backward compatibility during transition
+- Consider lazy loading for performance with large datasets
+- Implement proper caching for frequently accessed profile data
+
+**Status**: Logged for future development - not currently in scope
+
+#### Policy Management System
+**Priority**: Medium (Future Release)
+**Description**: Implement a comprehensive policy management system allowing staff to manage and students to access relevant college, programme, and module-specific policies.
+
+**Proposed Features**:
+
+**For Students**:
+- **Policy Dashboard**: Access all applicable policies from student dashboard/profile
+- **Categorized View**: College-wide, Programme-specific, and Module-specific policies
+- **Search & Filter**: Find policies by category, keywords, or relevance
+- **Policy Tracking**: Mark policies as read, bookmark important policies
+- **Version History**: Access to previous versions when policies are updated
+- **Mobile Access**: Responsive design for policy access on all devices
+
+**For Staff/Managers**:
+- **Policy Creation**: Rich text editor for creating new policies with attachments
+- **Policy Management**: Full CRUD operations (Create, Read, Update, Delete)
+- **Scope Assignment**: Define policy scope (College-wide, Programme-specific, Module-specific)
+- **Targeted Distribution**: Assign policies to specific programmes/modules using existing architecture
+- **Version Control**: Maintain policy revision history with change tracking
+- **Publication Control**: Draft/Published status with scheduled publication dates
+- **Analytics**: Track policy views, downloads, and engagement metrics
+
+**Technical Architecture**:
+```php
+// Proposed Database Structure
+Schema::create('policies', function (Blueprint $table) {
+    $table->id();
+    $table->string('title');
+    $table->text('description')->nullable();
+    $table->longText('content'); // Rich text content
+    $table->enum('scope', ['college', 'programme', 'module']);
+    $table->enum('status', ['draft', 'published', 'archived']);
+    $table->json('attachments')->nullable(); // File attachments
+    $table->foreignId('created_by')->constrained('users');
+    $table->timestamp('published_at')->nullable();
+    $table->timestamps();
+    $table->softDeletes();
+});
+
+Schema::create('policy_assignments', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('policy_id')->constrained()->onDelete('cascade');
+    $table->foreignId('programme_id')->nullable()->constrained()->onDelete('cascade');
+    $table->foreignId('module_id')->nullable()->constrained()->onDelete('cascade');
+    $table->timestamps();
+    // Ensures policies can be assigned to programmes OR modules
+    $table->index(['policy_id', 'programme_id']);
+    $table->index(['policy_id', 'module_id']);
+});
+
+Schema::create('policy_views', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('policy_id')->constrained()->onDelete('cascade');
+    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+    $table->timestamp('viewed_at');
+    $table->unique(['policy_id', 'user_id']);
+});
+```
+
+**Integration Points**:
+- **Student Dashboard**: New "Policies" quick action card
+- **Programme Integration**: Link policies to existing Programme/ProgrammeInstance models
+- **Module Integration**: Link policies to existing Module/ModuleInstance models
+- **User Roles**: Leverage existing role system (manager, student_services, teacher, student)
+- **Notification System**: Integrate with existing NotificationService for policy updates
+- **Activity Logging**: Use existing Spatie ActivityLog for policy management audit trail
+
+**Proposed Routes**:
+```php
+// Student Routes
+Route::get('/my-policies', [PolicyController::class, 'studentIndex'])->name('policies.student-index');
+Route::get('/policies/{policy}', [PolicyController::class, 'show'])->name('policies.show');
+
+// Staff Routes (Manager/Student Services)
+Route::middleware(['role:manager,student_services'])->group(function () {
+    Route::resource('admin/policies', PolicyController::class);
+    Route::post('admin/policies/{policy}/assign-programme', [PolicyController::class, 'assignProgramme']);
+    Route::post('admin/policies/{policy}/assign-module', [PolicyController::class, 'assignModule']);
+    Route::get('admin/policies/{policy}/analytics', [PolicyController::class, 'analytics']);
+});
+```
+
+**User Experience Flow**:
+1. **Manager Creates Policy**: Uses rich text editor, sets scope, assigns to programmes/modules
+2. **System Determines Visibility**: Based on student enrolments and policy assignments
+3. **Student Access**: Views applicable policies from dashboard with clear categorization
+4. **Tracking**: System logs views and provides analytics to administrators
+5. **Updates**: Students receive notifications when relevant policies are updated
+
+**File Management**:
+- **Secure Storage**: Private disk storage for policy attachments
+- **Access Control**: Role-based file access through controllers
+- **Version Control**: Maintain file versions when policies are updated
+- **File Types**: Support PDF, DOC, images for comprehensive policy documentation
+
+**Implementation Phases**:
+1. **Phase 1**: Basic CRUD for college-wide policies
+2. **Phase 2**: Programme/Module assignment functionality
+3. **Phase 3**: Student dashboard integration and notifications
+4. **Phase 4**: Analytics, version control, and advanced features
+
+**Status**: Logged for future development - not currently in scope

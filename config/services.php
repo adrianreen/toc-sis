@@ -37,14 +37,14 @@ return [
 
         // CRUCIAL: These parameters are needed for proper ID token with groups
         'parameters' => [
-            'scope' => 'openid profile email',
+            'scope' => 'openid profile email https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/offline_access',
             'response_type' => 'code',
             'response_mode' => 'query',
             'prompt' => 'select_account',
         ],
 
         // Alternative method - you can also specify scopes directly
-        'scopes' => ['openid', 'profile', 'email'],
+        'scopes' => ['openid', 'profile', 'email', 'https://graph.microsoft.com/Mail.Read', 'https://graph.microsoft.com/offline_access'],
 
         // Group ID mappings for role assignment
         'group_managers' => env('AZURE_GROUP_MANAGERS'),

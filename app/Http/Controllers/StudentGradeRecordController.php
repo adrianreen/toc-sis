@@ -7,6 +7,7 @@ use App\Models\ModuleInstance;
 use App\Models\Student;
 use App\Models\StudentGradeRecord;
 use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -113,7 +114,7 @@ class StudentGradeRecordController extends Controller
     }
 
     /**
-     * Bulk update grades for multiple students
+     * Bulk update grades for multiple students (legacy form-based)
      */
     public function bulkUpdate(Request $request, ModuleInstance $moduleInstance)
     {
@@ -158,6 +159,207 @@ class StudentGradeRecordController extends Controller
     }
 
     /**
+     * Modern AJAX bulk update for the modern grading interface
+     */
+    public function modernBulkUpdate(Request $request, ModuleInstance $moduleInstance)
+    {
+        try {
+            $validated = $request->validate([
+                'grades' => 'required|array',
+                'grades.*.student_id' => 'required|exists:students,id',
+                'grades.*.component_name' => 'required|string',
+                'grades.*.grade' => 'nullable|numeric|min:0|max:100',
+                'grades.*.grade_record_id' => 'nullable|exists:student_grade_records,id',
+            ]);
+
+            $updatedCount = 0;
+
+            DB::transaction(function () use ($validated, $moduleInstance, &$updatedCount) {
+                foreach ($validated['grades'] as $gradeData) {
+                    // Find or create the grade record
+                    $gradeRecord = null;
+                    
+                    if ($gradeData['grade_record_id']) {
+                        $gradeRecord = StudentGradeRecord::find($gradeData['grade_record_id']);
+                    }
+
+                    if (!$gradeRecord) {
+                        $gradeRecord = StudentGradeRecord::firstOrCreate([
+                            'student_id' => $gradeData['student_id'],
+                            'module_instance_id' => $moduleInstance->id,
+                            'assessment_component_name' => $gradeData['component_name'],
+                        ], [
+                            'max_grade' => 100,
+                            'grade' => null,
+                            'feedback' => null,
+                            'submission_date' => null,
+                            'graded_date' => null,
+                            'graded_by_staff_id' => null,
+                            'is_visible_to_student' => false,
+                            'release_date' => null,
+                        ]);
+                    }
+
+                    // Update the grade record
+                    $updateData = [];
+                    
+                    if ($gradeData['grade'] !== null && $gradeData['grade'] !== '') {
+                        $updateData['grade'] = $gradeData['grade'];
+                        $updateData['graded_date'] = now();
+                        $updateData['graded_by_staff_id'] = auth()->id();
+                    }
+
+                    if (!empty($updateData)) {
+                        $gradeRecord->update($updateData);
+                        $updatedCount++;
+                    }
+                }
+            });
+
+            return $this->successResponse("Successfully updated {$updatedCount} grades.", [
+                'updated_count' => $updatedCount,
+            ]);
+
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to update grades');
+        }
+    }
+
+    /**
+     * Toggle overall grade visibility for students in a module instance
+     */
+    public function toggleOverallVisibility(Request $request, ModuleInstance $moduleInstance)
+    {
+        try {
+            $validated = $request->validate([
+                'visible' => 'required|boolean',
+            ]);
+
+            // Update all grade records to show/hide overall grades
+            // This is implemented by controlling individual student grade visibility
+            $updateCount = $moduleInstance->studentGradeRecords()
+                ->whereNotNull('grade') // Only affect graded assessments
+                ->update([
+                    'is_visible_to_student' => $validated['visible'],
+                    'release_date' => $validated['visible'] ? now() : null,
+                ]);
+
+            $action = $validated['visible'] ? 'visible' : 'hidden';
+
+            return $this->successResponse("Made overall grades {$action} to students.", [
+                'updated_count' => $updateCount,
+            ]);
+
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to update overall grade visibility');
+        }
+    }
+
+    /**
+     * Toggle visibility for all grades for a specific student
+     */
+    public function toggleStudentVisibility(Request $request, ModuleInstance $moduleInstance): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'student_id' => 'required|exists:students,id',
+                'visible' => 'required|boolean',
+            ]);
+
+            // Update all grade records for this student in this module instance
+            $updateCount = $moduleInstance->studentGradeRecords()
+                ->where('student_id', $validated['student_id'])
+                ->whereNotNull('grade') // Only affect graded assessments
+                ->update([
+                    'is_visible_to_student' => $validated['visible'],
+                    'release_date' => $validated['visible'] ? now() : null,
+                ]);
+
+            $action = $validated['visible'] ? 'visible' : 'hidden';
+            $student = \App\Models\Student::find($validated['student_id']);
+
+            return $this->successResponse("Made all grades {$action} for {$student->full_name}.", [
+                'updated_count' => $updateCount,
+            ]);
+
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to update student visibility');
+        }
+    }
+
+    /**
+     * Toggle visibility for a specific component for a specific student
+     */
+    public function toggleIndividualComponentVisibility(Request $request, ModuleInstance $moduleInstance): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'student_id' => 'required|exists:students,id',
+                'component_name' => 'required|string',
+                'visible' => 'required|boolean',
+            ]);
+
+            // Find the specific grade record
+            $gradeRecord = $moduleInstance->studentGradeRecords()
+                ->where('student_id', $validated['student_id'])
+                ->where('assessment_component_name', $validated['component_name'])
+                ->first();
+
+            if (!$gradeRecord) {
+                return $this->errorResponse('Grade record not found');
+            }
+
+            $gradeRecord->update([
+                'is_visible_to_student' => $validated['visible'],
+                'release_date' => $validated['visible'] ? now() : null,
+            ]);
+
+            $action = $validated['visible'] ? 'visible' : 'hidden';
+            $student = \App\Models\Student::find($validated['student_id']);
+
+            return $this->successResponse("Made {$validated['component_name']} {$action} for {$student->full_name}.", [
+                'grade_record_id' => $gradeRecord->id,
+            ]);
+
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to update individual component visibility');
+        }
+    }
+
+    /**
+     * Toggle overall grade visibility for a specific student
+     */
+    public function toggleIndividualOverallVisibility(Request $request, ModuleInstance $moduleInstance): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'student_id' => 'required|exists:students,id',
+                'visible' => 'required|boolean',
+            ]);
+
+            // For individual overall visibility, we can use a custom field or 
+            // control it through all components. For now, let's use all components approach
+            $updateCount = $moduleInstance->studentGradeRecords()
+                ->where('student_id', $validated['student_id'])
+                ->whereNotNull('grade') // Only affect graded assessments
+                ->update([
+                    'is_visible_to_student' => $validated['visible'],
+                    'release_date' => $validated['visible'] ? now() : null,
+                ]);
+
+            $action = $validated['visible'] ? 'visible' : 'hidden';
+            $student = \App\Models\Student::find($validated['student_id']);
+
+            return $this->successResponse("Made overall grade {$action} for {$student->full_name}.", [
+                'updated_count' => $updateCount,
+            ]);
+
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to update individual overall visibility');
+        }
+    }
+
+    /**
      * Toggle visibility for a single grade record
      */
     public function toggleSingleVisibility(StudentGradeRecord $gradeRecord)
@@ -186,7 +388,7 @@ class StudentGradeRecordController extends Controller
 
         $query = $moduleInstance->studentGradeRecords();
 
-        if ($validated['component_name']) {
+        if (isset($validated['component_name']) && $validated['component_name']) {
             $query->where('assessment_component_name', $validated['component_name']);
         }
 
@@ -241,7 +443,7 @@ class StudentGradeRecordController extends Controller
         $query = $moduleInstance->studentGradeRecords()
             ->whereNotNull('grade'); // Only schedule graded assessments
 
-        if ($validated['component_name']) {
+        if (isset($validated['component_name']) && $validated['component_name']) {
             $query->where('assessment_component_name', $validated['component_name']);
         }
 

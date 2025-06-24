@@ -276,13 +276,13 @@
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold">Documents</h3>
                         <div class="flex items-center space-x-2">
-                            <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
+                            <a href="{{ route('students.documents.create', $student) }}" 
                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
                                style="background-color: #2563eb !important; color: white !important; cursor: pointer !important;">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
-                                Upload RPL Documents
+                                Upload Documents
                             </a>
                             <a href="{{ route('students.documents.index', $student) }}" 
                                class="text-toc-600 hover:text-toc-800 text-sm font-medium cursor-pointer">
@@ -338,8 +338,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
                             </svg>
                             <p class="text-gray-600 text-sm">No documents uploaded yet.</p>
-                            <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
-                               class="mt-2 inline-flex items-center text-toc-600 hover:text-toc-800 text-sm font-medium">
+                            <a href="{{ route('students.documents.create', $student) }}" 
+                               class="mt-2 inline-flex items-center text-toc-600 hover:text-toc-800 text-sm font-medium cursor-pointer">
                                 Upload your first document →
                             </a>
                         </div>

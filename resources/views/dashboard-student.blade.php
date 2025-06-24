@@ -48,13 +48,13 @@
                 </div>
             @endif
             
-            <!-- Quick Actions for Students -->
+            <!-- Primary Quick Actions -->
             <div class="mb-8">
-                <h2 class="text-xl font-semibold text-slate-900 mb-6">Quick Actions</h2>
+                <h2 class="text-xl font-semibold text-slate-900 mb-6">My Learning</h2>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <!-- View My Progress -->
-                    <a href="{{ route('students.progress') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="{{ route('students.progress') }}" class="group bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="font-semibold text-lg text-white">My Progress</h3>
@@ -67,10 +67,10 @@
                     </a>
 
                     <!-- View My Enrolments -->
-                    <a href="{{ route('students.enrolments') }}" class="group bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="{{ route('students.enrolments') }}" class="group bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h3 class="font-semibold text-lg text-white">My Enrolments</h3>
+                                <h3 class="font-semibold text-lg text-white">My Courses</h3>
                                 <p class="text-emerald-100 text-sm mt-1">Programmes & modules</p>
                             </div>
                             <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
@@ -80,11 +80,11 @@
                     </a>
 
                     <!-- View My Grades -->
-                    <a href="{{ route('students.grades') }}" class="group bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl p-6 text-white hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <a href="{{ route('students.grades') }}" class="group bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl p-6 text-white hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h3 class="font-semibold text-lg text-white">My Grades</h3>
-                                <p class="text-indigo-100 text-sm mt-1">View assessment results</p>
+                                <p class="text-indigo-100 text-sm mt-1">Assessment results</p>
                             </div>
                             <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                                 <i data-lucide="award" class="w-6 h-6 text-white"></i>
@@ -92,44 +92,151 @@
                         </div>
                     </a>
 
-                    <!-- Extension Requests -->
-                    <a href="{{ route('extension-requests.index') }}" class="group bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-6 text-white hover:from-orange-700 hover:to-orange-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <!-- My Documents -->
+                    <a href="{{ route('my-documents') }}" class="group bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-6 text-white hover:from-teal-700 hover:to-teal-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl cursor-pointer">
                         <div class="flex items-center justify-between">
                             <div>
-                                <h3 class="font-semibold text-lg text-white">Extensions</h3>
-                                <p class="text-orange-100 text-sm mt-1">Request course extension</p>
+                                <h3 class="font-semibold text-lg text-white">My Documents</h3>
+                                <p class="text-teal-100 text-sm mt-1">Upload & manage files</p>
                             </div>
                             <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                <i data-lucide="calendar-plus" class="w-6 h-6 text-white"></i>
+                                <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
                             </div>
                         </div>
                     </a>
+                </div>
 
-                    <!-- My Profile -->
-                    <a href="{{ route('students.profile') }}" class="group bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-6 text-white hover:from-purple-700 hover:to-purple-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold text-lg text-white">My Profile</h3>
-                                <p class="text-purple-100 text-sm mt-1">View & update details</p>
+                <!-- Learning Platform Launchpad -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">Learning Platform</h3>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-semibold text-slate-900">Moodle Learning Management System</h4>
+                                    <p class="text-slate-600 text-sm">Access your course materials, submit assignments, and participate in discussions</p>
+                                </div>
                             </div>
-                            <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                <i data-lucide="user" class="w-6 h-6 text-white"></i>
-                            </div>
+                            <a href="https://moodle.theopencollege.com" 
+                               target="_blank" 
+                               class="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2 cursor-pointer">
+                                <span>Launch Moodle</span>
+                                <i data-lucide="external-link" class="w-4 h-4"></i>
+                            </a>
                         </div>
-                    </a>
+                    </div>
+                </div>
 
-                    <!-- Help & Support -->
-                    <a href="mailto:student.services@theopencollege.com" class="group bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl p-6 text-white hover:from-slate-700 hover:to-slate-800 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h3 class="font-semibold text-lg text-white">Get Help</h3>
-                                <p class="text-slate-100 text-sm mt-1">Contact support</p>
-                            </div>
-                            <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                                <i data-lucide="help-circle" class="w-6 h-6 text-white"></i>
-                            </div>
+                <!-- Microsoft 365 Launchpad -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">Microsoft 365 Tools</h3>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <!-- Microsoft Word -->
+                            <a href="https://office.com/launch/word" 
+                               target="_blank"
+                               class="group flex flex-col items-center p-4 rounded-lg hover:bg-blue-50 transition-colors duration-200 cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-700 transition-colors duration-200">
+                                    <span class="text-white font-bold text-lg">W</span>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700 transition-colors duration-200">Word</span>
+                                <span class="text-xs text-slate-500">Documents</span>
+                            </a>
+
+                            <!-- Outlook -->
+                            <a href="https://outlook.office365.com" 
+                               target="_blank"
+                               class="group flex flex-col items-center p-4 rounded-lg hover:bg-blue-50 transition-colors duration-200 cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-700 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-800 transition-colors duration-200">
+                                    <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                        <path d="m22 6-10 6L2 6"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700 transition-colors duration-200">Outlook</span>
+                                <span class="text-xs text-slate-500">College Email</span>
+                            </a>
+
+                            <!-- PowerPoint -->
+                            <a href="https://office.com/launch/powerpoint" 
+                               target="_blank"
+                               class="group flex flex-col items-center p-4 rounded-lg hover:bg-orange-50 transition-colors duration-200 cursor-pointer">
+                                <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mb-2 group-hover:bg-orange-700 transition-colors duration-200">
+                                    <span class="text-white font-bold text-lg">P</span>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-orange-700 transition-colors duration-200">PowerPoint</span>
+                                <span class="text-xs text-slate-500">Presentations</span>
+                            </a>
+
+                            <!-- OneDrive -->
+                            <a href="https://onedrive.live.com" 
+                               target="_blank"
+                               class="group flex flex-col items-center p-4 rounded-lg hover:bg-blue-50 transition-colors duration-200 cursor-pointer">
+                                <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mb-2 group-hover:bg-blue-600 transition-colors duration-200">
+                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M18.8 8.5c-.9-4.1-4.4-7.3-8.8-7.3-3.7 0-6.9 2.3-8.2 5.5-2.6.4-4.6 2.7-4.6 5.4 0 3 2.4 5.4 5.4 5.4h14.8c2.2 0 4-1.8 4-4 0-2.1-1.6-3.8-3.6-4z"/>
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700 group-hover:text-blue-700 transition-colors duration-200">OneDrive</span>
+                                <span class="text-xs text-slate-500">Cloud Storage</span>
+                            </a>
                         </div>
-                    </a>
+                        <div class="mt-4 pt-4 border-t border-slate-200">
+                            <p class="text-xs text-slate-500 text-center">
+                                Access your free Microsoft 365 account with your college credentials
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Actions -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-slate-900 mb-4">Support & Services</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <!-- Extension Requests -->
+                        <a href="{{ route('extension-requests.index') }}" class="group bg-white border-2 border-orange-200 rounded-xl p-6 hover:border-orange-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="calendar-plus" class="w-5 h-5 text-orange-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-slate-900 group-hover:text-orange-700 transition-colors duration-200">Request Extension</h4>
+                                    <p class="text-slate-600 text-sm">Course extensions</p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <!-- My Profile -->
+                        <a href="{{ route('students.profile') }}" class="group bg-white border-2 border-purple-200 rounded-xl p-6 hover:border-purple-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="user" class="w-5 h-5 text-purple-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-slate-900 group-hover:text-purple-700 transition-colors duration-200">My Profile</h4>
+                                    <p class="text-slate-600 text-sm">Update details</p>
+                                </div>
+                            </div>
+                        </a>
+
+                        <!-- Help & Support -->
+                        <a href="mailto:student.services@theopencollege.com" class="group bg-white border-2 border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-md transition-all duration-200 cursor-pointer">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="help-circle" class="w-5 h-5 text-slate-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-slate-900 group-hover:text-slate-700 transition-colors duration-200">Get Help</h4>
+                                    <p class="text-slate-600 text-sm">Contact support</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -279,7 +386,78 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-6">
-                  
+                    <!-- My Documents Summary -->
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                        <div class="p-6 border-b border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-slate-900">My Documents</h3>
+                                <a href="{{ route('my-documents') }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
+                                    View all →
+                                </a>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            @php
+                                $recentDocuments = Auth::user()->student->documents()
+                                    ->latest('uploaded_at')
+                                    ->limit(3)
+                                    ->get();
+                                $documentsCount = Auth::user()->student->documents()->count();
+                                $pendingCount = Auth::user()->student->documents()->where('status', 'uploaded')->count();
+                                $verifiedCount = Auth::user()->student->documents()->where('status', 'verified')->count();
+                            @endphp
+                            
+                            <!-- Document Statistics -->
+                            <div class="grid grid-cols-3 gap-3 mb-4">
+                                <div class="text-center">
+                                    <div class="text-lg font-semibold text-slate-900">{{ $documentsCount }}</div>
+                                    <div class="text-xs text-slate-500">Total</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-semibold text-amber-600">{{ $pendingCount }}</div>
+                                    <div class="text-xs text-slate-500">Pending</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-semibold text-green-600">{{ $verifiedCount }}</div>
+                                    <div class="text-xs text-slate-500">Verified</div>
+                                </div>
+                            </div>
+
+                            @if($recentDocuments->count() > 0)
+                                <div class="space-y-3">
+                                    @foreach($recentDocuments as $document)
+                                        <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium text-slate-900 truncate">{{ $document->title }}</p>
+                                                <p class="text-xs text-slate-500">{{ $document->uploaded_at->diffForHumans() }}</p>
+                                            </div>
+                                            <span class="ml-2 px-2 py-1 rounded-full text-xs font-medium {{ $document->status_color }}">
+                                                {{ ucfirst($document->status) }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                
+                                <div class="mt-4 pt-3 border-t border-slate-200">
+                                    <a href="{{ route('students.documents.create', Auth::user()->student) }}" 
+                                       class="w-full flex items-center justify-center px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors cursor-pointer">
+                                        <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+                                        Upload New Document
+                                    </a>
+                                </div>
+                            @else
+                                <div class="text-center py-4">
+                                    <i data-lucide="file-plus" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+                                    <p class="text-slate-500 text-sm mb-3">No documents uploaded yet</p>
+                                    <a href="{{ route('students.documents.create', Auth::user()->student) }}" 
+                                       class="inline-flex items-center px-4 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700 transition-colors cursor-pointer">
+                                        <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+                                        Upload First Document
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
 
                     <!-- Student Information -->
                     <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
