@@ -60,7 +60,7 @@
         <div x-show="!loading && !emailData.error && emailData.recent_emails">
             <div x-show="emailData.recent_emails && emailData.recent_emails.length > 0" class="space-y-3">
                 <template x-for="email in emailData.recent_emails" :key="email.id">
-                    <div class="flex items-start justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100">
+                    <div class="flex items-start justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100 cursor-pointer">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center space-x-2 mb-1">
                                 <p class="text-sm font-medium text-slate-900 truncate" x-text="email.subject"></p>
