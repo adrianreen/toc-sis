@@ -386,6 +386,9 @@
 
                 <!-- Sidebar -->
                 <div class="space-y-6">
+                    <!-- Email Widget -->
+                    <x-email-widget :user="Auth::user()" />
+                    
                     <!-- My Documents Summary -->
                     <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
                         <div class="p-6 border-b border-slate-200">

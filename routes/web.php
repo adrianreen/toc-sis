@@ -355,6 +355,23 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // =================================================================
+    // EMAIL API ROUTES - Graph API Integration
+    // =================================================================
+    
+    // Email summary for dashboard widget
+    Route::get('/api/email-summary', [App\Http\Controllers\Api\EmailController::class, 'summary'])
+        ->name('api.email.summary');
+    
+    Route::post('/api/email/refresh', [App\Http\Controllers\Api\EmailController::class, 'refresh'])
+        ->name('api.email.refresh');
+    
+    // Manager/admin only routes
+    Route::middleware(['role:manager,student_services'])->group(function () {
+        Route::get('/api/email/health', [App\Http\Controllers\Api\EmailController::class, 'health'])
+            ->name('api.email.health');
+    });
+
+    // =================================================================
     // STUDENT DOCUMENT MANAGEMENT ROUTES
     // =================================================================
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\User; // ADD THIS LINE
+use App\Services\GraphTokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -100,6 +101,9 @@ class AzureController extends Controller
                 ]);
             }
 
+            // Store Graph API tokens if available
+            $this->storeGraphTokens($user, $azureUser);
+
             // Log the user in
             Auth::login($user);
 
@@ -108,6 +112,7 @@ class AzureController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
                 'linked_student' => $user->student_id,
+                'has_graph_token' => $user->hasValidGraphToken(),
             ]);
 
             return redirect()->intended('/dashboard');
@@ -355,5 +360,48 @@ class AzureController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/')->with('success', 'You have been logged out successfully.');
+    }
+
+    /**
+     * Store Graph API tokens from Azure authentication
+     */
+    private function storeGraphTokens(User $user, $azureUser): void
+    {
+        try {
+            // Check if we have the necessary token data
+            if (!$azureUser->token || !property_exists($azureUser, 'refreshToken')) {
+                Log::info('Azure user missing Graph API tokens', [
+                    'user_id' => $user->id,
+                    'has_token' => !empty($azureUser->token),
+                    'has_refresh_token' => property_exists($azureUser, 'refreshToken'),
+                ]);
+                return;
+            }
+
+            $tokenService = app(GraphTokenService::class);
+
+            // Prepare token data for storage
+            $tokenData = [
+                'access_token' => $azureUser->token,
+                'refresh_token' => $azureUser->refreshToken ?? null,
+                'expires_in' => $azureUser->expiresIn ?? 3600,
+                'scope' => 'https://graph.microsoft.com/Mail.Read https://graph.microsoft.com/offline_access',
+            ];
+
+            $graphToken = $tokenService->storeTokens($user, $tokenData);
+
+            Log::info('Graph API tokens stored successfully', [
+                'user_id' => $user->id,
+                'has_refresh_token' => !empty($graphToken->refresh_token),
+                'expires_at' => $graphToken->expires_at,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to store Graph API tokens', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
     }
 }

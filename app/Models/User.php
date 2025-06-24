@@ -91,4 +91,20 @@ class User extends Authenticatable
             return $this->unreadNotifications()->count();
         });
     }
+
+    /**
+     * Graph API token relationship
+     */
+    public function graphToken()
+    {
+        return $this->hasOne(UserGraphToken::class);
+    }
+
+    /**
+     * Check if user has valid Graph API token
+     */
+    public function hasValidGraphToken(): bool
+    {
+        return $this->graphToken && !$this->graphToken->isExpired();
+    }
 }
