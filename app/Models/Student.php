@@ -69,6 +69,23 @@ class Student extends Model
         return "{$this->first_name} {$this->last_name}";
     }
 
+    /**
+     * Scope to search students by term (name, email, student number)
+     */
+    public function scopeSearchByTerm($query, $term)
+    {
+        if (empty($term)) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($term) {
+            $q->where('first_name', 'like', "%{$term}%")
+                ->orWhere('last_name', 'like', "%{$term}%")
+                ->orWhere('student_number', 'like', "%{$term}%")
+                ->orWhere('email', 'like', "%{$term}%");
+        });
+    }
+
     public function enrolments(): HasMany
     {
         return $this->hasMany(Enrolment::class);

@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Services\AnalyticsService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AnalyticsController extends Controller
 {
-    protected $analyticsService;
-
-    public function __construct(AnalyticsService $analyticsService)
+    public function __construct(private AnalyticsService $analyticsService)
     {
-        $this->analyticsService = $analyticsService;
     }
 
     /**
@@ -24,16 +22,8 @@ class AnalyticsController extends Controller
             $data = $this->analyticsService->getSystemOverview();
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            \Log::error('Analytics system overview error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'error' => 'Failed to get system overview',
-                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
-            ], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get system overview');
         }
     }
 
@@ -49,8 +39,8 @@ class AnalyticsController extends Controller
             $data = $this->analyticsService->getStudentPerformanceTrends($periodType, $months);
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get student performance data'], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get student performance data');
         }
     }
 
@@ -63,8 +53,8 @@ class AnalyticsController extends Controller
             $data = $this->analyticsService->getProgrammeEffectiveness();
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get programme effectiveness data'], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get programme effectiveness data');
         }
     }
 
@@ -80,8 +70,8 @@ class AnalyticsController extends Controller
             $data = $this->analyticsService->getAssessmentCompletionRates($periodType, $periods);
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get assessment completion data'], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get assessment completion data');
         }
     }
 
@@ -94,8 +84,8 @@ class AnalyticsController extends Controller
             $data = $this->analyticsService->getStudentEngagement();
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get student engagement data'], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get student engagement data');
         }
     }
 
@@ -113,18 +103,8 @@ class AnalyticsController extends Controller
             }
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            \Log::error('Analytics chart data error', [
-                'type' => $type,
-                'options' => $options,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'error' => 'Failed to get chart data',
-                'message' => config('app.debug') ? $e->getMessage() : 'Internal server error',
-            ], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get chart data');
         }
     }
 
@@ -139,14 +119,14 @@ class AnalyticsController extends Controller
             $limit = $request->get('limit', 30);
 
             if (! $metricType) {
-                return response()->json(['error' => 'metric_type is required'], 400);
+                return $this->errorResponse('metric_type is required');
             }
 
             $data = $this->analyticsService->getHistoricalMetrics($metricType, $periodType, $limit);
 
             return response()->json($data);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to get historical metrics'], 500);
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to get historical metrics');
         }
     }
 
@@ -158,9 +138,9 @@ class AnalyticsController extends Controller
         try {
             $this->analyticsService->refreshAllCache();
 
-            return response()->json(['success' => true, 'message' => 'Analytics cache refreshed']);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to refresh cache'], 500);
+            return $this->successResponse('Analytics cache refreshed');
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to refresh cache');
         }
     }
 
@@ -172,12 +152,9 @@ class AnalyticsController extends Controller
         try {
             $cleared = $this->analyticsService->clearExpiredCache();
 
-            return response()->json([
-                'success' => true,
-                'message' => "Cleared {$cleared} expired cache entries",
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to clear expired cache'], 500);
+            return $this->successResponse("Cleared {$cleared} expired cache entries");
+        } catch (Exception $e) {
+            return $this->handleException($e, 'Failed to clear expired cache');
         }
     }
 }

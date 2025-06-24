@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Traits\HasStudentSearch;
 use App\Models\ModuleInstance;
 use App\Models\Student;
 use App\Models\StudentGradeRecord;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class StudentGradeRecordController extends Controller
 {
+    use HasStudentSearch;
     /**
      * Show assessment management interface for staff
      */
@@ -21,12 +24,12 @@ class StudentGradeRecordController extends Controller
         if ($user->role === 'manager') {
             $moduleInstances = ModuleInstance::with(['module', 'tutor', 'studentGradeRecords'])
                 ->orderBy('start_date', 'desc')
-                ->paginate(20);
+                ->paginate($this->getPaginationSize('grade_records'));
         } elseif ($user->role === 'teacher') {
             $moduleInstances = ModuleInstance::with(['module', 'tutor', 'studentGradeRecords'])
                 ->where('tutor_id', $user->id)
                 ->orderBy('start_date', 'desc')
-                ->paginate(20);
+                ->paginate($this->getPaginationSize('grade_records'));
         } else {
             $moduleInstances = collect();
         }
@@ -104,9 +107,7 @@ class StudentGradeRecordController extends Controller
             'release_date' => $validated['release_date'],
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grade updated successfully.',
+        return $this->successResponse('Grade updated successfully.', [
             'percentage' => $gradeRecord->percentage,
         ]);
     }
@@ -149,7 +150,7 @@ class StudentGradeRecordController extends Controller
             return redirect()->route('grade-records.module-grading', $moduleInstance)
                 ->with('success', "Successfully updated grades for {$updatedCount} records.");
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to update grades: '.$e->getMessage()])
                 ->withInput();
@@ -168,9 +169,7 @@ class StudentGradeRecordController extends Controller
             'release_date' => $newVisibility ? now() : null,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Grade visibility updated successfully.',
+        return $this->successResponse('Grade visibility updated successfully.', [
             'is_visible' => $newVisibility,
         ]);
     }
@@ -199,9 +198,7 @@ class StudentGradeRecordController extends Controller
         $component = $validated['component_name'] ?? 'all assessments';
         $action = $validated['visible'] ? 'visible' : 'hidden';
 
-        return response()->json([
-            'success' => true,
-            'message' => "Made {$component} {$action} to students.",
+        return $this->successResponse("Made {$component} {$action} to students.", [
             'updated_count' => $updateCount,
         ]);
     }
@@ -226,9 +223,7 @@ class StudentGradeRecordController extends Controller
 
         $action = $validated['visible'] ? 'visible' : 'hidden';
 
-        return response()->json([
-            'success' => true,
-            'message' => "Made all {$validated['component_name']} grades {$action} to students.",
+        return $this->successResponse("Made all {$validated['component_name']} grades {$action} to students.", [
             'updated_count' => $updateCount,
         ]);
     }
@@ -279,9 +274,7 @@ class StudentGradeRecordController extends Controller
                 'is_visible_to_student' => false, // Will become visible on release date
             ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => "Scheduled release of {$validated['component_name']} for {$validated['release_date']}",
+        return $this->successResponse("Scheduled release of {$validated['component_name']} for {$validated['release_date']}", [
             'updated_count' => $updateCount,
         ]);
     }
@@ -294,7 +287,7 @@ class StudentGradeRecordController extends Controller
         $componentName = $request->query('component');
 
         if (! $componentName) {
-            return response()->json(['error' => 'Component name is required'], 400);
+            return $this->errorResponse('Component name is required');
         }
 
         $gradeRecords = $moduleInstance->studentGradeRecords()
