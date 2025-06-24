@@ -60,7 +60,8 @@
         <div x-show="!loading && !emailData.error && emailData.recent_emails">
             <div x-show="emailData.recent_emails && emailData.recent_emails.length > 0" class="space-y-3">
                 <template x-for="email in emailData.recent_emails" :key="email.id">
-                    <div class="flex items-start justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100 cursor-pointer">
+                    <div class="flex items-start justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100 cursor-pointer"
+                         @click="openEmail(email.id)">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center space-x-2 mb-1">
                                 <p class="text-sm font-medium text-slate-900 truncate" x-text="email.subject"></p>
@@ -203,6 +204,46 @@ document.addEventListener('alpine:init', () => {
                 return date.toLocaleDateString();
             } catch (error) {
                 return '';
+            }
+        },
+
+        openEmail(emailId) {
+            if (!emailId) {
+                // Fallback to general Outlook if no email ID
+                window.open('https://outlook.office365.com', '_blank');
+                return;
+            }
+
+            // Construct direct link to specific email in Outlook Web App
+            // Format: https://outlook.office365.com/mail/id/{emailId}
+            const outlookUrl = `https://outlook.office365.com/mail/id/${encodeURIComponent(emailId)}`;
+            
+            // Open in new tab
+            window.open(outlookUrl, '_blank');
+            
+            // Optional: Track email opens for analytics
+            this.trackEmailOpen(emailId);
+        },
+
+        trackEmailOpen(emailId) {
+            // Optional analytics tracking
+            try {
+                fetch('/api/email/track-open', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ email_id: emailId })
+                }).catch(error => {
+                    // Silently fail analytics tracking
+                    console.debug('Email tracking failed:', error);
+                });
+            } catch (error) {
+                // Silently fail analytics tracking
+                console.debug('Email tracking error:', error);
             }
         }
     }))

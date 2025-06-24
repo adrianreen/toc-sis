@@ -118,4 +118,37 @@ class EmailController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Track email opens for analytics (optional)
+     */
+    public function trackOpen(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json(['error' => 'unauthorized'], 401);
+            }
+
+            $request->validate([
+                'email_id' => 'required|string'
+            ]);
+
+            // Log email open for analytics
+            activity()
+                ->causedBy($user)
+                ->withProperties([
+                    'email_id' => $request->get('email_id'),
+                    'opened_from' => 'dashboard_widget'
+                ])
+                ->log('Email opened');
+
+            return response()->json(['success' => true]);
+
+        } catch (\Exception $e) {
+            // Silently fail tracking - don't impact user experience
+            return response()->json(['success' => false], 200);
+        }
+    }
 }
