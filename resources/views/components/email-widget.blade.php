@@ -59,9 +59,10 @@
         {{-- Email List --}}
         <div x-show="!loading && !emailData.error && emailData.recent_emails">
             <div x-show="emailData.recent_emails && emailData.recent_emails.length > 0" class="space-y-3">
+                <p class="text-xs text-slate-500 mb-3">💡 Click any email to search for it in Outlook</p>
                 <template x-for="email in emailData.recent_emails" :key="email.id">
                     <div class="flex items-start justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors border border-slate-100 cursor-pointer"
-                         @click="openEmail(email.id)">
+                         @click="openEmail(email.id, email.subject)">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center space-x-2 mb-1">
                                 <p class="text-sm font-medium text-slate-900 truncate" x-text="email.subject"></p>
@@ -85,11 +86,11 @@
 
         {{-- Actions --}}
         <div x-show="!loading && !emailData.error" class="mt-6 pt-4 border-t border-slate-200 flex space-x-3">
-            <a href="https://outlook.office365.com" 
+            <a href="https://outlook.office365.com/mail/inbox" 
                target="_blank"
                class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer">
                 <div class="flex items-center justify-center space-x-2">
-                    <span>Open Outlook</span>
+                    <span>Open Inbox</span>
                     <i data-lucide="external-link" class="w-4 h-4"></i>
                 </div>
             </a>
@@ -207,19 +208,21 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        openEmail(emailId) {
-            if (!emailId) {
-                // Fallback to general Outlook if no email ID
-                window.open('https://outlook.office365.com', '_blank');
-                return;
-            }
-
-            // Construct direct link to specific email in Outlook Web App
-            // Format: https://outlook.office365.com/mail/id/{emailId}
-            const outlookUrl = `https://outlook.office365.com/mail/id/${encodeURIComponent(emailId)}`;
+        openEmail(emailId, subject) {
+            // Since direct email ID links don't work reliably, let's try a search approach
+            // This opens Outlook with a search for the email subject, which should help users find it quickly
             
-            // Open in new tab
-            window.open(outlookUrl, '_blank');
+            if (subject && subject.trim()) {
+                // Create a search URL that searches for the email subject
+                // This should help users quickly locate the specific email
+                const searchQuery = encodeURIComponent(subject.trim());
+                const outlookUrl = `https://outlook.office365.com/mail/search/query/${searchQuery}`;
+                
+                window.open(outlookUrl, '_blank');
+            } else {
+                // Fallback to inbox if no subject available
+                window.open('https://outlook.office365.com/mail/inbox', '_blank');
+            }
             
             // Optional: Track email opens for analytics
             this.trackEmailOpen(emailId);
