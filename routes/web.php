@@ -365,9 +365,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/api/email/refresh', [App\Http\Controllers\Api\EmailController::class, 'refresh'])
         ->name('api.email.refresh');
     
-    Route::post('/api/email/track-open', [App\Http\Controllers\Api\EmailController::class, 'trackOpen'])
-        ->name('api.email.track-open');
-    
     // Manager/admin only routes
     Route::middleware(['role:manager,student_services'])->group(function () {
         Route::get('/api/email/health', [App\Http\Controllers\Api\EmailController::class, 'health'])
