@@ -19,18 +19,18 @@ class StudentUserLinkingService
         $results = [
             'created' => 0,
             'linked' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         DB::transaction(function () use (&$results) {
             // Get students without linked user accounts
             $studentsWithoutUsers = Student::whereDoesntHave('user')->get();
-            
+
             foreach ($studentsWithoutUsers as $student) {
                 try {
                     // Check if a user with this email already exists
                     $existingUser = User::where('email', $student->email)->first();
-                    
+
                     if ($existingUser) {
                         // Link existing user to student
                         if ($existingUser->role === 'student') {
@@ -47,12 +47,12 @@ class StudentUserLinkingService
                             'role' => 'student',
                             'student_id' => $student->id,
                             'azure_id' => null, // Will be set when they first login via Azure
-                            'azure_groups' => ['Students'] // Default student group
+                            'azure_groups' => ['Students'], // Default student group
                         ]);
                         $results['created']++;
                     }
                 } catch (\Exception $e) {
-                    $results['errors'][] = "Failed to process student {$student->email}: " . $e->getMessage();
+                    $results['errors'][] = "Failed to process student {$student->email}: ".$e->getMessage();
                 }
             }
         });
@@ -68,15 +68,15 @@ class StudentUserLinkingService
         $results = [
             'linked' => 0,
             'skipped' => 0,
-            'errors' => []
+            'errors' => [],
         ];
 
         $studentUsers = User::where('role', 'student')->whereNull('student_id')->get();
-        
+
         foreach ($studentUsers as $user) {
             try {
                 $student = Student::where('email', $user->email)->first();
-                
+
                 if ($student) {
                     $user->student_id = $student->id;
                     $user->save();
@@ -85,7 +85,7 @@ class StudentUserLinkingService
                     $results['skipped']++;
                 }
             } catch (\Exception $e) {
-                $results['errors'][] = "Failed to link user {$user->email}: " . $e->getMessage();
+                $results['errors'][] = "Failed to link user {$user->email}: ".$e->getMessage();
             }
         }
 
@@ -113,29 +113,29 @@ class StudentUserLinkingService
     public function validateLinkages(): array
     {
         $issues = [];
-        
+
         // Check for users with invalid student_id
         $invalidLinks = User::whereNotNull('student_id')
             ->whereDoesntHave('student')
             ->get();
-            
+
         foreach ($invalidLinks as $user) {
             $issues[] = "User {$user->email} has invalid student_id: {$user->student_id}";
         }
-        
+
         // Check for duplicate student linkages
         $duplicateLinks = User::select('student_id')
             ->whereNotNull('student_id')
             ->groupBy('student_id')
             ->havingRaw('COUNT(*) > 1')
             ->get();
-            
+
         foreach ($duplicateLinks as $duplicate) {
             $users = User::where('student_id', $duplicate->student_id)->get();
             $emails = $users->pluck('email')->implode(', ');
             $issues[] = "Multiple users linked to student ID {$duplicate->student_id}: {$emails}";
         }
-        
+
         return $issues;
     }
 }

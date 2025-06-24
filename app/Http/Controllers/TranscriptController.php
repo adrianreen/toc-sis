@@ -3,9 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class TranscriptController extends Controller
 {
@@ -16,22 +15,22 @@ class TranscriptController extends Controller
     {
         // Check permissions - students can only download their own transcript
         if (Auth::user()->role === 'student') {
-            if (!Auth::user()->student || Auth::user()->student->id !== $student->id) {
+            if (! Auth::user()->student || Auth::user()->student->id !== $student->id) {
                 abort(403, 'You can only download your own transcript.');
             }
-            
+
             // Students must have active enrollments to download transcript
-            if (!Auth::user()->student->hasActiveEnrollments()) {
+            if (! Auth::user()->student->hasActiveEnrollments()) {
                 abort(403, 'You do not have any active enrollments and cannot download a transcript.');
             }
-        } elseif (!in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
+        } elseif (! in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
             abort(403, 'You do not have permission to download transcripts.');
         }
 
         // Load student data with all related information for transcript
         $student->load([
             'enrolments.programmeInstance.programme',
-            'enrolments.moduleInstance.module'
+            'enrolments.moduleInstance.module',
         ]);
 
         // For students, only show grades from active enrollments
@@ -42,10 +41,10 @@ class TranscriptController extends Controller
             $gradeRecords = $student->studentGradeRecords()
                 ->where(function ($q) {
                     $q->where('is_visible_to_student', true)
-                      ->orWhere(function ($subQ) {
-                          $subQ->whereNotNull('release_date')
-                               ->where('release_date', '<=', now());
-                      });
+                        ->orWhere(function ($subQ) {
+                            $subQ->whereNotNull('release_date')
+                                ->where('release_date', '<=', now());
+                        });
                 })->with('moduleInstance.module')->get();
         }
 
@@ -54,7 +53,7 @@ class TranscriptController extends Controller
 
         // Generate PDF
         $pdf = PDF::loadView('transcripts.official', $transcriptData);
-        
+
         // Set PDF options
         $pdf->setPaper('A4', 'portrait');
         $pdf->setOptions([
@@ -70,7 +69,7 @@ class TranscriptController extends Controller
             ->log('Official transcript downloaded');
 
         // Generate filename
-        $filename = 'Transcript_' . $student->student_number . '_' . now()->format('Y-m-d') . '.pdf';
+        $filename = 'Transcript_'.$student->student_number.'_'.now()->format('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }
@@ -81,24 +80,24 @@ class TranscriptController extends Controller
     public function preview(Student $student)
     {
         // Only staff can preview transcripts
-        if (!in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
+        if (! in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
             abort(403, 'You do not have permission to preview transcripts.');
         }
 
         // Load student data
         $student->load([
             'enrolments.programmeInstance.programme',
-            'enrolments.moduleInstance.module'
+            'enrolments.moduleInstance.module',
         ]);
 
         // Load all historical grades for staff preview
         $gradeRecords = $student->studentGradeRecords()
             ->where(function ($q) {
                 $q->where('is_visible_to_student', true)
-                  ->orWhere(function ($subQ) {
-                      $subQ->whereNotNull('release_date')
-                           ->where('release_date', '<=', now());
-                  });
+                    ->orWhere(function ($subQ) {
+                        $subQ->whereNotNull('release_date')
+                            ->where('release_date', '<=', now());
+                    });
             })->with('moduleInstance.module')->get();
 
         // Prepare transcript data
@@ -129,28 +128,28 @@ class TranscriptController extends Controller
         foreach ($gradesByModule as $moduleInstanceId => $moduleGradeRecords) {
             $moduleInstance = $moduleGradeRecords->first()->moduleInstance;
             $module = $moduleInstance->module;
-            
+
             // Calculate module grade and status from grade records
             $moduleGrade = $this->calculateModuleGradeFromRecords($moduleGradeRecords, $module);
-            
+
             // Find which programme this module belongs to (if any)
             $programmeEnrolment = $student->enrolments()
                 ->where('enrolment_type', 'programme')
-                ->whereHas('programmeInstance.moduleInstances', function($query) use ($moduleInstanceId) {
+                ->whereHas('programmeInstance.moduleInstances', function ($query) use ($moduleInstanceId) {
                     $query->where('module_instances.id', $moduleInstanceId);
                 })->first();
 
             if ($programmeEnrolment) {
                 // This is a programme module
                 $programme = $programmeEnrolment->programmeInstance->programme;
-                
-                if (!isset($programmeModules[$programme->id])) {
+
+                if (! isset($programmeModules[$programme->id])) {
                     $programmeModules[$programme->id] = [
                         'programme' => $programme,
                         'programmeInstance' => $programmeEnrolment->programmeInstance,
                         'modules' => [],
                         'total_credits' => 0,
-                        'gpa' => 0
+                        'gpa' => 0,
                     ];
                 }
 
@@ -187,7 +186,7 @@ class TranscriptController extends Controller
             if ($moduleGrade['grade'] && $moduleGrade['status'] === 'Completed') {
                 $credits = $module->credit_value ?? 5;
                 $gradePoint = $this->gradeToPoints($moduleGrade['grade']);
-                
+
                 $totalCredits += $credits;
                 $totalGradePoints += ($gradePoint * $credits);
             }
@@ -202,7 +201,7 @@ class TranscriptController extends Controller
         foreach ($programmeModules as &$programmeData) {
             $progCredits = 0;
             $progGradePoints = 0;
-            
+
             foreach ($programmeData['modules'] as $moduleData) {
                 if ($moduleData['grade'] && $moduleData['status'] === 'Completed') {
                     $gradePoint = $this->gradeToPoints($moduleData['grade']);
@@ -210,7 +209,7 @@ class TranscriptController extends Controller
                     $progGradePoints += ($gradePoint * $moduleData['credits']);
                 }
             }
-            
+
             if ($progCredits > 0) {
                 $programmeData['gpa'] = round($progGradePoints / $progCredits, 2);
             }
@@ -227,8 +226,8 @@ class TranscriptController extends Controller
                 'name' => 'The Open College',
                 'address' => 'Dublin, Ireland',
                 'website' => 'www.theopencollege.com',
-                'phone' => '+353 1 234 5678'
-            ]
+                'phone' => '+353 1 234 5678',
+            ],
         ];
     }
 
@@ -238,13 +237,13 @@ class TranscriptController extends Controller
     private function calculateModuleGradeFromRecords($gradeRecords, $module)
     {
         $gradedRecords = $gradeRecords->whereNotNull('grade');
-        
+
         if ($gradedRecords->isEmpty()) {
             return [
                 'grade' => null,
                 'status' => 'In Progress',
                 'completion_date' => null,
-                'components' => []
+                'components' => [],
             ];
         }
 
@@ -255,25 +254,25 @@ class TranscriptController extends Controller
 
         // Get assessment strategy from module
         $assessmentStrategy = $module->assessment_strategy ?? [];
-        
+
         foreach ($assessmentStrategy as $component) {
             $gradeRecord = $gradedRecords->where('assessment_component_name', $component['component_name'])->first();
-            
+
             if ($gradeRecord && $gradeRecord->grade !== null) {
                 $weight = $component['weighting'];
                 $percentage = $gradeRecord->percentage ?? ($gradeRecord->grade * 100 / ($gradeRecord->max_grade ?? 100));
-                
+
                 $totalWeightedMark += ($percentage * $weight / 100);
                 $totalWeight += $weight;
-                
+
                 // Check component pass requirements
                 $componentPassMark = $component['component_pass_mark'] ?? 40;
                 if ($component['is_must_pass'] && $percentage < $componentPassMark) {
                     $allComponentsPassed = false;
                 }
-                
+
                 // Get latest completion date
-                if ($gradeRecord->graded_date && (!$completionDate || $gradeRecord->graded_date > $completionDate)) {
+                if ($gradeRecord->graded_date && (! $completionDate || $gradeRecord->graded_date > $completionDate)) {
                     $completionDate = $gradeRecord->graded_date;
                 }
             }
@@ -284,13 +283,13 @@ class TranscriptController extends Controller
                 'grade' => null,
                 'status' => 'In Progress',
                 'completion_date' => null,
-                'components' => []
+                'components' => [],
             ];
         }
 
         // Calculate final percentage
         $finalMark = round($totalWeightedMark, 1);
-        
+
         // Determine grade and status
         $grade = $this->markToGrade($finalMark);
         $status = $allComponentsPassed && $finalMark >= 40 ? 'Completed' : ($finalMark > 0 ? 'Failed' : 'In Progress');
@@ -299,12 +298,12 @@ class TranscriptController extends Controller
         $components = [];
         foreach ($assessmentStrategy as $component) {
             $gradeRecord = $gradedRecords->where('assessment_component_name', $component['component_name'])->first();
-            
+
             if ($gradeRecord && $gradeRecord->grade !== null) {
                 $percentage = $gradeRecord->percentage ?? ($gradeRecord->grade * 100 / ($gradeRecord->max_grade ?? 100));
                 $componentPassMark = $component['component_pass_mark'] ?? 40;
                 $componentPassed = $percentage >= $componentPassMark;
-                
+
                 $components[] = [
                     'name' => $component['component_name'],
                     'weighting' => $component['weighting'],
@@ -314,7 +313,7 @@ class TranscriptController extends Controller
                     'is_must_pass' => $component['is_must_pass'],
                     'component_pass_mark' => $componentPassMark,
                     'passed' => $componentPassed,
-                    'graded_date' => $gradeRecord->graded_date
+                    'graded_date' => $gradeRecord->graded_date,
                 ];
             }
         }
@@ -324,7 +323,7 @@ class TranscriptController extends Controller
             'percentage' => $finalMark,
             'status' => $status,
             'completion_date' => $completionDate,
-            'components' => $components
+            'components' => $components,
         ];
     }
 
@@ -333,9 +332,16 @@ class TranscriptController extends Controller
      */
     private function markToGrade($mark)
     {
-        if ($mark >= 80) return 'D'; // Distinction
-        if ($mark >= 65) return 'M'; // Merit
-        if ($mark >= 50) return 'P'; // Pass
+        if ($mark >= 80) {
+            return 'D';
+        } // Distinction
+        if ($mark >= 65) {
+            return 'M';
+        } // Merit
+        if ($mark >= 50) {
+            return 'P';
+        } // Pass
+
         return 'U'; // Unsuccessful
     }
 
@@ -359,7 +365,7 @@ class TranscriptController extends Controller
     private function calculateModulePercentage($gradeRecords, $module)
     {
         $gradedRecords = $gradeRecords->whereNotNull('grade');
-        
+
         if ($gradedRecords->isEmpty()) {
             return null;
         }
@@ -367,14 +373,14 @@ class TranscriptController extends Controller
         $totalWeightedMark = 0;
         $totalWeight = 0;
         $assessmentStrategy = $module->assessment_strategy ?? [];
-        
+
         foreach ($assessmentStrategy as $component) {
             $gradeRecord = $gradedRecords->where('assessment_component_name', $component['component_name'])->first();
-            
+
             if ($gradeRecord && $gradeRecord->grade !== null) {
                 $weight = $component['weighting'];
                 $percentage = $gradeRecord->percentage ?? ($gradeRecord->grade * 100 / ($gradeRecord->max_grade ?? 100));
-                
+
                 $totalWeightedMark += ($percentage * $weight / 100);
                 $totalWeight += $weight;
             }

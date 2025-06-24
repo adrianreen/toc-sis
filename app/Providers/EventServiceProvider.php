@@ -10,12 +10,12 @@ use SocialiteProviders\Manager\SocialiteWasCalled;
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
-       // Registered::class => [
-       //     SendEmailVerificationNotification::class,
-     //   ],
-      //  SocialiteWasCalled::class => [
-     //       'SocialiteProviders\\Azure\\AzureExtendSocialite@handle',
-      //  ],
+        // Registered::class => [
+        //     SendEmailVerificationNotification::class,
+        //   ],
+        //  SocialiteWasCalled::class => [
+        //       'SocialiteProviders\\Azure\\AzureExtendSocialite@handle',
+        //  ],
     ];
 
     public function boot(): void

@@ -17,9 +17,9 @@ class ModuleInstanceController extends Controller
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('module', function($q) use ($search) {
+            $query->whereHas('module', function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('module_code', 'LIKE', "%{$search}%");
+                    ->orWhere('module_code', 'LIKE', "%{$search}%");
             });
         }
 
@@ -36,16 +36,16 @@ class ModuleInstanceController extends Controller
         // Filter by status (based on dates)
         if ($request->filled('status')) {
             $now = now();
-            switch($request->status) {
+            switch ($request->status) {
                 case 'upcoming':
                     $query->where('start_date', '>', $now);
                     break;
                 case 'active':
                     $query->where('start_date', '<=', $now)
-                          ->where(function($q) use ($now) {
-                              $q->whereNull('target_end_date')
+                        ->where(function ($q) use ($now) {
+                            $q->whereNull('target_end_date')
                                 ->orWhere('target_end_date', '>=', $now);
-                          });
+                        });
                     break;
                 case 'completed':
                     $query->where('target_end_date', '<', $now);
@@ -76,21 +76,21 @@ class ModuleInstanceController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by', 'start_date');
         $sortDirection = $request->get('sort_direction', 'desc');
-        
-        switch($sortBy) {
+
+        switch ($sortBy) {
             case 'module_title':
                 $query->join('modules', 'module_instances.module_id', '=', 'modules.id')
-                      ->orderBy('modules.title', $sortDirection)
-                      ->select('module_instances.*');
+                    ->orderBy('modules.title', $sortDirection)
+                    ->select('module_instances.*');
                 break;
             case 'tutor_name':
                 $query->leftJoin('users', 'module_instances.tutor_id', '=', 'users.id')
-                      ->orderBy('users.name', $sortDirection)
-                      ->select('module_instances.*');
+                    ->orderBy('users.name', $sortDirection)
+                    ->select('module_instances.*');
                 break;
             case 'student_count':
                 $query->withCount('studentGradeRecords as student_count')
-                      ->orderBy('student_count', $sortDirection);
+                    ->orderBy('student_count', $sortDirection);
                 break;
             default:
                 $query->orderBy($sortBy, $sortDirection);
@@ -128,7 +128,7 @@ class ModuleInstanceController extends Controller
             $tutor = User::findOrFail($validated['tutor_id']);
             if ($tutor->role !== 'teacher') {
                 return back()->withErrors(['tutor_id' => 'Selected user must be a teacher.'])
-                             ->withInput();
+                    ->withInput();
             }
         }
 
@@ -145,7 +145,7 @@ class ModuleInstanceController extends Controller
             'tutor',
             'programmeInstances.programme',
             'enrolments.student',
-            'studentGradeRecords.student'
+            'studentGradeRecords.student',
         ]);
 
         return view('module-instances.show', compact('moduleInstance'));
@@ -173,7 +173,7 @@ class ModuleInstanceController extends Controller
             $tutor = User::findOrFail($validated['tutor_id']);
             if ($tutor->role !== 'teacher') {
                 return back()->withErrors(['tutor_id' => 'Selected user must be a teacher.'])
-                             ->withInput();
+                    ->withInput();
             }
         }
 
@@ -197,7 +197,7 @@ class ModuleInstanceController extends Controller
 
         // Check if instance is part of any programme curricula
         $programmeLinks = $moduleInstance->programmeInstances()->count();
-        
+
         if ($programmeLinks > 0) {
             return redirect()->route('module-instances.index')
                 ->with('error', 'Cannot delete module instance that is part of programme curricula. Remove from programme instances first.');
@@ -219,9 +219,9 @@ class ModuleInstanceController extends Controller
             'tutor',
             'enrolments' => function ($query) {
                 $query->with('student')
-                      ->where('status', 'active')
-                      ->orderBy('enrolment_date');
-            }
+                    ->where('status', 'active')
+                    ->orderBy('enrolment_date');
+            },
         ]);
 
         return view('module-instances.students', compact('moduleInstance'));
@@ -236,9 +236,9 @@ class ModuleInstanceController extends Controller
             'module',
             'studentGradeRecords' => function ($query) {
                 $query->with('student')
-                      ->orderBy('assessment_component_name')
-                      ->orderBy('student_id');
-            }
+                    ->orderBy('assessment_component_name')
+                    ->orderBy('student_id');
+            },
         ]);
 
         // Group grade records by student and assessment component
@@ -277,7 +277,7 @@ class ModuleInstanceController extends Controller
             $tutor = User::findOrFail($validated['tutor_id']);
             if ($tutor->role !== 'teacher') {
                 return back()->withErrors(['tutor_id' => 'Selected user must be a teacher.'])
-                             ->withInput();
+                    ->withInput();
             }
         }
 
@@ -310,7 +310,7 @@ class ModuleInstanceController extends Controller
         }
 
         return redirect()->route('module-instances.show', $newInstance)
-            ->with('success', 'Module instance copied successfully.' . 
+            ->with('success', 'Module instance copied successfully.'.
                    ($request->boolean('copy_enrolments') ? ' Enrolments have been copied.' : ''));
     }
 
@@ -320,8 +320,8 @@ class ModuleInstanceController extends Controller
     public function createNext(ModuleInstance $moduleInstance)
     {
         $module = $moduleInstance->module;
-        
-        if (!$module->allows_standalone_enrolment) {
+
+        if (! $module->allows_standalone_enrolment) {
             return redirect()->route('module-instances.show', $moduleInstance)
                 ->with('error', 'Only standalone modules can have automatic next instances created.');
         }
@@ -344,7 +344,7 @@ class ModuleInstanceController extends Controller
     private function calculateNextStartDate($currentStartDate, $cadence)
     {
         $date = \Carbon\Carbon::parse($currentStartDate);
-        
+
         switch ($cadence) {
             case 'monthly':
                 return $date->addMonth();
@@ -362,7 +362,7 @@ class ModuleInstanceController extends Controller
     private function calculateEndDate($startDate, $cadence)
     {
         $date = \Carbon\Carbon::parse($startDate);
-        
+
         switch ($cadence) {
             case 'monthly':
                 return $date->addMonth()->subDay();

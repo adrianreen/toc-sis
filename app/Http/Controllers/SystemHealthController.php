@@ -2,21 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Student;
-use App\Models\Programme;
-use App\Models\ProgrammeInstance;
+use App\Models\EmailLog;
+use App\Models\Enrolment;
 use App\Models\Module;
 use App\Models\ModuleInstance;
-use App\Models\Enrolment;
-use App\Models\StudentGradeRecord;
 use App\Models\Notification;
-use App\Models\EmailLog;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\Programme;
+use App\Models\ProgrammeInstance;
+use App\Models\Student;
+use App\Models\StudentGradeRecord;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class SystemHealthController extends Controller
 {
@@ -31,7 +28,7 @@ class SystemHealthController extends Controller
     public function index()
     {
         $healthData = $this->gatherHealthMetrics();
-        
+
         return view('admin.system-health', $healthData);
     }
 
@@ -41,7 +38,7 @@ class SystemHealthController extends Controller
     public function api()
     {
         $healthData = $this->gatherHealthMetrics();
-        
+
         return response()->json($healthData);
     }
 
@@ -54,25 +51,25 @@ class SystemHealthController extends Controller
 
         // System Overview
         $systemOverview = $this->getSystemOverview();
-        
+
         // Database Health
         $databaseHealth = $this->getDatabaseHealth();
-        
+
         // Academic System Health
         $academicHealth = $this->getAcademicSystemHealth();
-        
+
         // Performance Metrics
         $performanceMetrics = $this->getPerformanceMetrics();
-        
+
         // Security Status
         $securityStatus = $this->getSecurityStatus();
-        
+
         // Notification System Health
         $notificationHealth = $this->getNotificationSystemHealth();
-        
+
         // Recent Activity
         $recentActivity = $this->getRecentActivity();
-        
+
         // System Warnings
         $systemWarnings = $this->getSystemWarnings();
 
@@ -91,7 +88,7 @@ class SystemHealthController extends Controller
                 'execution_time_ms' => $executionTime,
                 'generated_at' => now(),
                 'cache_status' => $this->getCacheStatus(),
-            ]
+            ],
         ];
     }
 
@@ -107,17 +104,17 @@ class SystemHealthController extends Controller
             'maintenance_mode' => app()->isDownForMaintenance(),
             'disk_usage' => $this->getDiskUsage(),
             'memory_usage' => [
-                'current' => round(memory_get_usage() / 1024 / 1024, 2) . ' MB',
-                'peak' => round(memory_get_peak_usage() / 1024 / 1024, 2) . ' MB',
+                'current' => round(memory_get_usage() / 1024 / 1024, 2).' MB',
+                'peak' => round(memory_get_peak_usage() / 1024 / 1024, 2).' MB',
                 'limit' => ini_get('memory_limit'),
-            ]
+            ],
         ];
     }
 
     private function getDatabaseHealth(): array
     {
         $connectionTime = $this->measureDbConnectionTime();
-        
+
         return [
             'connection_status' => $this->testDatabaseConnection(),
             'connection_time_ms' => $connectionTime,
@@ -133,7 +130,7 @@ class SystemHealthController extends Controller
         $activeStudents = Student::where('status', 'active')->count();
         $totalEnrolments = Enrolment::count();
         $activeEnrolments = Enrolment::where('status', 'active')->count();
-        
+
         return [
             'students' => [
                 'total' => $totalStudents,
@@ -163,7 +160,7 @@ class SystemHealthController extends Controller
                 'graded' => StudentGradeRecord::whereNotNull('grade')->count(),
                 'visible_to_students' => StudentGradeRecord::where('is_visible_to_student', true)->count(),
                 'pending_grading' => StudentGradeRecord::whereNull('grade')->count(),
-            ]
+            ],
         ];
     }
 
@@ -201,7 +198,7 @@ class SystemHealthController extends Controller
         $unreadNotifications = Notification::whereNull('read_at')->count();
         $emailsSent = EmailLog::count();
         $emailsToday = EmailLog::whereDate('created_at', today())->count();
-        
+
         return [
             'notifications' => [
                 'total' => $totalNotifications,
@@ -263,9 +260,10 @@ class SystemHealthController extends Controller
     {
         try {
             DB::connection()->getPdo();
+
             return 'Connected';
         } catch (\Exception $e) {
-            return 'Failed: ' . $e->getMessage();
+            return 'Failed: '.$e->getMessage();
         }
     }
 
@@ -274,6 +272,7 @@ class SystemHealthController extends Controller
         $start = microtime(true);
         try {
             DB::connection()->getPdo();
+
             return round((microtime(true) - $start) * 1000, 2);
         } catch (\Exception $e) {
             return 0;
@@ -284,6 +283,7 @@ class SystemHealthController extends Controller
     {
         try {
             $tables = DB::select('SHOW TABLES');
+
             return count($tables);
         } catch (\Exception $e) {
             return 0;
@@ -295,7 +295,7 @@ class SystemHealthController extends Controller
         try {
             $migrations = DB::table('migrations')->count();
             $lastMigration = DB::table('migrations')->latest('batch')->first();
-            
+
             return [
                 'total_migrations' => $migrations,
                 'last_migration' => $lastMigration?->migration ?? 'None',
@@ -311,7 +311,7 @@ class SystemHealthController extends Controller
         $totalSpace = disk_total_space(base_path());
         $freeSpace = disk_free_space(base_path());
         $usedSpace = $totalSpace - $freeSpace;
-        
+
         return [
             'total' => $this->formatBytes($totalSpace),
             'used' => $this->formatBytes($usedSpace),
@@ -326,16 +326,18 @@ class SystemHealthController extends Controller
         for ($i = 0; $size > 1024 && $i < count($units) - 1; $i++) {
             $size /= 1024;
         }
-        return round($size, 2) . ' ' . $units[$i];
+
+        return round($size, 2).' '.$units[$i];
     }
 
     private function getCacheStatus(): string
     {
         try {
             Cache::put('health_check', 'test', 10);
+
             return Cache::get('health_check') === 'test' ? 'Working' : 'Failed';
         } catch (\Exception $e) {
-            return 'Failed: ' . $e->getMessage();
+            return 'Failed: '.$e->getMessage();
         }
     }
 
@@ -380,7 +382,8 @@ class SystemHealthController extends Controller
         $current = memory_get_usage();
         $peak = memory_get_peak_usage();
         $efficiency = round(($current / $peak) * 100, 1);
-        return $efficiency . '%';
+
+        return $efficiency.'%';
     }
 
     private function getSystemUptime(): string
@@ -399,10 +402,12 @@ class SystemHealthController extends Controller
     {
         $total = EmailLog::count();
         $successful = EmailLog::where('status', 'sent')->count();
-        
-        if ($total === 0) return '100%';
-        
-        return round(($successful / $total) * 100, 1) . '%';
+
+        if ($total === 0) {
+            return '100%';
+        }
+
+        return round(($successful / $total) * 100, 1).'%';
     }
 
     private function getQueueStatus(): array

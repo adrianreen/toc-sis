@@ -23,7 +23,7 @@ return new class extends Migration
             $table->boolean('has_attachment')->default(false);
             $table->text('attachment_info')->nullable();
             $table->timestamps();
-            
+
             $table->index(['student_id', 'sent_at']);
             $table->index(['delivery_status', 'sent_at']);
             $table->index('email_template_id');

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('period_date'); // The date this metric represents
             $table->timestamp('calculated_at');
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index(['metric_type', 'period_type', 'period_date']);
             $table->index(['metric_key', 'period_date']);
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->json('cache_data');
             $table->timestamp('expires_at');
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index('cache_key');
             $table->index('expires_at');

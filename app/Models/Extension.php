@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Extension.php
 
 namespace App\Models;

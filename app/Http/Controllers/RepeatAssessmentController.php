@@ -1,15 +1,15 @@
 <?php
+
 // app/Http/Controllers/RepeatAssessmentController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\RepeatAssessment;
-use App\Models\StudentGradeRecord;
 use App\Models\Student;
+use App\Models\StudentGradeRecord;
 use App\Models\User;
-use App\Models\ModuleInstance;
-use App\Services\NotificationService;
 use App\Services\MoodleService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -17,24 +17,30 @@ use Illuminate\Validation\Rule;
 class RepeatAssessmentController extends Controller
 {
     protected NotificationService $notificationService;
+
     protected MoodleService $moodleService;
 
     public function __construct(NotificationService $notificationService, MoodleService $moodleService)
     {
         $this->notificationService = $notificationService;
         $this->moodleService = $moodleService;
-        
+
         // Apply role middleware
         $this->middleware(['auth', 'role:manager,student_services,teacher']);
     }
 
+    /**
+     * Display paginated list of repeat assessments with advanced filtering and statistics
+     *
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
         $query = RepeatAssessment::with([
             'student',
             'studentGradeRecord.moduleInstance.module',
             'approvedBy',
-            'assignedTo'
+            'assignedTo',
         ]);
 
         // Apply filters
@@ -67,9 +73,9 @@ class RepeatAssessmentController extends Controller
             $search = $request->search;
             $query->whereHas('student', function ($q) use ($search) {
                 $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('student_number', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('student_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -88,26 +94,26 @@ class RepeatAssessmentController extends Controller
             'moodle_setup' => 'Moodle Setup',
             'active' => 'Active',
             'completed' => 'Completed',
-            'cancelled' => 'Cancelled'
+            'cancelled' => 'Cancelled',
         ];
 
         $paymentStatuses = [
             'pending' => 'Payment Pending',
             'paid' => 'Paid',
             'waived' => 'Waived',
-            'overdue' => 'Overdue'
+            'overdue' => 'Overdue',
         ];
 
         $priorities = [
             'low' => 'Low',
             'medium' => 'Medium',
             'high' => 'High',
-            'urgent' => 'Urgent'
+            'urgent' => 'Urgent',
         ];
 
         $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
-                     ->orderBy('name')
-                     ->get();
+            ->orderBy('name')
+            ->get();
 
         // Get summary statistics
         $stats = [
@@ -129,24 +135,24 @@ class RepeatAssessmentController extends Controller
             'student',
             'studentGradeRecord.moduleInstance.module',
             'approvedBy',
-            'assignedTo'
+            'assignedTo',
         ]);
 
         return view('repeat-assessments.show', compact('repeatAssessment'));
     }
 
-    public function create(Student $student = null)
+    public function create(?Student $student = null)
     {
         // If no student specified, show student selection
-        if (!$student) {
+        if (! $student) {
             // Get students with failed grade records that don't already have repeat assessments
             $studentsWithFailures = Student::whereHas('studentGradeRecords', function ($query) {
                 $query->where('percentage', '<', 40)
-                      ->whereNotNull('percentage');
+                    ->whereNotNull('percentage');
             })->with(['studentGradeRecords' => function ($query) {
                 $query->where('percentage', '<', 40)
-                      ->whereNotNull('percentage')
-                      ->with('moduleInstance.module');
+                    ->whereNotNull('percentage')
+                    ->with('moduleInstance.module');
             }])->get();
 
             return view('repeat-assessments.select-student', compact('studentsWithFailures'));
@@ -161,13 +167,13 @@ class RepeatAssessmentController extends Controller
             ->get();
 
         $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
-                     ->orderBy('name')
-                     ->get();
+            ->orderBy('name')
+            ->get();
 
         return view('repeat-assessments.create', compact('student', 'failedGradeRecords', 'staff'));
     }
 
-    public function store(Request $request, Student $student = null)
+    public function store(Request $request, ?Student $student = null)
     {
         $validated = $request->validate([
             'student_id' => $student ? 'nullable' : 'required|exists:students,id',
@@ -184,7 +190,7 @@ class RepeatAssessmentController extends Controller
         ]);
 
         // If student not provided in URL, get from form
-        if (!$student) {
+        if (! $student) {
             $student = Student::findOrFail($validated['student_id']);
         }
 
@@ -234,7 +240,7 @@ class RepeatAssessmentController extends Controller
                 ->withProperties([
                     'student_id' => $student->id,
                     'assessment_component' => $assessment->assessmentComponent->name,
-                    'module' => $assessment->assessmentComponent->module->name
+                    'module' => $assessment->assessmentComponent->module->name,
                 ])
                 ->log('Repeat assessment created');
         });
@@ -248,12 +254,12 @@ class RepeatAssessmentController extends Controller
         $repeatAssessment->load([
             'student',
             'studentGradeRecord',
-            'moduleInstance.module'
+            'moduleInstance.module',
         ]);
 
         $staff = User::whereIn('role', ['manager', 'student_services', 'teacher'])
-                     ->orderBy('name')
-                     ->get();
+            ->orderBy('name')
+            ->get();
 
         return view('repeat-assessments.edit', compact('repeatAssessment', 'staff'));
     }
@@ -347,7 +353,7 @@ class RepeatAssessmentController extends Controller
         try {
             // Use MoodleService to set up course
             $courseId = $this->moodleService->setupRepeatAssessmentCourse($repeatAssessment);
-            
+
             $repeatAssessment->markMoodleSetupComplete(
                 $courseId ?? $validated['moodle_course_id'],
                 $validated['moodle_notes']
@@ -356,7 +362,8 @@ class RepeatAssessmentController extends Controller
             return back()->with('success', 'Moodle course setup completed successfully.');
         } catch (\Exception $e) {
             $repeatAssessment->markMoodleSetupFailed($e->getMessage());
-            return back()->with('error', 'Moodle setup failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Moodle setup failed: '.$e->getMessage());
         }
     }
 
@@ -383,7 +390,7 @@ class RepeatAssessmentController extends Controller
     {
         $repeatAssessment->update([
             'workflow_stage' => 'completed',
-            'status' => 'completed'
+            'status' => 'completed',
         ]);
 
         activity()
@@ -424,7 +431,7 @@ class RepeatAssessmentController extends Controller
 
             case 'send_reminders':
                 $repeatAssessments->each(function ($repeat) {
-                    if (!$repeat->notification_sent) {
+                    if (! $repeat->notification_sent) {
                         // Send reminder notification
                         $this->notificationService->notifyRepeatAssessmentRequired(
                             $repeat->student->user,
@@ -441,7 +448,7 @@ class RepeatAssessmentController extends Controller
             ->causedBy(auth()->user())
             ->withProperties([
                 'action' => $validated['action'],
-                'count' => $repeatAssessments->count()
+                'count' => $repeatAssessments->count(),
             ])
             ->log('Bulk action performed on repeat assessments');
 
@@ -479,7 +486,7 @@ class RepeatAssessmentController extends Controller
                         'assessment_name' => $assessment->assessmentComponent->name,
                         'module_name' => $assessment->assessmentComponent->module->name,
                     ];
-                })
+                }),
             ]);
         }
 
@@ -512,7 +519,7 @@ class RepeatAssessmentController extends Controller
             ->withProperties([
                 'created_count' => $created,
                 'deadline_days' => $validated['deadline_days'],
-                'payment_amount' => $validated['payment_amount']
+                'payment_amount' => $validated['payment_amount'],
             ])
             ->log('Auto-populated repeat assessments from failed assessments');
 
@@ -535,7 +542,7 @@ class RepeatAssessmentController extends Controller
             ->causedBy(auth()->user())
             ->withProperties([
                 'student_name' => $studentName,
-                'assessment_name' => $assessmentName
+                'assessment_name' => $assessmentName,
             ])
             ->log('Repeat assessment deleted');
 
@@ -551,47 +558,47 @@ class RepeatAssessmentController extends Controller
         try {
             $failedAssessments = StudentGradeRecord::with([
                 'moduleInstance.module',
-                'student'
+                'student',
             ])
-            ->where('student_id', $student->id)
-            ->where(function($query) {
-                $query->where('percentage', '<', 40)
-                      ->whereNotNull('percentage');
-            })
-            ->whereDoesntHave('repeatAssessments') // Don't include assessments that already have repeat assessments
-            ->get()
-            ->groupBy('module_instance_id')
-            ->map(function($gradeRecords) {
-                $moduleInstance = $gradeRecords->first()->moduleInstance;
-                $failedComponents = $gradeRecords->where('percentage', '<', 40)->count();
-                $totalComponents = count($moduleInstance->module->assessment_strategy ?? []);
-                
-                return [
-                    'module_instance_id' => $moduleInstance->id,
-                    'module_title' => $moduleInstance->module->title,
-                    'module_code' => $moduleInstance->module->module_code,
-                    'failed_components' => $failedComponents,
-                    'total_components' => $totalComponents,
-                    'lowest_grade' => $gradeRecords->min('percentage'),
-                    'last_graded' => $gradeRecords->whereNotNull('graded_at')->max('graded_at')?->format('Y-m-d'),
-                ];
-            })
-            ->values();
+                ->where('student_id', $student->id)
+                ->where(function ($query) {
+                    $query->where('percentage', '<', 40)
+                        ->whereNotNull('percentage');
+                })
+                ->whereDoesntHave('repeatAssessments') // Don't include assessments that already have repeat assessments
+                ->get()
+                ->groupBy('module_instance_id')
+                ->map(function ($gradeRecords) {
+                    $moduleInstance = $gradeRecords->first()->moduleInstance;
+                    $failedComponents = $gradeRecords->where('percentage', '<', 40)->count();
+                    $totalComponents = count($moduleInstance->module->assessment_strategy ?? []);
+
+                    return [
+                        'module_instance_id' => $moduleInstance->id,
+                        'module_title' => $moduleInstance->module->title,
+                        'module_code' => $moduleInstance->module->module_code,
+                        'failed_components' => $failedComponents,
+                        'total_components' => $totalComponents,
+                        'lowest_grade' => $gradeRecords->min('percentage'),
+                        'last_graded' => $gradeRecords->whereNotNull('graded_at')->max('graded_at')?->format('Y-m-d'),
+                    ];
+                })
+                ->values();
 
             return response()->json([
                 'success' => true,
-                'assessments' => $failedAssessments
+                'assessments' => $failedAssessments,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Failed to load student assessments', [
                 'student_id' => $student->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load assessments'
+                'message' => 'Failed to load assessments',
             ], 500);
         }
     }

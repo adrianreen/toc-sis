@@ -2,24 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Programme;
-use App\Models\ProgrammeInstance;
 use App\Models\Module;
 use App\Models\ModuleInstance;
+use App\Models\Programme;
+use App\Models\ProgrammeInstance;
 use App\Models\Student;
-use App\Models\Enrolment;
 use App\Models\StudentGradeRecord;
+use App\Models\User;
 use App\Services\EnrolmentService;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
-     * 
+     *
      * NEW 4-LEVEL ARCHITECTURE COMPATIBLE SEEDER
      * This replaces the old seeder that was incompatible with the new architecture.
      */
@@ -27,25 +26,25 @@ class DatabaseSeeder extends Seeder
     {
         // Create basic users for testing
         $this->createUsers();
-        
+
         // Create programmes and programme instances
         $this->createProgrammesAndInstances();
-        
+
         // Create modules with assessment strategies
         $this->createModulesWithAssessmentStrategies();
-        
+
         // Create module instances and link to programme instances
         $this->createModuleInstancesAndCurriculum();
-        
+
         // Create students
         $this->createStudents();
-        
+
         // Create enrollments using the new two-path system
         $this->createEnrollments();
-        
+
         // Create grade records for testing
         $this->createGradeRecords();
-        
+
         $this->command->info('✅ New 4-level architecture seeding completed successfully!');
     }
 
@@ -133,7 +132,7 @@ class DatabaseSeeder extends Seeder
                     'weighting' => 30,
                     'is_must_pass' => true,
                     'component_pass_mark' => 40,
-                ]
+                ],
             ],
             'created_by' => 1,
         ]);
@@ -162,7 +161,7 @@ class DatabaseSeeder extends Seeder
                     'weighting' => 20,
                     'is_must_pass' => true,
                     'component_pass_mark' => 40,
-                ]
+                ],
             ],
             'created_by' => 1,
         ]);
@@ -199,7 +198,7 @@ class DatabaseSeeder extends Seeder
         // Link module instances to programme instance (curriculum)
         $programmeInstance->moduleInstances()->attach([
             $strategicInstance->id,
-            $marketingInstance->id
+            $marketingInstance->id,
         ]);
 
         $this->command->info('Created module instances and curriculum links');
@@ -250,7 +249,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($moduleInstances as $moduleInstance) {
             $module = $moduleInstance->module;
-            
+
             foreach ($module->assessment_strategy as $component) {
                 StudentGradeRecord::create([
                     'student_id' => $student->id,

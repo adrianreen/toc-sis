@@ -1,14 +1,12 @@
 <?php
+
 // app/Http/Controllers/ReportController.php
 
 namespace App\Http\Controllers;
 
+use App\Models\Deferral;
 use App\Models\Programme;
 use App\Models\Student;
-use App\Models\Enrolment;
-use App\Models\Deferral;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
@@ -29,14 +27,14 @@ class ReportController extends Controller
         $programmeStats = Programme::withCount([
             'programmeInstances as active_instances_count' => function ($query) {
                 $query->whereDate('intake_start_date', '<=', now())
-                      ->whereDate('intake_end_date', '>=', now());
-            }
+                    ->whereDate('intake_end_date', '>=', now());
+            },
         ])->with(['programmeInstances' => function ($query) {
             $query->withCount(['enrolments' => function ($subQuery) {
                 $subQuery->where('enrolment_type', 'programme')
-                         ->whereHas('student', function ($studentQuery) {
-                             $studentQuery->where('status', 'active');
-                         });
+                    ->whereHas('student', function ($studentQuery) {
+                        $studentQuery->where('status', 'active');
+                    });
             }]);
         }])->get();
 
@@ -53,10 +51,10 @@ class ReportController extends Controller
     {
         $students = Student::whereHas('enrolments', function ($query) use ($programmeInstance) {
             $query->where('programme_instance_id', $programmeInstance->id)
-                  ->where('enrolment_type', 'programme')
-                  ->whereHas('student', function ($studentQuery) {
-                      $studentQuery->where('status', 'active');
-                  });
+                ->where('enrolment_type', 'programme')
+                ->whereHas('student', function ($studentQuery) {
+                    $studentQuery->where('status', 'active');
+                });
         })->with(['enrolments' => function ($query) use ($programmeInstance) {
             $query->where('programme_instance_id', $programmeInstance->id);
         }])->get();
@@ -69,16 +67,16 @@ class ReportController extends Controller
         $student->load([
             'enrolments.programmeInstance.programme',
             'enrolments.moduleInstance.module',
-            'studentGradeRecords' => function($query) {
+            'studentGradeRecords' => function ($query) {
                 $query->with('moduleInstance.module')
-                      ->where(function ($q) {
-                          $q->where('is_visible_to_student', true)
+                    ->where(function ($q) {
+                        $q->where('is_visible_to_student', true)
                             ->orWhere(function ($subQ) {
                                 $subQ->whereNotNull('release_date')
-                                     ->where('release_date', '<=', now());
+                                    ->where('release_date', '<=', now());
                             });
-                      });
-            }
+                    });
+            },
         ]);
 
         // Calculate module progress from grade records
@@ -87,14 +85,14 @@ class ReportController extends Controller
             ->map(function ($gradeRecords) {
                 $moduleInstance = $gradeRecords->first()->moduleInstance;
                 $module = $moduleInstance->module;
-                
+
                 $totalComponents = count($module->assessment_strategy ?? []);
                 $gradedComponents = $gradeRecords->whereNotNull('grade')->count();
-                
+
                 // Calculate overall grade from assessment strategy
                 $totalWeightedMark = 0;
                 $totalWeight = 0;
-                
+
                 foreach ($module->assessment_strategy ?? [] as $component) {
                     $gradeRecord = $gradeRecords->where('assessment_component_name', $component['component_name'])->first();
                     if ($gradeRecord && $gradeRecord->grade !== null) {
@@ -102,16 +100,16 @@ class ReportController extends Controller
                         $totalWeight += $component['weighting'];
                     }
                 }
-                
+
                 $finalGrade = $totalWeight > 0 ? round($totalWeightedMark, 1) : null;
                 $status = $gradedComponents === $totalComponents ? 'completed' : 'in_progress';
-                
+
                 return (object) [
                     'code' => $module->module_code,
                     'title' => $module->title,
                     'status' => $status,
                     'final_grade' => $finalGrade,
-                    'progress' => $totalComponents > 0 ? round(($gradedComponents / $totalComponents) * 100) : 0
+                    'progress' => $totalComponents > 0 ? round(($gradedComponents / $totalComponents) * 100) : 0,
                 ];
             })
             ->values();

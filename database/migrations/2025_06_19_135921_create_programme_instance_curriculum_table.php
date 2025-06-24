@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('programme_instance_id')->constrained()->onDelete('cascade');
             $table->foreignId('module_instance_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             $table->unique(['programme_instance_id', 'module_instance_id'], 'programme_module_unique');
             $table->index('programme_instance_id');
             $table->index('module_instance_id');

@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class StudentDocument extends Model
 {
@@ -31,14 +31,14 @@ class StudentDocument extends Model
         'uploaded_by',
         'uploaded_at',
         'verified_by',
-        'verified_at'
+        'verified_at',
     ];
 
     protected $casts = [
         'uploaded_at' => 'datetime',
         'verified_at' => 'datetime',
         'metadata' => 'array',
-        'file_size' => 'integer'
+        'file_size' => 'integer',
     ];
 
     // Activity logging
@@ -75,7 +75,7 @@ class StudentDocument extends Model
             'certificate' => 'Certificate/Diploma',
             'identity_document' => 'Identity Document',
             'qualification_certificate' => 'Qualification Certificate',
-            'other' => 'Other Document'
+            'other' => 'Other Document',
         ];
     }
 
@@ -89,18 +89,18 @@ class StudentDocument extends Model
     {
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     // Status badge color helper
     public function getStatusColorAttribute(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'uploaded' => 'bg-blue-100 text-blue-800',
             'verified' => 'bg-green-100 text-green-800',
             'rejected' => 'bg-red-100 text-red-800',

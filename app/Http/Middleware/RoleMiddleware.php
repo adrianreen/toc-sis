@@ -13,12 +13,12 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return redirect()->route('login');
         }
 
         $userRole = auth()->user()->role;
-        
+
         // Check if user's role is in the allowed roles
         if (in_array($userRole, $roles)) {
             return $next($request);

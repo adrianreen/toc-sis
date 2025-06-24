@@ -19,7 +19,7 @@ return new class extends Migration
             $table->boolean('in_app_enabled')->default(true);
             $table->integer('advance_days')->default(3); // For deadline notifications
             $table->timestamps();
-            
+
             $table->unique(['user_id', 'notification_type']);
         });
     }

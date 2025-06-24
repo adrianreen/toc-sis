@@ -6,16 +6,13 @@
                 <p class="text-gray-600 mt-1">Manage documents for {{ $student->full_name }}</p>
             </div>
             <div class="flex items-center space-x-3">
-                <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
-                   class="bg-toc-600 text-white px-4 py-2 rounded-lg hover:bg-toc-700 transition-colors">
+                <a href="{{ route('students.documents.create', $student) }}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
+                   style="background-color: #2563eb !important; color: white !important; cursor: pointer !important;">
                     <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    Upload RPL Documents
-                </a>
-                <a href="{{ route('students.documents.create', $student) }}" 
-                   class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                    Upload Other Documents
+                    Upload Documents
                 </a>
             </div>
         </div>
@@ -188,9 +185,9 @@
                         <h3 class="mt-4 text-lg font-medium text-gray-900">No documents uploaded</h3>
                         <p class="mt-2 text-gray-600">Get started by uploading your first document.</p>
                         <div class="mt-6">
-                            <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
+                            <a href="{{ route('students.documents.create', $student) }}" 
                                class="bg-toc-600 text-white px-4 py-2 rounded-lg hover:bg-toc-700 transition-colors">
-                                Upload RPL Documents
+                                Upload Documents
                             </a>
                         </div>
                     </div>

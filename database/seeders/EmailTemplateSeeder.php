@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\EmailTemplate;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class EmailTemplateSeeder extends Seeder
 {
@@ -12,8 +12,9 @@ class EmailTemplateSeeder extends Seeder
     {
         // Get first manager user to assign as creator
         $manager = User::where('role', 'manager')->first();
-        if (!$manager) {
+        if (! $manager) {
             $this->command->warn('No manager user found. Skipping email template seeding.');
+
             return;
         }
 
@@ -249,6 +250,6 @@ Best regards,
             EmailTemplate::create($templateData);
         }
 
-        $this->command->info('Created ' . count($templates) . ' default email templates.');
+        $this->command->info('Created '.count($templates).' default email templates.');
     }
 }

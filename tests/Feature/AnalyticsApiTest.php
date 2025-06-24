@@ -2,15 +2,14 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Student;
-use App\Models\Programme;
 use App\Models\Enrolment;
-use App\Models\StudentAssessment;
+use App\Models\Programme;
+use App\Models\Student;
+use App\Models\User;
 use App\Services\AnalyticsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
 
 class AnalyticsApiTest extends TestCase
 {
@@ -19,7 +18,7 @@ class AnalyticsApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create a manager user for authentication
         $this->manager = User::factory()->create(['role' => 'manager']);
     }
@@ -36,11 +35,11 @@ class AnalyticsApiTest extends TestCase
                     'active',
                     'enrolled',
                     'deferred',
-                    'completed'
+                    'completed',
                 ],
                 'programmes' => [
                     'total',
-                    'active'
+                    'active',
                 ],
                 'assessments' => [
                     'total',
@@ -48,15 +47,15 @@ class AnalyticsApiTest extends TestCase
                     'submitted',
                     'graded',
                     'passed',
-                    'failed'
+                    'failed',
                 ],
                 'enrollments' => [
                     'total',
                     'active',
                     'completed',
-                    'deferred'
+                    'deferred',
                 ],
-                'generated_at'
+                'generated_at',
             ]);
     }
 
@@ -66,7 +65,7 @@ class AnalyticsApiTest extends TestCase
         Student::factory()->count(5)->create(['status' => 'active']);
         Student::factory()->count(3)->create(['status' => 'enrolled']);
         Student::factory()->count(2)->create(['status' => 'completed']);
-        
+
         Programme::factory()->count(4)->create(['is_active' => true]);
         Programme::factory()->count(1)->create(['is_active' => false]);
 
@@ -74,9 +73,9 @@ class AnalyticsApiTest extends TestCase
             ->getJson('/api/analytics/system-overview');
 
         $response->assertStatus(200);
-        
+
         $data = $response->json();
-        
+
         $this->assertEquals(10, $data['students']['total']);
         $this->assertEquals(5, $data['students']['active']);
         $this->assertEquals(3, $data['students']['enrolled']);
@@ -95,9 +94,9 @@ class AnalyticsApiTest extends TestCase
                 'assessment_trends',
                 'enrollment_trends',
                 'period_type',
-                'generated_at'
+                'generated_at',
             ]);
-            
+
         $data = $response->json();
         $this->assertEquals('weekly', $data['period_type']);
     }
@@ -107,12 +106,12 @@ class AnalyticsApiTest extends TestCase
         // Create programme with enrollments
         $programme = Programme::factory()->create(['is_active' => true]);
         $students = Student::factory()->count(3)->create();
-        
+
         foreach ($students as $student) {
             Enrolment::factory()->create([
                 'student_id' => $student->id,
                 'programme_id' => $programme->id,
-                'status' => 'active'
+                'status' => 'active',
             ]);
         }
 
@@ -131,12 +130,12 @@ class AnalyticsApiTest extends TestCase
                         'completed_enrollments',
                         'completion_rate',
                         'average_grade',
-                        'pass_rate'
-                    ]
+                        'pass_rate',
+                    ],
                 ],
-                'generated_at'
+                'generated_at',
             ]);
-            
+
         $data = $response->json();
         $this->assertCount(1, $data['programmes']);
         $this->assertEquals(3, $data['programmes'][0]['total_enrollments']);
@@ -152,7 +151,7 @@ class AnalyticsApiTest extends TestCase
             ->assertJsonStructure([
                 'completion_rates',
                 'period_type',
-                'generated_at'
+                'generated_at',
             ]);
 
         // Test monthly period
@@ -175,9 +174,9 @@ class AnalyticsApiTest extends TestCase
                 'recently_active_students',
                 'engagement_rate',
                 'submission_patterns',
-                'generated_at'
+                'generated_at',
             ]);
-            
+
         $data = $response->json();
         $this->assertIsArray($data['submission_patterns']);
         $this->assertIsNumeric($data['engagement_rate']);
@@ -189,7 +188,7 @@ class AnalyticsApiTest extends TestCase
             'student_performance',
             'programme_effectiveness',
             'assessment_completion',
-            'student_engagement'
+            'student_engagement',
         ];
 
         foreach ($chartTypes as $type) {
@@ -201,11 +200,11 @@ class AnalyticsApiTest extends TestCase
                     'type',
                     'data' => [
                         'labels',
-                        'datasets'
+                        'datasets',
                     ],
-                    'options'
+                    'options',
                 ]);
-                
+
             $data = $response->json();
             $this->assertIsString($data['type']);
             $this->assertIsArray($data['data']['datasets']);
@@ -219,7 +218,7 @@ class AnalyticsApiTest extends TestCase
 
         $response->assertStatus(400)
             ->assertJsonFragment([
-                'error' => 'Unknown chart type'
+                'error' => 'Unknown chart type',
             ]);
     }
 
@@ -238,7 +237,7 @@ class AnalyticsApiTest extends TestCase
 
         $response->assertStatus(400)
             ->assertJsonFragment([
-                'error' => 'metric_type is required'
+                'error' => 'metric_type is required',
             ]);
     }
 
@@ -250,7 +249,7 @@ class AnalyticsApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonFragment([
                 'success' => true,
-                'message' => 'Analytics cache refreshed'
+                'message' => 'Analytics cache refreshed',
             ]);
     }
 
@@ -262,9 +261,9 @@ class AnalyticsApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'success',
-                'message'
+                'message',
             ]);
-            
+
         $data = $response->json();
         $this->assertTrue($data['success']);
         $this->assertStringContains('Cleared', $data['message']);
@@ -283,7 +282,7 @@ class AnalyticsApiTest extends TestCase
 
         $response->assertStatus(500)
             ->assertJsonFragment([
-                'error' => 'Failed to get system overview'
+                'error' => 'Failed to get system overview',
             ]);
     }
 
@@ -296,7 +295,7 @@ class AnalyticsApiTest extends TestCase
             '/api/analytics/assessment-completion',
             '/api/analytics/student-engagement',
             '/api/analytics/chart-data/student_performance',
-            '/api/analytics/historical-metrics?metric_type=system_overview'
+            '/api/analytics/historical-metrics?metric_type=system_overview',
         ];
 
         foreach ($endpoints as $endpoint) {
@@ -327,7 +326,7 @@ class AnalyticsApiTest extends TestCase
         // Make multiple calls and ensure consistency
         $response1 = $this->actingAs($this->manager)
             ->getJson('/api/analytics/system-overview');
-        
+
         $response2 = $this->actingAs($this->manager)
             ->getJson('/api/analytics/system-overview');
 
@@ -345,15 +344,15 @@ class AnalyticsApiTest extends TestCase
         Programme::factory()->count(20)->create();
 
         $startTime = microtime(true);
-        
+
         $response = $this->actingAs($this->manager)
             ->getJson('/api/analytics/system-overview');
-            
+
         $endTime = microtime(true);
         $executionTime = ($endTime - $startTime) * 1000; // Convert to milliseconds
 
         $response->assertStatus(200);
-        
+
         // Should complete within 2 seconds (2000ms)
         $this->assertLessThan(2000, $executionTime, 'Analytics endpoint took too long to respond');
     }

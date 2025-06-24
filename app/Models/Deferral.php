@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Deferral.php
 
 namespace App\Models;

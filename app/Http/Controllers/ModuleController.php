@@ -7,6 +7,11 @@ use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
+    /**
+     * Display a paginated list of modules with search and filtering
+     *
+     * @return \Illuminate\View\View
+     */
     public function index(Request $request)
     {
         $query = Module::withCount(['moduleInstances']);
@@ -14,9 +19,9 @@ class ModuleController extends Controller
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('module_code', 'LIKE', "%{$search}%");
+                    ->orWhere('module_code', 'LIKE', "%{$search}%");
             });
         }
 
@@ -28,7 +33,7 @@ class ModuleController extends Controller
 
         // Filter by credit range
         if ($request->filled('credit_range')) {
-            switch($request->credit_range) {
+            switch ($request->credit_range) {
                 case '1-5':
                     $query->whereBetween('credit_value', [1, 5]);
                     break;
@@ -46,17 +51,17 @@ class ModuleController extends Controller
 
         // Filter by instance count
         if ($request->filled('instance_count')) {
-            switch($request->instance_count) {
+            switch ($request->instance_count) {
                 case 'none':
                     $query->having('module_instances_count', '=', 0);
                     break;
                 case 'low':
                     $query->having('module_instances_count', '>=', 1)
-                          ->having('module_instances_count', '<=', 2);
+                        ->having('module_instances_count', '<=', 2);
                     break;
                 case 'medium':
                     $query->having('module_instances_count', '>=', 3)
-                          ->having('module_instances_count', '<=', 5);
+                        ->having('module_instances_count', '<=', 5);
                     break;
                 case 'high':
                     $query->having('module_instances_count', '>', 5);
@@ -72,8 +77,8 @@ class ModuleController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by', 'module_code');
         $sortDirection = $request->get('sort_direction', 'asc');
-        
-        switch($sortBy) {
+
+        switch ($sortBy) {
             case 'instances_count':
                 $query->orderBy('module_instances_count', $sortDirection);
                 break;
@@ -82,24 +87,35 @@ class ModuleController extends Controller
         }
 
         $modules = $query->paginate(20)->withQueryString();
-            
+
         return view('modules.index', compact('modules'));
     }
 
+    /**
+     * Show the form for creating a new module
+     *
+     * @return \Illuminate\View\View
+     */
     public function create()
     {
         return view('modules.create');
     }
 
+    /**
+     * Store a newly created module with assessment strategy validation
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
         $validated = $request->validate(Module::rules());
 
-        // Validate total weighting adds up to 100
+        // Validate total weighting adds up to required total
+        $requiredTotal = config('academic.assessment.total_weighting');
         $totalWeight = collect($validated['assessment_strategy'])->sum('weighting');
-        if ($totalWeight != 100) {
-            return back()->withErrors(['assessment_strategy' => 'Assessment component weightings must total 100%.'])
-                         ->withInput();
+        if ($totalWeight != $requiredTotal) {
+            return back()->withErrors(['assessment_strategy' => "Assessment component weightings must total {$requiredTotal}%."])
+                ->withInput();
         }
 
         // Transform assessment components for storage
@@ -132,9 +148,9 @@ class ModuleController extends Controller
         $module->load([
             'moduleInstances' => function ($query) {
                 $query->with(['tutor', 'programmeInstances'])
-                      ->withCount('enrolments')
-                      ->orderBy('start_date', 'desc');
-            }
+                    ->withCount('enrolments')
+                    ->orderBy('start_date', 'desc');
+            },
         ]);
 
         return view('modules.show', compact('module'));
@@ -159,11 +175,12 @@ class ModuleController extends Controller
     {
         $validated = $request->validate(Module::rules($module->id));
 
-        // Validate total weighting adds up to 100
+        // Validate total weighting adds up to required total
+        $requiredTotal = config('academic.assessment.total_weighting');
         $totalWeight = collect($validated['assessment_strategy'])->sum('weighting');
-        if ($totalWeight != 100) {
-            return back()->withErrors(['assessment_strategy' => 'Assessment component weightings must total 100%.'])
-                         ->withInput();
+        if ($totalWeight != $requiredTotal) {
+            return back()->withErrors(['assessment_strategy' => "Assessment component weightings must total {$requiredTotal}%."])
+                ->withInput();
         }
 
         // Transform assessment components for storage

@@ -14,10 +14,10 @@ return new class extends Migration
             $table->enum('document_type', [
                 'rpl_proof',
                 'transcript',
-                'certificate', 
+                'certificate',
                 'identity_document',
                 'qualification_certificate',
-                'other'
+                'other',
             ])->index();
             $table->string('title')->nullable(); // User-friendly title
             $table->string('original_filename');
@@ -30,17 +30,17 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->text('rejection_reason')->nullable();
             $table->json('metadata')->nullable(); // Additional file metadata as JSON
-            
+
             // Tracking fields
             $table->foreignId('uploaded_by')->constrained('users')->onDelete('cascade');
             $table->timestamp('uploaded_at');
             $table->foreignId('verified_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('verified_at')->nullable();
-            
+
             // Standard Laravel fields
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes for performance
             $table->index(['student_id', 'document_type']);
             $table->index(['status', 'uploaded_at']);

@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\StudentDocument;
 use App\Services\DocumentUploadService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class StudentDocumentController extends Controller
 {
@@ -30,7 +29,7 @@ class StudentDocumentController extends Controller
             abort(403, 'Unauthorized to view these documents.');
         }
 
-        if (!in_array(Auth::user()->role, ['student', 'manager', 'student_services', 'teacher'])) {
+        if (! in_array(Auth::user()->role, ['student', 'manager', 'student_services', 'teacher'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -52,7 +51,7 @@ class StudentDocumentController extends Controller
         return view('students.documents.index', [
             'student' => $student,
             'documents' => $documents,
-            'documentTypes' => $documentTypes
+            'documentTypes' => $documentTypes,
         ]);
     }
 
@@ -66,17 +65,17 @@ class StudentDocumentController extends Controller
             abort(403, 'Unauthorized to manage these documents.');
         }
 
-        if (!in_array(Auth::user()->role, ['student', 'manager', 'student_services'])) {
+        if (! in_array(Auth::user()->role, ['student', 'manager', 'student_services'])) {
             abort(403, 'Unauthorized.');
         }
 
-        $documentType = $request->get('type', 'rpl_proof');
+        $documentType = $request->get('type', 'other');
         $documentTypes = StudentDocument::getDocumentTypeLabels();
 
         return view('students.documents.create', [
             'student' => $student,
             'documentType' => $documentType,
-            'documentTypes' => $documentTypes
+            'documentTypes' => $documentTypes,
         ]);
     }
 
@@ -85,12 +84,19 @@ class StudentDocumentController extends Controller
      */
     public function store(Student $student, Request $request)
     {
+        \Log::info('Document upload attempt', [
+            'student_id' => $student->id,
+            'user_id' => Auth::id(),
+            'has_files' => $request->hasFile('files'),
+            'files_count' => $request->hasFile('files') ? count($request->file('files')) : 0,
+        ]);
+
         // Check if user can manage this student's documents
         if (Auth::user()->role === 'student' && Auth::user()->student_id !== $student->id) {
             abort(403, 'Unauthorized to manage these documents.');
         }
 
-        if (!in_array(Auth::user()->role, ['student', 'manager', 'student_services'])) {
+        if (! in_array(Auth::user()->role, ['student', 'manager', 'student_services'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -98,7 +104,7 @@ class StudentDocumentController extends Controller
             'document_type' => 'required|in:rpl_proof,transcript,certificate,identity_document,qualification_certificate,other',
             'files.*' => 'required|file|mimes:pdf,jpg,jpeg,png,gif|max:10240', // 10MB
             'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000'
+            'description' => 'nullable|string|max:1000',
         ]);
 
         $uploadedDocuments = [];
@@ -106,6 +112,12 @@ class StudentDocumentController extends Controller
 
         foreach ($request->file('files') as $file) {
             try {
+                \Log::info('Attempting to upload file', [
+                    'filename' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'mime' => $file->getMimeType(),
+                ]);
+
                 $document = $this->documentService->uploadDocument(
                     $student,
                     $file,
@@ -114,7 +126,14 @@ class StudentDocumentController extends Controller
                     $request->get('description')
                 );
                 $uploadedDocuments[] = $document;
+
+                \Log::info('File uploaded successfully', ['document_id' => $document->id]);
             } catch (Exception $e) {
+                \Log::error('File upload failed', [
+                    'filename' => $file->getClientOriginalName(),
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
                 $errors[] = "Failed to upload {$file->getClientOriginalName()}: {$e->getMessage()}";
             }
         }
@@ -124,6 +143,7 @@ class StudentDocumentController extends Controller
 
         if ($successCount > 0 && $errorCount === 0) {
             $message = $successCount === 1 ? 'Document uploaded successfully.' : "{$successCount} documents uploaded successfully.";
+
             return redirect()->route('students.documents.index', $student)
                 ->with('success', $message);
         } elseif ($successCount > 0 && $errorCount > 0) {
@@ -148,11 +168,11 @@ class StudentDocumentController extends Controller
             abort(403, 'Unauthorized to access this document.');
         }
 
-        if (!in_array(Auth::user()->role, ['student', 'manager', 'student_services', 'teacher'])) {
+        if (! in_array(Auth::user()->role, ['student', 'manager', 'student_services', 'teacher'])) {
             abort(403, 'Unauthorized.');
         }
 
-        if (!$document->fileExists()) {
+        if (! $document->fileExists()) {
             abort(404, 'File not found.');
         }
 
@@ -178,11 +198,11 @@ class StudentDocumentController extends Controller
             abort(403, 'Unauthorized to access this document.');
         }
 
-        if (!in_array(Auth::user()->role, ['student', 'manager', 'student_services', 'teacher'])) {
+        if (! in_array(Auth::user()->role, ['student', 'manager', 'student_services', 'teacher'])) {
             abort(403, 'Unauthorized.');
         }
 
-        if (!$document->fileExists()) {
+        if (! $document->fileExists()) {
             abort(404, 'File not found.');
         }
 
@@ -213,7 +233,7 @@ class StudentDocumentController extends Controller
             abort(403, 'Unauthorized to manage this document.');
         }
 
-        if (!in_array(Auth::user()->role, ['student', 'manager', 'student_services'])) {
+        if (! in_array(Auth::user()->role, ['student', 'manager', 'student_services'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -231,7 +251,7 @@ class StudentDocumentController extends Controller
      */
     public function verify(StudentDocument $document)
     {
-        if (!in_array(Auth::user()->role, ['manager', 'student_services'])) {
+        if (! in_array(Auth::user()->role, ['manager', 'student_services'])) {
             abort(403, 'Unauthorized.');
         }
 
@@ -249,12 +269,12 @@ class StudentDocumentController extends Controller
      */
     public function reject(StudentDocument $document, Request $request)
     {
-        if (!in_array(Auth::user()->role, ['manager', 'student_services'])) {
+        if (! in_array(Auth::user()->role, ['manager', 'student_services'])) {
             abort(403, 'Unauthorized.');
         }
 
         $request->validate([
-            'rejection_reason' => 'required|string|max:1000'
+            'rejection_reason' => 'required|string|max:1000',
         ]);
 
         if ($this->documentService->rejectDocument($document, Auth::user(), $request->get('rejection_reason'))) {

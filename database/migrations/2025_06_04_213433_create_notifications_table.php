@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamp('read_at')->nullable();
             $table->timestamp('scheduled_for')->nullable(); // For future scheduling
             $table->timestamps();
-            
+
             $table->index(['user_id', 'is_read']);
             $table->index(['type', 'scheduled_for']);
         });

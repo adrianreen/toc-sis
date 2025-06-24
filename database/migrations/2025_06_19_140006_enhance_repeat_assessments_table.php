@@ -18,34 +18,34 @@ return new class extends Migration
             $table->decimal('payment_amount', 8, 2)->nullable()->after('payment_method');
             $table->date('payment_date')->nullable()->after('payment_amount');
             $table->text('payment_notes')->nullable()->after('payment_date');
-            
+
             // Notification tracking fields
             $table->boolean('notification_sent')->default(false)->after('payment_notes');
             $table->timestamp('notification_date')->nullable()->after('notification_sent');
             $table->enum('notification_method', ['email', 'post', 'phone', 'in_person'])->nullable()->after('notification_date');
             $table->text('notification_notes')->nullable()->after('notification_method');
-            
+
             // Moodle integration fields
             $table->enum('moodle_setup_status', ['pending', 'in_progress', 'completed', 'failed', 'not_required'])->default('pending')->after('notification_notes');
             $table->timestamp('moodle_setup_date')->nullable()->after('moodle_setup_status');
             $table->string('moodle_course_id')->nullable()->after('moodle_setup_date');
             $table->text('moodle_notes')->nullable()->after('moodle_course_id');
-            
+
             // Workflow management fields
             $table->enum('workflow_stage', ['identified', 'notified', 'payment_pending', 'moodle_setup', 'active', 'completed', 'cancelled'])->default('identified')->after('moodle_notes');
             $table->date('deadline_date')->nullable()->after('workflow_stage');
             $table->enum('priority_level', ['low', 'medium', 'high', 'urgent'])->default('medium')->after('deadline_date');
             $table->text('staff_notes')->nullable()->after('priority_level');
-            
+
             // Student communication fields
             $table->text('student_response')->nullable()->after('staff_notes');
             $table->timestamp('student_response_date')->nullable()->after('student_response');
-            
+
             // Additional tracking
             $table->foreignId('assigned_to')->nullable()->constrained('users')->after('approved_by'); // Staff member handling the case
             $table->timestamp('last_contact_date')->nullable()->after('assigned_to');
             $table->text('contact_history')->nullable()->after('last_contact_date'); // JSON field for contact log
-            
+
             // Add indexes for better performance
             $table->index(['payment_status', 'workflow_stage']);
             $table->index(['notification_sent', 'moodle_setup_status']);
@@ -65,10 +65,10 @@ return new class extends Migration
             $table->dropIndex(['assigned_to', 'priority_level']);
             $table->dropIndex(['notification_sent', 'moodle_setup_status']);
             $table->dropIndex(['payment_status', 'workflow_stage']);
-            
+
             // Remove foreign key constraints
             $table->dropForeign(['assigned_to']);
-            
+
             // Remove all added columns
             $table->dropColumn([
                 'payment_status',
@@ -92,7 +92,7 @@ return new class extends Migration
                 'student_response_date',
                 'assigned_to',
                 'last_contact_date',
-                'contact_history'
+                'contact_history',
             ]);
         });
     }

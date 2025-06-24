@@ -35,7 +35,7 @@ class ComputeAnalyticsCommand extends Command
     public function handle()
     {
         $this->info('Computing analytics metrics...');
-        
+
         if ($this->option('clear-cache')) {
             $this->info('Clearing existing analytics cache...');
             $this->analyticsService->clearExpiredCache();
@@ -47,16 +47,16 @@ class ComputeAnalyticsCommand extends Command
             // Precompute all analytics
             $this->info('Computing system overview...');
             $this->analyticsService->getSystemOverview();
-            
+
             $this->info('Computing student performance trends...');
             $this->analyticsService->getStudentPerformanceTrends();
-            
+
             $this->info('Computing programme effectiveness...');
             $this->analyticsService->getProgrammeEffectiveness();
-            
+
             $this->info('Computing assessment completion rates...');
             $this->analyticsService->getAssessmentCompletionRates();
-            
+
             $this->info('Computing student engagement metrics...');
             $this->analyticsService->getStudentEngagement();
 
@@ -74,11 +74,12 @@ class ComputeAnalyticsCommand extends Command
             $duration = round($endTime - $startTime, 2);
 
             $this->info("Analytics computation completed successfully in {$duration} seconds.");
-            
+
             return Command::SUCCESS;
-            
+
         } catch (\Exception $e) {
-            $this->error('Failed to compute analytics: ' . $e->getMessage());
+            $this->error('Failed to compute analytics: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

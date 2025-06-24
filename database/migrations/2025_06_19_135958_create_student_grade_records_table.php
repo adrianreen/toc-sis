@@ -26,12 +26,12 @@ return new class extends Migration
             $table->date('release_date')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['student_id', 'module_instance_id']);
             $table->index(['module_instance_id', 'assessment_component_name'], 'sgr_module_component_idx');
             $table->index('is_visible_to_student');
             $table->index('release_date');
-            
+
             $table->unique(['student_id', 'module_instance_id', 'assessment_component_name'], 'student_module_component_unique');
         });
     }

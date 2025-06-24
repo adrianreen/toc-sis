@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Student;
-use App\Models\Enrolment;
 use App\Models\Deferral;
+use App\Models\Enrolment;
 use App\Models\ProgrammeInstance;
+use App\Models\Student;
 use App\Services\EnrolmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,10 +28,10 @@ class DeferralController extends Controller
             'enrolment.moduleInstance.module',
             'fromProgrammeInstance.programme',
             'toProgrammeInstance.programme',
-            'approvedBy'
+            'approvedBy',
         ])
-        ->latest()
-        ->paginate(20);
+            ->latest()
+            ->paginate(20);
 
         return view('deferrals.index', compact('deferrals'));
     }
@@ -114,7 +114,7 @@ class DeferralController extends Controller
                     'deferral_id' => $deferral->id,
                     'from_programme_instance' => $enrolment->programmeInstance->programme->title,
                     'to_programme_instance' => $targetProgrammeInstance->programme->title,
-                    'intake_start' => $targetProgrammeInstance->intake_start_date->format('Y-m-d')
+                    'intake_start' => $targetProgrammeInstance->intake_start_date->format('Y-m-d'),
                 ])
                 ->log("Deferral requested from {$enrolment->programmeInstance->programme->title} to {$targetProgrammeInstance->programme->title}");
         });
@@ -150,7 +150,7 @@ class DeferralController extends Controller
                 ->withProperties([
                     'deferral_id' => $deferral->id,
                     'new_programme_instance' => $deferral->toProgrammeInstance->programme->title,
-                    'intake_start' => $deferral->toProgrammeInstance->intake_start_date->format('Y-m-d')
+                    'intake_start' => $deferral->toProgrammeInstance->intake_start_date->format('Y-m-d'),
                 ])
                 ->log("Deferral approved - moved to {$deferral->toProgrammeInstance->programme->title}");
         });
@@ -188,7 +188,7 @@ class DeferralController extends Controller
                 ->causedBy(auth()->user())
                 ->withProperties([
                     'deferral_id' => $deferral->id,
-                    'rejection_reason' => $validated['admin_notes']
+                    'rejection_reason' => $validated['admin_notes'],
                 ])
                 ->log("Deferral rejected - {$validated['admin_notes']}");
         });
@@ -203,7 +203,7 @@ class DeferralController extends Controller
             'enrolment.programmeInstance.programme',
             'fromProgrammeInstance.programme',
             'toProgrammeInstance.programme',
-            'approvedBy'
+            'approvedBy',
         ]);
 
         return view('deferrals.show', compact('deferral'));
@@ -219,12 +219,12 @@ class DeferralController extends Controller
             // If deferral was pending, restore enrolment status
             if ($deferral->status === 'pending') {
                 $deferral->enrolment->update(['status' => 'active']);
-                
+
                 // Check if student should be made active again
                 $activeEnrolments = Enrolment::where('student_id', $deferral->student_id)
                     ->where('status', 'active')
                     ->count();
-                    
+
                 if ($activeEnrolments > 0) {
                     $deferral->student->update(['status' => 'active']);
                 }
@@ -234,7 +234,7 @@ class DeferralController extends Controller
                 ->performedOn($deferral->student)
                 ->causedBy(auth()->user())
                 ->withProperties(['deferral_id' => $deferral->id])
-                ->log("Deferral request deleted");
+                ->log('Deferral request deleted');
 
             $deferral->delete();
         });

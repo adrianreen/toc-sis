@@ -32,9 +32,9 @@ class GenerateAsyncModuleInstances extends Command
         $targetDate = now()->addDays($daysAhead);
 
         $this->info("🚀 Generating async module instances up to: {$targetDate->format('Y-m-d')}");
-        
+
         if ($dryRun) {
-            $this->warn("🔍 DRY RUN MODE - No instances will be created");
+            $this->warn('🔍 DRY RUN MODE - No instances will be created');
         }
 
         // Get all modules that allow standalone enrolment
@@ -57,9 +57,10 @@ class GenerateAsyncModuleInstances extends Command
                 ->orderBy('start_date', 'desc')
                 ->first();
 
-            if (!$latestInstance) {
-                $this->warn("   ⚠️  No async instances found - skipping (create initial instance manually)");
+            if (! $latestInstance) {
+                $this->warn('   ⚠️  No async instances found - skipping (create initial instance manually)');
                 $skippedCount++;
+
                 continue;
             }
 
@@ -69,7 +70,7 @@ class GenerateAsyncModuleInstances extends Command
 
             while (true) {
                 $nextDate = $this->calculateNextStartDate($currentDate, $module->async_instance_cadence);
-                
+
                 // Stop if we've reached our target date
                 if ($nextDate->gt($targetDate)) {
                     break;
@@ -83,11 +84,12 @@ class GenerateAsyncModuleInstances extends Command
                 if ($existingInstance) {
                     $this->line("   ✅ Instance already exists for {$nextDate->format('Y-m-d')}");
                     $currentDate = $nextDate;
+
                     continue;
                 }
 
                 // Create the instance
-                if (!$dryRun) {
+                if (! $dryRun) {
                     $newInstance = ModuleInstance::create([
                         'module_id' => $module->id,
                         'tutor_id' => $latestInstance->tutor_id, // Copy tutor from latest
@@ -108,16 +110,16 @@ class GenerateAsyncModuleInstances extends Command
             }
 
             if ($instancesForModule === 0) {
-                $this->line("   ✅ No new instances needed");
+                $this->line('   ✅ No new instances needed');
             } else {
-                $this->line("   📈 {$instancesForModule} instances " . ($dryRun ? 'would be created' : 'created'));
+                $this->line("   📈 {$instancesForModule} instances ".($dryRun ? 'would be created' : 'created'));
             }
         }
 
         $this->newLine();
-        $this->info("🎉 Summary:");
+        $this->info('🎉 Summary:');
         $this->info("   Total modules processed: {$standaloneModules->count()}");
-        $this->info("   Instances " . ($dryRun ? 'that would be created' : 'created') . ": {$createdCount}");
+        $this->info('   Instances '.($dryRun ? 'that would be created' : 'created').": {$createdCount}");
         $this->info("   Modules skipped: {$skippedCount}");
 
         if ($dryRun) {
@@ -138,7 +140,7 @@ class GenerateAsyncModuleInstances extends Command
     private function calculateNextStartDate($currentStartDate, $cadence)
     {
         $date = Carbon::parse($currentStartDate);
-        
+
         switch ($cadence) {
             case 'monthly':
                 return $date->addMonth();
@@ -159,7 +161,7 @@ class GenerateAsyncModuleInstances extends Command
     private function calculateEndDate($startDate, $cadence)
     {
         $date = Carbon::parse($startDate);
-        
+
         switch ($cadence) {
             case 'monthly':
                 return $date->addMonth()->subDay();

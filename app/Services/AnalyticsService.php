@@ -2,17 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\AnalyticsMetric;
 use App\Models\AnalyticsCache;
-use App\Models\Student;
-use App\Models\Programme;
+use App\Models\AnalyticsMetric;
 use App\Models\Enrolment;
+use App\Models\Programme;
+use App\Models\Student;
 use App\Models\StudentGradeRecord;
-use App\Models\ProgrammeInstance;
-use App\Models\ModuleInstance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class AnalyticsService
 {
@@ -22,7 +19,7 @@ class AnalyticsService
     public function getStudentPerformanceTrends($periodType = 'monthly', $months = 12)
     {
         $cacheKey = "student_performance_trends_{$periodType}_{$months}";
-        
+
         // Try to get from cache first
         $cached = AnalyticsCache::getCached($cacheKey);
         if ($cached) {
@@ -36,14 +33,14 @@ class AnalyticsService
             $assessmentTrends = StudentGradeRecord::select(
                 DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
                 DB::raw('COUNT(*) as total_assessments'),
-                DB::raw('SUM(CASE WHEN grade >= 40 THEN 1 ELSE 0 END) as passed_assessments'),
+                DB::raw('SUM(CASE WHEN grade >= '.config('academic.default_pass_mark').' THEN 1 ELSE 0 END) as passed_assessments'),
                 DB::raw('AVG(CASE WHEN grade IS NOT NULL THEN grade ELSE 0 END) as avg_grade')
             )
-            ->where('created_at', '>=', $startDate)
-            ->whereNotNull('grade')
-            ->groupBy('period')
-            ->orderBy('period')
-            ->get();
+                ->where('created_at', '>=', $startDate)
+                ->whereNotNull('grade')
+                ->groupBy('period')
+                ->orderBy('period')
+                ->get();
 
             // Get student enrollment trends
             $enrollmentTrends = Enrolment::select(
@@ -51,10 +48,10 @@ class AnalyticsService
                 DB::raw('COUNT(*) as new_enrollments'),
                 DB::raw('SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_enrollments')
             )
-            ->where('created_at', '>=', $startDate)
-            ->groupBy('period')
-            ->orderBy('period')
-            ->get();
+                ->where('created_at', '>=', $startDate)
+                ->groupBy('period')
+                ->orderBy('period')
+                ->get();
 
             $data = [
                 'assessment_trends' => $assessmentTrends,
@@ -67,21 +64,21 @@ class AnalyticsService
             AnalyticsCache::setCached($cacheKey, $data, 60);
 
             return $data;
-            
+
         } catch (\Exception $e) {
             Log::error('Student performance trends calculation failed', [
                 'error' => $e->getMessage(),
                 'period_type' => $periodType,
-                'months' => $months
+                'months' => $months,
             ]);
-            
+
             // Return empty data structure instead of failing
             return [
                 'assessment_trends' => [],
                 'enrollment_trends' => [],
                 'period_type' => $periodType,
                 'generated_at' => now()->toISOString(),
-                'error' => 'Data temporarily unavailable'
+                'error' => 'Data temporarily unavailable',
             ];
         }
     }
@@ -92,7 +89,7 @@ class AnalyticsService
     public function getProgrammeEffectiveness()
     {
         $cacheKey = 'programme_effectiveness';
-        
+
         // Check cache first
         $cached = AnalyticsCache::getCached($cacheKey);
         if ($cached) {
@@ -120,10 +117,10 @@ class AnalyticsService
                 $totalEnrolments = $enrollmentStats->total_enrollments ?? 0;
                 $activeEnrolments = $enrollmentStats->active_enrollments ?? 0;
                 $completedEnrolments = $enrollmentStats->completed_enrollments ?? 0;
-                
+
                 // Calculate completion rate
                 $completionRate = $totalEnrolments > 0 ? ($completedEnrolments / $totalEnrolments) * 100 : 0;
-                
+
                 // Get assessment performance with new architecture
                 $assessmentStats = DB::table('student_grade_records as sgr')
                     ->join('module_instances as mi', 'sgr.module_instance_id', '=', 'mi.id')
@@ -135,7 +132,7 @@ class AnalyticsService
                     ->selectRaw('
                         COUNT(*) as total_graded,
                         AVG(sgr.grade) as avg_grade,
-                        SUM(CASE WHEN sgr.grade >= 40 THEN 1 ELSE 0 END) as passed_count
+                        SUM(CASE WHEN sgr.grade >= '.config('academic.default_pass_mark').' THEN 1 ELSE 0 END) as passed_count
                     ')
                     ->first();
 
@@ -166,18 +163,18 @@ class AnalyticsService
             AnalyticsCache::setCached($cacheKey, $result, 120);
 
             return $result;
-            
+
         } catch (\Exception $e) {
             Log::error('Programme effectiveness calculation failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
-            
+
             // Return empty data structure instead of failing
             return [
                 'programmes' => [],
                 'generated_at' => now()->toISOString(),
-                'error' => 'Data temporarily unavailable'
+                'error' => 'Data temporarily unavailable',
             ];
         }
     }
@@ -188,7 +185,7 @@ class AnalyticsService
     public function getSystemOverview()
     {
         $cacheKey = 'system_overview';
-        
+
         $cached = AnalyticsCache::getCached($cacheKey);
         if ($cached) {
             return $cached;
@@ -209,8 +206,8 @@ class AnalyticsService
             'grade_records' => [
                 'total' => StudentGradeRecord::count(),
                 'graded' => StudentGradeRecord::whereNotNull('grade')->count(),
-                'passed' => StudentGradeRecord::where('grade', '>=', 40)->count(),
-                'failed' => StudentGradeRecord::where('grade', '<', 40)->whereNotNull('grade')->count(),
+                'passed' => StudentGradeRecord::where('grade', '>=', config('academic.default_pass_mark'))->count(),
+                'failed' => StudentGradeRecord::where('grade', '<', config('academic.default_pass_mark'))->whereNotNull('grade')->count(),
             ],
             'enrollments' => [
                 'total' => Enrolment::count(),
@@ -233,7 +230,7 @@ class AnalyticsService
     public function getAssessmentCompletionRates($periodType = 'weekly', $periods = 12)
     {
         $cacheKey = "assessment_completion_rates_{$periodType}_{$periods}";
-        
+
         $cached = AnalyticsCache::getCached($cacheKey);
         if ($cached) {
             return $cached;
@@ -241,8 +238,8 @@ class AnalyticsService
 
         try {
             $dateFormat = $periodType === 'weekly' ? '%Y-%u' : '%Y-%m';
-            $startDate = $periodType === 'weekly' 
-                ? now()->subWeeks($periods) 
+            $startDate = $periodType === 'weekly'
+                ? now()->subWeeks($periods)
                 : now()->subMonths($periods);
 
             $completionRates = StudentGradeRecord::select(
@@ -251,23 +248,23 @@ class AnalyticsService
                 DB::raw('SUM(CASE WHEN grade IS NOT NULL THEN 1 ELSE 0 END) as completed_assessments'),
                 DB::raw('0 as overdue_assessments')
             )
-            ->where('created_at', '>=', $startDate)
-            ->groupBy('period')
-            ->orderBy('period')
-            ->get()
-            ->map(function ($item) {
-                $completionRate = $item->total_assessments > 0 
-                    ? ($item->completed_assessments / $item->total_assessments) * 100 
-                    : 0;
-                
-                return [
-                    'period' => $item->period,
-                    'total_assessments' => $item->total_assessments,
-                    'completed_assessments' => $item->completed_assessments,
-                    'overdue_assessments' => $item->overdue_assessments,
-                    'completion_rate' => round($completionRate, 2),
-                ];
-            });
+                ->where('created_at', '>=', $startDate)
+                ->groupBy('period')
+                ->orderBy('period')
+                ->get()
+                ->map(function ($item) {
+                    $completionRate = $item->total_assessments > 0
+                        ? ($item->completed_assessments / $item->total_assessments) * 100
+                        : 0;
+
+                    return [
+                        'period' => $item->period,
+                        'total_assessments' => $item->total_assessments,
+                        'completed_assessments' => $item->completed_assessments,
+                        'overdue_assessments' => $item->overdue_assessments,
+                        'completion_rate' => round($completionRate, 2),
+                    ];
+                });
 
             $data = [
                 'completion_rates' => $completionRates,
@@ -279,20 +276,20 @@ class AnalyticsService
             AnalyticsCache::setCached($cacheKey, $data, 60);
 
             return $data;
-            
+
         } catch (\Exception $e) {
             Log::error('Assessment completion rates calculation failed', [
                 'error' => $e->getMessage(),
                 'period_type' => $periodType,
-                'periods' => $periods
+                'periods' => $periods,
             ]);
-            
+
             // Return empty data structure instead of failing
             return [
                 'completion_rates' => [],
                 'period_type' => $periodType,
                 'generated_at' => now()->toISOString(),
-                'error' => 'Data temporarily unavailable'
+                'error' => 'Data temporarily unavailable',
             ];
         }
     }
@@ -303,7 +300,7 @@ class AnalyticsService
     public function getStudentEngagement()
     {
         $cacheKey = 'student_engagement';
-        
+
         $cached = AnalyticsCache::getCached($cacheKey);
         if ($cached) {
             return $cached;
@@ -312,7 +309,7 @@ class AnalyticsService
         try {
             // Get recent activity metrics
             $thirtyDaysAgo = now()->subDays(30);
-            
+
             $recentlyActive = Student::whereHas('studentGradeRecords', function ($query) use ($thirtyDaysAgo) {
                 $query->where('updated_at', '>=', $thirtyDaysAgo);
             })->count();
@@ -325,15 +322,16 @@ class AnalyticsService
                 DB::raw('DAYOFWEEK(created_at) as day_of_week'),
                 DB::raw('COUNT(*) as submission_count')
             )
-            ->where('created_at', '>=', $thirtyDaysAgo)
-            ->whereNotNull('grade')
-            ->groupBy('day_of_week')
-            ->orderBy('day_of_week')
-            ->get()
-            ->mapWithKeys(function ($item) {
-                $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                return [$days[$item->day_of_week - 1] => $item->submission_count];
-            });
+                ->where('created_at', '>=', $thirtyDaysAgo)
+                ->whereNotNull('grade')
+                ->groupBy('day_of_week')
+                ->orderBy('day_of_week')
+                ->get()
+                ->mapWithKeys(function ($item) {
+                    $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+                    return [$days[$item->day_of_week - 1] => $item->submission_count];
+                });
 
             $data = [
                 'total_active_students' => $totalActiveStudents,
@@ -347,12 +345,12 @@ class AnalyticsService
             AnalyticsCache::setCached($cacheKey, $data, 60);
 
             return $data;
-            
+
         } catch (\Exception $e) {
             Log::error('Student engagement calculation failed', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             // Return empty data structure instead of failing
             return [
                 'total_active_students' => 0,
@@ -360,7 +358,7 @@ class AnalyticsService
                 'engagement_rate' => 0,
                 'submission_patterns' => [],
                 'generated_at' => now()->toISOString(),
-                'error' => 'Data temporarily unavailable'
+                'error' => 'Data temporarily unavailable',
             ];
         }
     }
@@ -408,14 +406,14 @@ class AnalyticsService
     public function refreshAllCache()
     {
         AnalyticsCache::clearAll();
-        
+
         // Regenerate key metrics
         $this->getSystemOverview();
         $this->getStudentPerformanceTrends();
         $this->getProgrammeEffectiveness();
         $this->getAssessmentCompletionRates();
         $this->getStudentEngagement();
-        
+
         Log::info('Analytics cache refreshed');
     }
 
@@ -444,28 +442,29 @@ class AnalyticsService
     private function formatStudentPerformanceChart($options = [])
     {
         $data = $this->getStudentPerformanceTrends();
-        
+
         // Handle error cases where data might be empty or have error
         if (isset($data['error']) || empty($data['assessment_trends'])) {
             return [
                 'type' => 'line',
                 'data' => [
                     'labels' => [],
-                    'datasets' => []
+                    'datasets' => [],
                 ],
-                'error' => $data['error'] ?? 'No data available'
+                'error' => $data['error'] ?? 'No data available',
             ];
         }
-        
+
         // Convert to collection if it's an array
         $trends = collect($data['assessment_trends']);
-        
+
         $labels = $trends->pluck('period')->toArray();
         $avgGrades = $trends->pluck('avg_grade')->toArray();
         $passRates = $trends->map(function ($item) {
             $item = (object) $item; // Ensure it's an object
-            return $item->total_assessments > 0 
-                ? ($item->passed_assessments / $item->total_assessments) * 100 
+
+            return $item->total_assessments > 0
+                ? ($item->passed_assessments / $item->total_assessments) * 100
                 : 0;
         })->toArray();
 
@@ -487,8 +486,8 @@ class AnalyticsService
                         'borderColor' => 'rgb(34, 197, 94)',
                         'backgroundColor' => 'rgba(34, 197, 94, 0.1)',
                         'yAxisID' => 'y1',
-                    ]
-                ]
+                    ],
+                ],
             ],
             'options' => [
                 'responsive' => true,
@@ -498,17 +497,17 @@ class AnalyticsService
                         'type' => 'linear',
                         'display' => true,
                         'position' => 'left',
-                        'title' => ['display' => true, 'text' => 'Grade']
+                        'title' => ['display' => true, 'text' => 'Grade'],
                     ],
                     'y1' => [
                         'type' => 'linear',
                         'display' => true,
                         'position' => 'right',
                         'title' => ['display' => true, 'text' => 'Pass Rate (%)'],
-                        'grid' => ['drawOnChartArea' => false]
-                    ]
-                ]
-            ]
+                        'grid' => ['drawOnChartArea' => false],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -518,19 +517,19 @@ class AnalyticsService
     private function formatProgrammeEffectivenessChart($options = [])
     {
         $data = $this->getProgrammeEffectiveness();
-        
+
         // Handle error cases where data might be empty or have error
         if (isset($data['error']) || empty($data['programmes'])) {
             return [
                 'type' => 'bar',
                 'data' => [
                     'labels' => [],
-                    'datasets' => []
+                    'datasets' => [],
                 ],
-                'error' => $data['error'] ?? 'No data available'
+                'error' => $data['error'] ?? 'No data available',
             ];
         }
-        
+
         $labels = array_column($data['programmes'], 'programme_title');
         $completionRates = array_column($data['programmes'], 'completion_rate');
         $enrollments = array_column($data['programmes'], 'total_enrollments');
@@ -555,8 +554,8 @@ class AnalyticsService
                         'borderColor' => 'rgb(34, 197, 94)',
                         'borderWidth' => 1,
                         'yAxisID' => 'y1',
-                    ]
-                ]
+                    ],
+                ],
             ],
             'options' => [
                 'responsive' => true,
@@ -565,17 +564,17 @@ class AnalyticsService
                         'type' => 'linear',
                         'display' => true,
                         'position' => 'left',
-                        'title' => ['display' => true, 'text' => 'Completion Rate (%)']
+                        'title' => ['display' => true, 'text' => 'Completion Rate (%)'],
                     ],
                     'y1' => [
                         'type' => 'linear',
                         'display' => true,
                         'position' => 'right',
                         'title' => ['display' => true, 'text' => 'Enrollments'],
-                        'grid' => ['drawOnChartArea' => false]
-                    ]
-                ]
-            ]
+                        'grid' => ['drawOnChartArea' => false],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -585,28 +584,29 @@ class AnalyticsService
     private function formatAssessmentCompletionChart($options = [])
     {
         $data = $this->getAssessmentCompletionRates();
-        
+
         // Handle error cases where data might be empty or have error
         if (isset($data['error']) || empty($data['completion_rates'])) {
             return [
                 'type' => 'line',
                 'data' => [
                     'labels' => [],
-                    'datasets' => []
+                    'datasets' => [],
                 ],
-                'error' => $data['error'] ?? 'No data available'
+                'error' => $data['error'] ?? 'No data available',
             ];
         }
-        
+
         // Convert to collection if it's an array
         $rates = collect($data['completion_rates']);
-        
+
         $labels = $rates->pluck('period')->toArray();
         $completionRates = $rates->pluck('completion_rate')->toArray();
         $overdueRates = $rates->map(function ($item) {
             $item = (array) $item; // Ensure it's an array for access
-            return $item['total_assessments'] > 0 
-                ? ($item['overdue_assessments'] / $item['total_assessments']) * 100 
+
+            return $item['total_assessments'] > 0
+                ? ($item['overdue_assessments'] / $item['total_assessments']) * 100
                 : 0;
         })->toArray();
 
@@ -628,18 +628,18 @@ class AnalyticsService
                         'borderColor' => 'rgb(239, 68, 68)',
                         'backgroundColor' => 'rgba(239, 68, 68, 0.1)',
                         'fill' => true,
-                    ]
-                ]
+                    ],
+                ],
             ],
             'options' => [
                 'responsive' => true,
                 'scales' => [
                     'y' => [
                         'beginAtZero' => true,
-                        'title' => ['display' => true, 'text' => 'Rate (%)']
-                    ]
-                ]
-            ]
+                        'title' => ['display' => true, 'text' => 'Rate (%)'],
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -649,24 +649,24 @@ class AnalyticsService
     private function formatStudentEngagementChart($options = [])
     {
         $data = $this->getStudentEngagement();
-        
+
         // Handle error cases where data might be empty or have error
         if (isset($data['error']) || empty($data['submission_patterns'])) {
             return [
                 'type' => 'doughnut',
                 'data' => [
                     'labels' => [],
-                    'datasets' => []
+                    'datasets' => [],
                 ],
-                'error' => $data['error'] ?? 'No data available'
+                'error' => $data['error'] ?? 'No data available',
             ];
         }
-        
+
         // Convert to array if it's a collection, or ensure it's an array
-        $patterns = is_array($data['submission_patterns']) 
-            ? $data['submission_patterns'] 
+        $patterns = is_array($data['submission_patterns'])
+            ? $data['submission_patterns']
             : $data['submission_patterns']->toArray();
-            
+
         $labels = array_keys($patterns);
         $submissions = array_values($patterns);
 
@@ -697,17 +697,17 @@ class AnalyticsService
                             'rgb(14, 165, 233)',
                         ],
                         'borderWidth' => 1,
-                    ]
-                ]
+                    ],
+                ],
             ],
             'options' => [
                 'responsive' => true,
                 'plugins' => [
                     'legend' => [
                         'position' => 'bottom',
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ];
     }
 }

@@ -13,13 +13,13 @@ return [
     */
 
     'url' => env('MOODLE_URL', 'https://your-moodle-site.com'),
-    
+
     'token' => env('MOODLE_TOKEN'),
-    
+
     'verify_ssl' => env('MOODLE_VERIFY_SSL', true),
-    
+
     'default_category_id' => env('MOODLE_DEFAULT_CATEGORY_ID', 1),
-    
+
     /*
     |--------------------------------------------------------------------------
     | Course Settings
@@ -28,7 +28,7 @@ return [
     | Default settings for courses created in Moodle
     |
     */
-    
+
     'course_defaults' => [
         'format' => 'topics',
         'showgrades' => 1,
@@ -36,7 +36,7 @@ return [
         'visible' => 1,
         'enablecompletion' => 1,
     ],
-    
+
     /*
     |--------------------------------------------------------------------------
     | User Settings
@@ -45,14 +45,14 @@ return [
     | Default settings for users created in Moodle
     |
     */
-    
+
     'user_defaults' => [
         'auth' => 'manual',
         'confirmed' => 1,
         'lang' => 'en',
         'timezone' => 'Europe/Dublin',
     ],
-    
+
     /*
     |--------------------------------------------------------------------------
     | Role Mappings
@@ -61,7 +61,7 @@ return [
     | Map TOC-SIS roles to Moodle role IDs
     |
     */
-    
+
     'role_mappings' => [
         'student' => 5,
         'teacher' => 3,

@@ -2,20 +2,20 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\AnalyticsCache;
-use App\Models\AnalyticsMetric;
-use App\Models\User;
 use App\Models\Student;
+use App\Models\User;
 use App\Services\AnalyticsService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class AnalyticsCacheTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $analyticsService;
+
     protected $manager;
 
     protected function setUp(): void
@@ -29,22 +29,22 @@ class AnalyticsCacheTest extends TestCase
     {
         // Clear any existing cache
         AnalyticsCache::clearAll();
-        
+
         // Verify cache is empty
         $this->assertEquals(0, AnalyticsCache::count());
 
         // First call should create cache entry
         $result1 = $this->analyticsService->getSystemOverview();
-        
+
         // Verify cache entry was created
         $this->assertEquals(1, AnalyticsCache::where('cache_key', 'system_overview')->count());
-        
+
         // Second call should use cached data
         $result2 = $this->analyticsService->getSystemOverview();
-        
+
         // Results should be identical
         $this->assertEquals($result1, $result2);
-        
+
         // Should still only have one cache entry
         $this->assertEquals(1, AnalyticsCache::where('cache_key', 'system_overview')->count());
     }
@@ -55,14 +55,14 @@ class AnalyticsCacheTest extends TestCase
         AnalyticsCache::create([
             'cache_key' => 'test_expired_cache',
             'cache_data' => json_encode(['test' => 'expired_data']),
-            'expires_at' => Carbon::now()->subHour()
+            'expires_at' => Carbon::now()->subHour(),
         ]);
 
         // Create valid cache entry
         AnalyticsCache::create([
             'cache_key' => 'test_valid_cache',
             'cache_data' => json_encode(['test' => 'valid_data']),
-            'expires_at' => Carbon::now()->addHour()
+            'expires_at' => Carbon::now()->addHour(),
         ]);
 
         // Expired cache should return null
@@ -79,7 +79,7 @@ class AnalyticsCacheTest extends TestCase
     {
         // Create test data to make queries take some time
         Student::factory()->count(50)->create();
-        
+
         AnalyticsCache::clearAll();
 
         // Measure first call (cache miss)
@@ -96,10 +96,10 @@ class AnalyticsCacheTest extends TestCase
 
         // Cache hit should be significantly faster
         $this->assertLessThan($firstCallTime, $secondCallTime);
-        
+
         // Cache hit should be very fast (less than 10ms)
         $this->assertLessThan(10, $secondCallTime);
-        
+
         // Data should be identical
         $this->assertEquals($result1, $result2);
     }
@@ -108,7 +108,7 @@ class AnalyticsCacheTest extends TestCase
     {
         // Create initial cache
         $result1 = $this->analyticsService->getSystemOverview();
-        
+
         $initialCacheEntry = AnalyticsCache::where('cache_key', 'system_overview')->first();
         $initialTimestamp = $initialCacheEntry->updated_at;
 
@@ -117,13 +117,13 @@ class AnalyticsCacheTest extends TestCase
 
         // Refresh cache
         $this->analyticsService->refreshAllCache();
-        
+
         $refreshedCacheEntry = AnalyticsCache::where('cache_key', 'system_overview')->first();
         $refreshedTimestamp = $refreshedCacheEntry->updated_at;
 
         // Cache should have been updated
         $this->assertTrue($refreshedTimestamp->gt($initialTimestamp));
-        
+
         // Should still have valid cache data
         $result2 = $this->analyticsService->getSystemOverview();
         $this->assertNotNull($result2);
@@ -136,25 +136,25 @@ class AnalyticsCacheTest extends TestCase
         AnalyticsCache::create([
             'cache_key' => 'expired_1',
             'cache_data' => json_encode(['test' => 'data1']),
-            'expires_at' => Carbon::now()->subHours(2)
+            'expires_at' => Carbon::now()->subHours(2),
         ]);
 
         AnalyticsCache::create([
-            'cache_key' => 'expired_2', 
+            'cache_key' => 'expired_2',
             'cache_data' => json_encode(['test' => 'data2']),
-            'expires_at' => Carbon::now()->subHour()
+            'expires_at' => Carbon::now()->subHour(),
         ]);
 
         AnalyticsCache::create([
             'cache_key' => 'valid_1',
             'cache_data' => json_encode(['test' => 'data3']),
-            'expires_at' => Carbon::now()->addHour()
+            'expires_at' => Carbon::now()->addHour(),
         ]);
 
         AnalyticsCache::create([
             'cache_key' => 'valid_2',
             'cache_data' => json_encode(['test' => 'data4']),
-            'expires_at' => Carbon::now()->addHours(2)
+            'expires_at' => Carbon::now()->addHours(2),
         ]);
 
         // Verify initial count
@@ -162,17 +162,17 @@ class AnalyticsCacheTest extends TestCase
 
         // Clear expired cache
         $clearedCount = $this->analyticsService->clearExpiredCache();
-        
+
         // Should have cleared 2 expired entries
         $this->assertEquals(2, $clearedCount);
-        
+
         // Should have 2 valid entries remaining
         $this->assertEquals(2, AnalyticsCache::count());
-        
+
         // Valid entries should still be accessible
         $this->assertNotNull(AnalyticsCache::getCached('valid_1'));
         $this->assertNotNull(AnalyticsCache::getCached('valid_2'));
-        
+
         // Expired entries should be gone
         $this->assertNull(AnalyticsCache::getCached('expired_1'));
         $this->assertNull(AnalyticsCache::getCached('expired_2'));
@@ -217,10 +217,10 @@ class AnalyticsCacheTest extends TestCase
 
         // Clear specific cache key
         AnalyticsCache::clearKey('system_overview');
-        
+
         // System overview cache should be gone
         $this->assertNull(AnalyticsCache::getCached('system_overview'));
-        
+
         // Other cache entries should remain
         $this->assertNotNull(AnalyticsCache::getCached('student_performance_trends_monthly_12'));
         $this->assertNotNull(AnalyticsCache::getCached('programme_effectiveness'));
@@ -237,11 +237,11 @@ class AnalyticsCacheTest extends TestCase
 
         // Should create separate cache entries for different parameters
         $cacheKeys = AnalyticsCache::pluck('cache_key')->toArray();
-        
+
         $this->assertContains('student_performance_trends_monthly_12', $cacheKeys);
         $this->assertContains('student_performance_trends_weekly_6', $cacheKeys);
         $this->assertContains('student_performance_trends_monthly_6', $cacheKeys);
-        
+
         // Should have at least 3 different cache entries
         $this->assertGreaterThanOrEqual(3, AnalyticsCache::count());
     }
@@ -255,7 +255,7 @@ class AnalyticsCacheTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonFragment([
                 'success' => true,
-                'message' => 'Analytics cache refreshed'
+                'message' => 'Analytics cache refreshed',
             ]);
 
         // Test clear expired cache endpoint
@@ -265,7 +265,7 @@ class AnalyticsCacheTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'success',
-                'message'
+                'message',
             ]);
     }
 
@@ -296,7 +296,7 @@ class AnalyticsCacheTest extends TestCase
     public function test_cache_error_handling()
     {
         // Test cache operations handle errors gracefully
-        
+
         // Try to get cache with invalid key
         $result = AnalyticsCache::getCached('');
         $this->assertNull($result);
@@ -315,7 +315,7 @@ class AnalyticsCacheTest extends TestCase
     {
         // Create initial data state
         $students = Student::factory()->count(5)->create(['status' => 'active']);
-        
+
         // Get cached overview
         $overview1 = $this->analyticsService->getSystemOverview();
         $this->assertEquals(5, $overview1['students']['active']);

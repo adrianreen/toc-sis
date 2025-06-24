@@ -7,7 +7,10 @@
             </h2>
             <div class="space-x-2">
                 @if(Auth::user()->role === 'manager')
-                    <a href="{{ route('module-instances.copy', $moduleInstance) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    <a href="{{ route('grade-records.modern-grading', $moduleInstance) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Modern Grading
+                    </a>
+                    <a href="{{ route('module-instances.copy', $moduleInstance) }}" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
                         Copy Instance
                     </a>
                     <a href="{{ route('module-instances.edit', $moduleInstance) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
@@ -180,9 +183,14 @@
                         <h3 class="text-lg font-semibold">Enrolled Students ({{ $moduleInstance->enrolments->count() }})</h3>
                         @if(Auth::user()->role === 'teacher' && Auth::user()->id === $moduleInstance->tutor_id)
                             <div class="space-x-2">
-                                <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">
-                                    Grade Assessments
-                                </button>
+                                <a href="{{ route('grade-records.modern-grading', $moduleInstance) }}" 
+                                   class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm inline-block">
+                                    Modern Grading
+                                </a>
+                                <a href="{{ route('grade-records.module-grading', $moduleInstance) }}" 
+                                   class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded text-sm inline-block">
+                                    Legacy Grading
+                                </a>
                                 <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">
                                     Export List
                                 </button>

@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Extension;
 use App\Models\Student;
 use App\Models\StudentGradeRecord;
-use App\Models\ModuleInstance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,7 +22,7 @@ class ExtensionController extends Controller
             'studentGradeRecord.moduleInstance.module',
             'studentGradeRecord.moduleInstance.tutor',
             'requestedBy',
-            'approvedBy'
+            'approvedBy',
         ]);
 
         if (auth()->user()->role === 'teacher') {
@@ -51,7 +50,7 @@ class ExtensionController extends Controller
                     ->where('status', 'active')
                     ->where(function ($query) use ($record) {
                         $query->where('programme_instance_id', $record->moduleInstance->programmeInstances()->first()?->id)
-                              ->orWhere('module_instance_id', $record->module_instance_id);
+                            ->orWhere('module_instance_id', $record->module_instance_id);
                     })
                     ->exists();
             });
@@ -81,7 +80,7 @@ class ExtensionController extends Controller
 
         if ($existingExtension) {
             return back()->withErrors([
-                'student_grade_record_id' => 'An extension already exists for this assessment component.'
+                'student_grade_record_id' => 'An extension already exists for this assessment component.',
             ]);
         }
 
@@ -102,7 +101,7 @@ class ExtensionController extends Controller
                 ->withProperties([
                     'grade_record_id' => $gradeRecord->id,
                     'module' => $gradeRecord->moduleInstance->module->title,
-                    'assessment_component' => $gradeRecord->assessment_component_name
+                    'assessment_component' => $gradeRecord->assessment_component_name,
                 ])
                 ->log("Extension requested for {$gradeRecord->assessment_component_name} in {$gradeRecord->moduleInstance->module->title}");
         });
@@ -132,7 +131,7 @@ class ExtensionController extends Controller
                     'extension_id' => $extension->id,
                     'new_due_date' => $extension->new_due_date->format('Y-m-d'),
                     'module' => $extension->studentGradeRecord->moduleInstance->module->title,
-                    'assessment_component' => $extension->studentGradeRecord->assessment_component_name
+                    'assessment_component' => $extension->studentGradeRecord->assessment_component_name,
                 ])
                 ->log("Extension approved - new due date: {$extension->new_due_date->format('d M Y')}");
         });
@@ -163,7 +162,7 @@ class ExtensionController extends Controller
                     'extension_id' => $extension->id,
                     'rejection_reason' => $validated['admin_notes'],
                     'module' => $extension->studentGradeRecord->moduleInstance->module->title,
-                    'assessment_component' => $extension->studentGradeRecord->assessment_component_name
+                    'assessment_component' => $extension->studentGradeRecord->assessment_component_name,
                 ])
                 ->log("Extension rejected for {$extension->studentGradeRecord->assessment_component_name}");
         });
@@ -178,7 +177,7 @@ class ExtensionController extends Controller
             'studentGradeRecord.moduleInstance.module',
             'studentGradeRecord.moduleInstance.tutor',
             'requestedBy',
-            'approvedBy'
+            'approvedBy',
         ]);
 
         return view('extensions.show', compact('extension'));
@@ -199,7 +198,7 @@ class ExtensionController extends Controller
                 ->withProperties([
                     'extension_id' => $extension->id,
                     'module' => $extension->studentGradeRecord->moduleInstance->module->title,
-                    'assessment_component' => $extension->studentGradeRecord->assessment_component_name
+                    'assessment_component' => $extension->studentGradeRecord->assessment_component_name,
                 ])
                 ->log("Extension request deleted for {$extension->studentGradeRecord->assessment_component_name}");
 

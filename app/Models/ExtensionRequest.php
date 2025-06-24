@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class ExtensionRequest extends Model
 {
@@ -78,7 +78,7 @@ class ExtensionRequest extends Model
     // Extension type helpers
     public function getExtensionTypeLabel(): string
     {
-        return match($this->extension_type) {
+        return match ($this->extension_type) {
             'two_weeks_free' => 'Two weeks (No additional fee)',
             'eight_weeks_minor' => '8 Weeks (Minor awards only) - €85.00',
             'twenty_four_weeks_major' => '24 Weeks (Major awards & bundles) - €165.00',
@@ -89,7 +89,7 @@ class ExtensionRequest extends Model
 
     public function getExtensionDuration(): string
     {
-        return match($this->extension_type) {
+        return match ($this->extension_type) {
             'two_weeks_free' => '2 weeks',
             'eight_weeks_minor' => '8 weeks',
             'twenty_four_weeks_major' => '24 weeks',
@@ -100,7 +100,7 @@ class ExtensionRequest extends Model
 
     public function calculateExtensionFee(): float
     {
-        return match($this->extension_type) {
+        return match ($this->extension_type) {
             'eight_weeks_minor' => 85.00,
             'twenty_four_weeks_major' => 165.00,
             'two_weeks_free', 'medical' => 0.00,
@@ -110,13 +110,13 @@ class ExtensionRequest extends Model
 
     public function calculateRequestedCompletionDate(): ?Carbon
     {
-        if (!$this->original_completion_date) {
+        if (! $this->original_completion_date) {
             return null;
         }
 
         $originalDate = Carbon::parse($this->original_completion_date);
 
-        return match($this->extension_type) {
+        return match ($this->extension_type) {
             'two_weeks_free' => $originalDate->addWeeks(2),
             'eight_weeks_minor' => $originalDate->addWeeks(8),
             'twenty_four_weeks_major' => $originalDate->addWeeks(24),
@@ -127,7 +127,7 @@ class ExtensionRequest extends Model
 
     public function getStatusBadgeClass(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'pending' => 'bg-yellow-100 text-yellow-800',
             'approved' => 'bg-green-100 text-green-800',
             'rejected' => 'bg-red-100 text-red-800',
@@ -142,21 +142,21 @@ class ExtensionRequest extends Model
 
     public function hasValidMedicalCertificate(): bool
     {
-        return $this->requiresMedicalCertificate() 
-            ? !empty($this->medical_certificate_path) 
+        return $this->requiresMedicalCertificate()
+            ? ! empty($this->medical_certificate_path)
             : true;
     }
 
     // Check if request is within 5 day window
     public function isWithinValidRequestWindow(): bool
     {
-        if (!$this->original_completion_date) {
+        if (! $this->original_completion_date) {
             return true; // Let validation handle this elsewhere
         }
 
         $deadline = Carbon::parse($this->original_completion_date);
         $requestDate = $this->created_at ?? now();
-        
+
         return $requestDate->diffInDays($deadline) <= 5;
     }
 

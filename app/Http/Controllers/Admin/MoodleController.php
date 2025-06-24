@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\MoodleService;
 use App\Models\ModuleInstance;
 use App\Models\Student;
+use App\Services\MoodleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -25,7 +25,7 @@ class MoodleController extends Controller
     public function index()
     {
         $connectionTest = $this->moodleService->testConnection();
-        
+
         $stats = [
             'courses_with_moodle' => ModuleInstance::whereNotNull('moodle_course_id')->count(),
             'total_courses' => ModuleInstance::count(),
@@ -52,10 +52,10 @@ class MoodleController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to create course in Moodle', [
                 'module_instance_id' => $moduleInstance->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Failed to create course in Moodle: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create course in Moodle: '.$e->getMessage());
         }
     }
 
@@ -72,10 +72,10 @@ class MoodleController extends Controller
             Log::error('Failed to enroll student in Moodle', [
                 'student_id' => $student->id,
                 'module_instance_id' => $moduleInstance->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Failed to enroll student in Moodle: ' . $e->getMessage());
+            return back()->with('error', 'Failed to enroll student in Moodle: '.$e->getMessage());
         }
     }
 
@@ -100,10 +100,10 @@ class MoodleController extends Controller
         } catch (\Exception $e) {
             Log::error('Failed to bulk enroll students in Moodle', [
                 'module_instance_id' => $moduleInstance->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'Failed to bulk enroll students in Moodle: ' . $e->getMessage());
+            return back()->with('error', 'Failed to bulk enroll students in Moodle: '.$e->getMessage());
         }
     }
 
@@ -113,7 +113,7 @@ class MoodleController extends Controller
     public function showCourse(ModuleInstance $moduleInstance)
     {
         try {
-            if (!$moduleInstance->moodle_course_id) {
+            if (! $moduleInstance->moodle_course_id) {
                 return back()->with('error', 'Course not yet created in Moodle.');
             }
 
@@ -122,7 +122,7 @@ class MoodleController extends Controller
 
             return view('admin.moodle.course-details', compact('moduleInstance', 'courseData', 'enrollments'));
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to fetch course details from Moodle: ' . $e->getMessage());
+            return back()->with('error', 'Failed to fetch course details from Moodle: '.$e->getMessage());
         }
     }
 
@@ -137,12 +137,12 @@ class MoodleController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Connection successful',
-                'data' => $result
+                'data' => $result,
             ]);
         } else {
             return response()->json([
                 'success' => false,
-                'message' => 'Connection failed: ' . $result['error']
+                'message' => 'Connection failed: '.$result['error'],
             ], 400);
         }
     }
@@ -165,18 +165,18 @@ class MoodleController extends Controller
                     $this->moodleService->createCourse($moduleInstance);
                     $created++;
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to create {$moduleInstance->instance_code}: " . $e->getMessage();
+                    $errors[] = "Failed to create {$moduleInstance->instance_code}: ".$e->getMessage();
                 }
             }
 
             $message = "Created {$created} courses in Moodle.";
-            if (!empty($errors)) {
-                $message .= " Errors: " . implode('; ', $errors);
+            if (! empty($errors)) {
+                $message .= ' Errors: '.implode('; ', $errors);
             }
 
             return back()->with($created > 0 ? 'success' : 'error', $message);
         } catch (\Exception $e) {
-            return back()->with('error', 'Sync failed: ' . $e->getMessage());
+            return back()->with('error', 'Sync failed: '.$e->getMessage());
         }
     }
 }

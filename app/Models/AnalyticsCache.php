@@ -2,9 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 class AnalyticsCache extends Model
 {
@@ -53,9 +52,9 @@ class AnalyticsCache extends Model
         } catch (\Exception $e) {
             \Log::warning('Analytics cache write failed', [
                 'key' => $key,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             // If cache write fails, continue without caching
             // This prevents 500 errors on rapid refreshes
             return null;

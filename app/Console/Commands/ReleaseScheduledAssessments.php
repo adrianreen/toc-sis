@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\StudentGradeRecord;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
-use Carbon\Carbon;
 
 class ReleaseScheduledAssessments extends Command
 {
@@ -32,7 +31,7 @@ class ReleaseScheduledAssessments extends Command
     public function handle()
     {
         $this->info('🔍 Checking for scheduled assessment releases...');
-        
+
         $dryRun = $this->option('dry-run');
         if ($dryRun) {
             $this->warn('DRY RUN MODE - No changes will be made');
@@ -45,26 +44,27 @@ class ReleaseScheduledAssessments extends Command
             ->whereNotNull('grade')
             ->with([
                 'student.user',
-                'moduleInstance.module'
+                'moduleInstance.module',
             ])
             ->get();
 
         if ($gradeRecords->count() === 0) {
             $this->info('✅ No grade records ready for release');
+
             return Command::SUCCESS;
         }
 
         $this->info("Found {$gradeRecords->count()} grade record(s) ready for release:");
 
         $releasedCount = 0;
-        
+
         foreach ($gradeRecords as $gradeRecord) {
             $student = $gradeRecord->student;
             $module = $gradeRecord->moduleInstance->module;
-            
+
             $this->line("  📋 {$student->student_number} - {$module->code} - {$gradeRecord->assessment_component_name} (Grade: {$gradeRecord->grade}%)");
-            
-            if (!$dryRun) {
+
+            if (! $dryRun) {
                 $gradeRecord->update([
                     'is_visible_to_student' => true,
                 ]);
@@ -85,7 +85,7 @@ class ReleaseScheduledAssessments extends Command
             $this->info('Run without --dry-run to apply these changes');
         } else {
             $this->info("✅ Successfully released {$releasedCount} grade records");
-            
+
             // Log summary
             \Log::info("Auto-released {$releasedCount} scheduled grade records", [
                 'released_count' => $releasedCount,

@@ -12,14 +12,14 @@ class ProgrammeController extends Controller
         $query = Programme::with(['programmeInstances' => function ($query) {
             $query->withCount('enrolments');
         }])
-        ->withCount(['programmeInstances']);
+            ->withCount(['programmeInstances']);
 
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('title', 'LIKE', "%{$search}%")
-                  ->orWhere('awarding_body', 'LIKE', "%{$search}%");
+                    ->orWhere('awarding_body', 'LIKE', "%{$search}%");
             });
         }
 
@@ -35,7 +35,7 @@ class ProgrammeController extends Controller
 
         // Filter by credit range
         if ($request->filled('credit_range')) {
-            switch($request->credit_range) {
+            switch ($request->credit_range) {
                 case '60-120':
                     $query->whereBetween('total_credits', [60, 120]);
                     break;
@@ -53,17 +53,17 @@ class ProgrammeController extends Controller
 
         // Filter by instance count
         if ($request->filled('instance_count')) {
-            switch($request->instance_count) {
+            switch ($request->instance_count) {
                 case 'none':
                     $query->having('programme_instances_count', '=', 0);
                     break;
                 case 'low':
                     $query->having('programme_instances_count', '>=', 1)
-                          ->having('programme_instances_count', '<=', 2);
+                        ->having('programme_instances_count', '<=', 2);
                     break;
                 case 'medium':
                     $query->having('programme_instances_count', '>=', 3)
-                          ->having('programme_instances_count', '<=', 5);
+                        ->having('programme_instances_count', '<=', 5);
                     break;
                 case 'high':
                     $query->having('programme_instances_count', '>', 5);
@@ -74,8 +74,8 @@ class ProgrammeController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by', 'title');
         $sortDirection = $request->get('sort_direction', 'asc');
-        
-        switch($sortBy) {
+
+        switch ($sortBy) {
             case 'instances_count':
                 $query->orderBy('programme_instances_count', $sortDirection);
                 break;
@@ -87,7 +87,7 @@ class ProgrammeController extends Controller
 
         // Get filter options
         $awardingBodies = Programme::distinct()->orderBy('awarding_body')->pluck('awarding_body');
-        
+
         return view('programmes.index', compact('programmes', 'awardingBodies'));
     }
 
@@ -111,9 +111,9 @@ class ProgrammeController extends Controller
         $programme->load([
             'programmeInstances' => function ($query) {
                 $query->with(['moduleInstances.module'])
-                      ->withCount('enrolments')
-                      ->orderBy('intake_start_date', 'desc');
-            }
+                    ->withCount('enrolments')
+                    ->orderBy('intake_start_date', 'desc');
+            },
         ]);
 
         return view('programmes.show', compact('programme'));

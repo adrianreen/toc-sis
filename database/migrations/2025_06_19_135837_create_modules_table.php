@@ -21,7 +21,7 @@ return new class extends Migration
             $table->enum('async_instance_cadence', ['monthly', 'quarterly', 'bi_annually', 'annually'])->default('quarterly');
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index('module_code');
             $table->index('allows_standalone_enrolment');
         });

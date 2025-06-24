@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Services\ArchitectureValidationService;
-use App\Models\Programme;
-use App\Models\ProgrammeInstance;
 use App\Models\Module;
 use App\Models\ModuleInstance;
+use App\Models\Programme;
+use App\Models\ProgrammeInstance;
+use App\Services\ArchitectureValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 
@@ -26,7 +26,7 @@ class ArchitectureController extends Controller
     public function dashboard()
     {
         $validation = $this->validationService->validateEntireArchitecture();
-        
+
         // Get recent activity
         $recentProgrammes = Programme::latest()->take(5)->get();
         $recentInstances = ProgrammeInstance::with('programme')->latest()->take(5)->get();
@@ -36,7 +36,7 @@ class ArchitectureController extends Controller
         return view('admin.architecture.dashboard', compact(
             'validation',
             'recentProgrammes',
-            'recentInstances', 
+            'recentInstances',
             'recentModules',
             'recentModuleInstances'
         ));
@@ -48,7 +48,7 @@ class ArchitectureController extends Controller
     public function validation()
     {
         $validation = $this->validationService->validateEntireArchitecture();
-        
+
         return view('admin.architecture.validation', compact('validation'));
     }
 
@@ -58,19 +58,19 @@ class ArchitectureController extends Controller
     public function autoFix()
     {
         $results = $this->validationService->autoFixIssues();
-        
+
         $message = '';
-        if (!empty($results['fixed'])) {
-            $message .= 'Fixed: ' . implode(', ', $results['fixed']) . '. ';
+        if (! empty($results['fixed'])) {
+            $message .= 'Fixed: '.implode(', ', $results['fixed']).'. ';
         }
-        if (!empty($results['failed'])) {
-            $message .= 'Failed: ' . implode(', ', $results['failed']);
+        if (! empty($results['failed'])) {
+            $message .= 'Failed: '.implode(', ', $results['failed']);
         }
-        
+
         if (empty($results['fixed']) && empty($results['failed'])) {
             $message = 'No issues found to fix.';
         }
-        
+
         return redirect()->route('admin.architecture.validation')
             ->with('success', $message);
     }
@@ -81,14 +81,14 @@ class ArchitectureController extends Controller
     public function statistics()
     {
         $validation = $this->validationService->validateEntireArchitecture();
-        
+
         return response()->json([
             'stats' => $validation['stats'],
             'health' => [
                 'valid' => $validation['valid'],
                 'errors' => count($validation['errors']),
                 'warnings' => count($validation['warnings']),
-            ]
+            ],
         ]);
     }
 
@@ -98,7 +98,7 @@ class ArchitectureController extends Controller
     public function validateCurriculum(ProgrammeInstance $programmeInstance)
     {
         $validation = $this->validationService->validateProgrammeCurriculum($programmeInstance);
-        
+
         return response()->json($validation);
     }
 
@@ -108,14 +108,14 @@ class ArchitectureController extends Controller
     public function exportReport(Request $request)
     {
         $validation = $this->validationService->validateEntireArchitecture();
-        
+
         $content = $this->generateReportContent($validation);
-        
-        $filename = 'architecture_validation_' . now()->format('Y-m-d_H-i-s') . '.txt';
-        
+
+        $filename = 'architecture_validation_'.now()->format('Y-m-d_H-i-s').'.txt';
+
         return response($content)
             ->header('Content-Type', 'text/plain')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+            ->header('Content-Disposition', 'attachment; filename="'.$filename.'"');
     }
 
     /**
@@ -124,15 +124,15 @@ class ArchitectureController extends Controller
     public function runValidation(Request $request)
     {
         $options = [];
-        
+
         if ($request->boolean('fix')) {
             $options['--fix'] = true;
         }
-        
+
         if ($request->boolean('stats')) {
             $options['--stats'] = true;
         }
-        
+
         if ($request->filled('programme')) {
             $options['--programme'] = $request->get('programme');
         }
@@ -140,15 +140,15 @@ class ArchitectureController extends Controller
         try {
             Artisan::call('architecture:validate', $options);
             $output = Artisan::output();
-            
+
             return response()->json([
                 'success' => true,
-                'output' => $output
+                'output' => $output,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -156,25 +156,25 @@ class ArchitectureController extends Controller
     private function generateReportContent(array $validation): string
     {
         $content = "TOC-SIS Architecture Validation Report\n";
-        $content .= "Generated: " . now()->format('Y-m-d H:i:s') . "\n";
-        $content .= str_repeat("=", 50) . "\n\n";
+        $content .= 'Generated: '.now()->format('Y-m-d H:i:s')."\n";
+        $content .= str_repeat('=', 50)."\n\n";
 
         // System Statistics
         $content .= "SYSTEM STATISTICS:\n";
-        $content .= str_repeat("-", 20) . "\n";
+        $content .= str_repeat('-', 20)."\n";
         foreach ($validation['stats'] as $key => $value) {
-            $content .= ucwords(str_replace('_', ' ', $key)) . ": {$value}\n";
+            $content .= ucwords(str_replace('_', ' ', $key)).": {$value}\n";
         }
         $content .= "\n";
 
         // Validation Status
-        $content .= "VALIDATION STATUS: " . ($validation['valid'] ? 'PASSED' : 'FAILED') . "\n";
-        $content .= str_repeat("-", 20) . "\n\n";
+        $content .= 'VALIDATION STATUS: '.($validation['valid'] ? 'PASSED' : 'FAILED')."\n";
+        $content .= str_repeat('-', 20)."\n\n";
 
         // Errors
-        if (!empty($validation['errors'])) {
-            $content .= "ERRORS (" . count($validation['errors']) . "):\n";
-            $content .= str_repeat("-", 10) . "\n";
+        if (! empty($validation['errors'])) {
+            $content .= 'ERRORS ('.count($validation['errors'])."):\n";
+            $content .= str_repeat('-', 10)."\n";
             foreach ($validation['errors'] as $error) {
                 $content .= "• {$error}\n";
             }
@@ -182,9 +182,9 @@ class ArchitectureController extends Controller
         }
 
         // Warnings
-        if (!empty($validation['warnings'])) {
-            $content .= "WARNINGS (" . count($validation['warnings']) . "):\n";
-            $content .= str_repeat("-", 10) . "\n";
+        if (! empty($validation['warnings'])) {
+            $content .= 'WARNINGS ('.count($validation['warnings'])."):\n";
+            $content .= str_repeat('-', 10)."\n";
             foreach ($validation['warnings'] as $warning) {
                 $content .= "• {$warning}\n";
             }

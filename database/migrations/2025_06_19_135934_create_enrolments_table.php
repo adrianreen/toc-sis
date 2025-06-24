@@ -21,11 +21,11 @@ return new class extends Migration
             $table->enum('status', ['active', 'completed', 'withdrawn', 'deferred'])->default('active');
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['student_id', 'enrolment_type']);
             $table->index('programme_instance_id');
             $table->index('module_instance_id');
-            
+
             // Note: Check constraint logic will be enforced at application level
         });
     }

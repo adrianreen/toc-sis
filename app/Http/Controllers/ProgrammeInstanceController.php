@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ModuleInstance;
 use App\Models\Programme;
 use App\Models\ProgrammeInstance;
-use App\Models\ModuleInstance;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class ProgrammeInstanceController extends Controller
@@ -18,11 +17,11 @@ class ProgrammeInstanceController extends Controller
         // Search functionality
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('label', 'LIKE', "%{$search}%")
-                  ->orWhereHas('programme', function($subq) use ($search) {
-                      $subq->where('title', 'LIKE', "%{$search}%");
-                  });
+                    ->orWhereHas('programme', function ($subq) use ($search) {
+                        $subq->where('title', 'LIKE', "%{$search}%");
+                    });
             });
         }
 
@@ -39,16 +38,16 @@ class ProgrammeInstanceController extends Controller
         // Filter by status (based on dates)
         if ($request->filled('status')) {
             $now = now();
-            switch($request->status) {
+            switch ($request->status) {
                 case 'upcoming':
                     $query->where('intake_start_date', '>', $now);
                     break;
                 case 'active':
                     $query->where('intake_start_date', '<=', $now)
-                          ->where(function($q) use ($now) {
-                              $q->whereNull('intake_end_date')
+                        ->where(function ($q) use ($now) {
+                            $q->whereNull('intake_end_date')
                                 ->orWhere('intake_end_date', '>=', $now);
-                          });
+                        });
                     break;
                 case 'closed':
                     $query->where('intake_end_date', '<', $now);
@@ -58,17 +57,17 @@ class ProgrammeInstanceController extends Controller
 
         // Filter by enrolment level
         if ($request->filled('enrolment_level')) {
-            switch($request->enrolment_level) {
+            switch ($request->enrolment_level) {
                 case 'high':
                     $query->having('enrolments_count', '>=', 20);
                     break;
                 case 'medium':
                     $query->having('enrolments_count', '>=', 5)
-                          ->having('enrolments_count', '<=', 19);
+                        ->having('enrolments_count', '<=', 19);
                     break;
                 case 'low':
                     $query->having('enrolments_count', '>=', 1)
-                          ->having('enrolments_count', '<=', 4);
+                        ->having('enrolments_count', '<=', 4);
                     break;
                 case 'none':
                     $query->having('enrolments_count', '=', 0);
@@ -87,12 +86,12 @@ class ProgrammeInstanceController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by', 'intake_start_date');
         $sortDirection = $request->get('sort_direction', 'desc');
-        
-        switch($sortBy) {
+
+        switch ($sortBy) {
             case 'programme_title':
                 $query->join('programmes', 'programme_instances.programme_id', '=', 'programmes.id')
-                      ->orderBy('programmes.title', $sortDirection)
-                      ->select('programme_instances.*');
+                    ->orderBy('programmes.title', $sortDirection)
+                    ->select('programme_instances.*');
                 break;
             case 'label':
                 $query->orderBy('label', $sortDirection);
@@ -115,6 +114,7 @@ class ProgrammeInstanceController extends Controller
     public function create()
     {
         $programmes = Programme::orderBy('title')->get();
+
         return view('programme-instances.create', compact('programmes'));
     }
 
@@ -140,7 +140,7 @@ class ProgrammeInstanceController extends Controller
             'programme',
             'moduleInstances.module',
             'moduleInstances.tutor',
-            'enrolments.student'
+            'enrolments.student',
         ]);
 
         // Get available module instances for curriculum building
@@ -156,6 +156,7 @@ class ProgrammeInstanceController extends Controller
     public function edit(ProgrammeInstance $programmeInstance)
     {
         $programmes = Programme::orderBy('title')->get();
+
         return view('programme-instances.edit', compact('programmeInstance', 'programmes'));
     }
 
@@ -202,8 +203,8 @@ class ProgrammeInstanceController extends Controller
             'programme',
             'moduleInstances' => function ($query) {
                 $query->with(['module', 'tutor'])
-                      ->orderBy('start_date');
-            }
+                    ->orderBy('start_date');
+            },
         ]);
 
         // Get available module instances that can be added to curriculum

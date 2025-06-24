@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/User.php
 
 namespace App\Models;
@@ -53,6 +54,7 @@ class User extends Authenticatable
     {
         return $this->role === 'student';
     }
+
     public function student()
     {
         return $this->belongsTo(Student::class);
@@ -85,7 +87,7 @@ class User extends Authenticatable
 
     public function getUnreadNotificationCount(): int
     {
-        return \Cache::remember("unread_notifications_{$this->id}", 300, function() {
+        return \Cache::remember("unread_notifications_{$this->id}", 300, function () {
             return $this->unreadNotifications()->count();
         });
     }

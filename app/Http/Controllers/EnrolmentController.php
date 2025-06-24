@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Student;
 use App\Models\Enrolment;
-use App\Models\ProgrammeInstance;
 use App\Models\ModuleInstance;
+use App\Models\ProgrammeInstance;
+use App\Models\Student;
 use App\Services\EnrolmentService;
 use Illuminate\Http\Request;
 
@@ -88,10 +88,10 @@ class EnrolmentController extends Controller
 
         try {
             $programmeInstance = ProgrammeInstance::findOrFail($validated['programme_instance_id']);
-            
+
             $enrolment = $this->enrolmentService->enrolStudentInProgramme(
-                $student, 
-                $programmeInstance, 
+                $student,
+                $programmeInstance,
                 $validated
             );
 
@@ -116,10 +116,10 @@ class EnrolmentController extends Controller
 
         try {
             $moduleInstance = ModuleInstance::findOrFail($validated['module_instance_id']);
-            
+
             $enrolment = $this->enrolmentService->enrolStudentInModule(
-                $student, 
-                $moduleInstance, 
+                $student,
+                $moduleInstance,
                 $validated
             );
 
@@ -140,7 +140,7 @@ class EnrolmentController extends Controller
             'student',
             'programmeInstance.programme',
             'programmeInstance.moduleInstances.module',
-            'moduleInstance.module'
+            'moduleInstance.module',
         ]);
 
         return view('enrolments.show', compact('enrolment'));
@@ -210,10 +210,10 @@ class EnrolmentController extends Controller
 
         try {
             $newProgrammeInstance = ProgrammeInstance::findOrFail($validated['new_programme_instance_id']);
-            
+
             $this->enrolmentService->processDeferralReturn(
-                $enrolment->student, 
-                $enrolment, 
+                $enrolment->student,
+                $enrolment,
                 $newProgrammeInstance
             );
 
@@ -233,7 +233,7 @@ class EnrolmentController extends Controller
         $user = auth()->user();
         $student = $user->student;
 
-        if (!$student) {
+        if (! $student) {
             abort(404, 'Student record not found.');
         }
 
@@ -256,9 +256,9 @@ class EnrolmentController extends Controller
         try {
             // Store details for success message before deletion
             $studentName = $enrolment->student->full_name;
-            $enrolmentDetails = $enrolment->isProgrammeEnrolment() 
-                ? $enrolment->programmeInstance->programme->title . ' (' . $enrolment->programmeInstance->label . ')'
-                : $enrolment->moduleInstance->module->title . ' (' . $enrolment->moduleInstance->module->module_code . ')';
+            $enrolmentDetails = $enrolment->isProgrammeEnrolment()
+                ? $enrolment->programmeInstance->programme->title.' ('.$enrolment->programmeInstance->label.')'
+                : $enrolment->moduleInstance->module->title.' ('.$enrolment->moduleInstance->module->module_code.')';
 
             // Log the unenrollment action
             activity()
@@ -280,7 +280,7 @@ class EnrolmentController extends Controller
                 ->with('success', "Student {$studentName} has been successfully unenrolled from {$enrolmentDetails}. Reason: {$validated['reason']}");
 
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Failed to unenroll student: ' . $e->getMessage()]);
+            return back()->withErrors(['error' => 'Failed to unenroll student: '.$e->getMessage()]);
         }
     }
 
@@ -292,7 +292,7 @@ class EnrolmentController extends Controller
         $enrolment->load([
             'student',
             'programmeInstance.programme',
-            'moduleInstance.module'
+            'moduleInstance.module',
         ]);
 
         return view('enrolments.unenroll', compact('enrolment'));

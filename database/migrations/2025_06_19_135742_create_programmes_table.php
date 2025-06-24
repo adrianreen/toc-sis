@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('learning_outcomes')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['awarding_body', 'nfq_level']);
         });
     }

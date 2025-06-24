@@ -11,8 +11,7 @@ class NotificationController extends Controller
 {
     public function __construct(
         private NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     /**
      * Display user's notifications
@@ -50,21 +49,21 @@ class NotificationController extends Controller
     public function markAllAsRead()
     {
         $updatedCount = auth()->user()->unreadNotifications()->count();
-        
+
         auth()->user()->unreadNotifications()->update([
             'is_read' => true,
-            'read_at' => now()
+            'read_at' => now(),
         ]);
 
         // Clear the cached unread count
-        \Cache::forget("unread_notifications_" . auth()->id());
+        \Cache::forget('unread_notifications_'.auth()->id());
 
         // Return JSON for AJAX requests
         if (request()->wantsJson() || request()->ajax()) {
             return response()->json([
                 'success' => true,
                 'message' => "Marked {$updatedCount} notifications as read.",
-                'updated_count' => $updatedCount
+                'updated_count' => $updatedCount,
             ]);
         }
 
@@ -76,7 +75,7 @@ class NotificationController extends Controller
      */
     public function createAnnouncement(Request $request)
     {
-        if (!auth()->user()->isManager()) {
+        if (! auth()->user()->isManager()) {
             abort(403);
         }
 
@@ -85,7 +84,7 @@ class NotificationController extends Controller
                 'title' => 'required|string|max:255',
                 'message' => 'required|string|max:1000',
                 'target_audience' => 'required|in:all,students,staff',
-                'action_url' => 'nullable|url'
+                'action_url' => 'nullable|url',
             ]);
 
             // Get target users
@@ -98,7 +97,7 @@ class NotificationController extends Controller
                 $validated['action_url'] ?? null
             );
 
-            return redirect()->back()->with('success', 'Announcement sent to ' . count($userIds) . ' users.');
+            return redirect()->back()->with('success', 'Announcement sent to '.count($userIds).' users.');
         }
 
         return view('notifications.create-announcement');
@@ -109,7 +108,7 @@ class NotificationController extends Controller
      */
     public function adminDashboard()
     {
-        if (!auth()->user()->isManager()) {
+        if (! auth()->user()->isManager()) {
             abort(403);
         }
 

@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Student;
 use App\Models\Enrolment;
-use App\Models\ProgrammeInstance;
 use App\Models\ModuleInstance;
+use App\Models\ProgrammeInstance;
+use App\Models\Student;
 use App\Models\StudentGradeRecord;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -24,7 +23,7 @@ class EnrolmentService
                 $existingEnrolment = Enrolment::where([
                     'student_id' => $student->id,
                     'programme_instance_id' => $programmeInstance->id,
-                    'enrolment_type' => 'programme'
+                    'enrolment_type' => 'programme',
                 ])->whereIn('status', ['active', 'deferred'])->first();
 
                 if ($existingEnrolment) {
@@ -61,7 +60,7 @@ class EnrolmentService
             Log::error('Failed to enroll student in programme', [
                 'student_id' => $student->id,
                 'programme_instance_id' => $programmeInstance->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -75,7 +74,7 @@ class EnrolmentService
         try {
             return DB::transaction(function () use ($student, $moduleInstance, $enrolmentData) {
                 // Validate module allows standalone enrolment
-                if (!$moduleInstance->module->allows_standalone_enrolment) {
+                if (! $moduleInstance->module->allows_standalone_enrolment) {
                     throw new \Exception('This module does not allow standalone enrolment');
                 }
 
@@ -83,7 +82,7 @@ class EnrolmentService
                 $existingEnrolment = Enrolment::where([
                     'student_id' => $student->id,
                     'module_instance_id' => $moduleInstance->id,
-                    'enrolment_type' => 'module'
+                    'enrolment_type' => 'module',
                 ])->whereIn('status', ['active', 'deferred'])->first();
 
                 if ($existingEnrolment) {
@@ -115,7 +114,7 @@ class EnrolmentService
             Log::error('Failed to enroll student in module', [
                 'student_id' => $student->id,
                 'module_instance_id' => $moduleInstance->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -145,13 +144,13 @@ class EnrolmentService
     protected function createGradeRecordsForModuleInstance(Student $student, ModuleInstance $moduleInstance): void
     {
         $assessmentComponents = $moduleInstance->module->assessment_strategy ?? [];
-        
+
         foreach ($assessmentComponents as $component) {
             // Check if grade record already exists (avoid duplicates)
             $existingRecord = StudentGradeRecord::where([
                 'student_id' => $student->id,
                 'module_instance_id' => $moduleInstance->id,
-                'assessment_component_name' => $component['component_name']
+                'assessment_component_name' => $component['component_name'],
             ])->first();
 
             if ($existingRecord) {
@@ -220,7 +219,7 @@ class EnrolmentService
      */
     public function withdrawStudent(Enrolment $enrolment, array $withdrawalData = []): void
     {
-        DB::transaction(function () use ($enrolment, $withdrawalData) {
+        DB::transaction(function () use ($enrolment) {
             $enrolment->update([
                 'status' => 'withdrawn',
             ]);
@@ -251,7 +250,7 @@ class EnrolmentService
             ->where('intake_start_date', '<=', now())
             ->where(function ($query) {
                 $query->where('intake_end_date', '>=', now())
-                      ->orWhereNull('intake_end_date');
+                    ->orWhereNull('intake_end_date');
             })
             ->orderBy('intake_start_date', 'desc')
             ->get();

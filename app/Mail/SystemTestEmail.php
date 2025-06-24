@@ -20,6 +20,6 @@ class SystemTestEmail extends Mailable
     public function build()
     {
         return $this->subject($this->data['subject'])
-                    ->view('emails.test', ['data' => $this->data]);
+            ->view('emails.test', ['data' => $this->data]);
     }
 }

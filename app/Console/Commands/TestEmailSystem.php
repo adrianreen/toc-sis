@@ -2,12 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Models\User;
+use App\Mail\SystemTestEmail;
 use App\Models\Student;
+use App\Models\User;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\SystemTestEmail;
 
 class TestEmailSystem extends Command
 {
@@ -29,10 +29,10 @@ class TestEmailSystem extends Command
         $template = $this->option('template');
         $useQueue = $this->option('queue');
 
-        $this->info("Testing email system...");
+        $this->info('Testing email system...');
         $this->info("To: {$email}");
         $this->info("Template: {$template}");
-        $this->info("Queue: " . ($useQueue ? 'Yes' : 'No'));
+        $this->info('Queue: '.($useQueue ? 'Yes' : 'No'));
 
         try {
             switch ($template) {
@@ -50,13 +50,14 @@ class TestEmailSystem extends Command
             }
 
             $this->info('✅ Email test completed successfully');
-            
+
             if ($useQueue) {
                 $this->warn('📋 Email queued for delivery. Check queue status with: php artisan queue:work');
             }
 
         } catch (\Exception $e) {
-            $this->error('❌ Email test failed: ' . $e->getMessage());
+            $this->error('❌ Email test failed: '.$e->getMessage());
+
             return 1;
         }
 
@@ -102,7 +103,7 @@ class TestEmailSystem extends Command
             $transport = Mail::getSwiftMailer()->getTransport();
             $this->info('✅ Mail transport configured successfully');
         } catch (\Exception $e) {
-            $this->error('❌ Mail transport configuration error: ' . $e->getMessage());
+            $this->error('❌ Mail transport configuration error: '.$e->getMessage());
         }
 
         return 0;
@@ -144,7 +145,7 @@ class TestEmailSystem extends Command
     private function sendBasicTest($email, $useQueue)
     {
         $this->info('Sending basic test email...');
-        
+
         $mailable = new SystemTestEmail([
             'subject' => 'TOC-SIS Email System Test',
             'message' => 'This is a test email from the TOC-SIS system to verify email delivery is working correctly.',
@@ -154,7 +155,7 @@ class TestEmailSystem extends Command
                 'PHP Version' => PHP_VERSION,
                 'Mail Driver' => config('mail.default'),
                 'Queue Driver' => config('queue.default'),
-            ]
+            ],
         ]);
 
         if ($useQueue) {
@@ -167,16 +168,16 @@ class TestEmailSystem extends Command
     private function sendWelcomeTest($email, $useQueue)
     {
         $this->info('Sending welcome email test...');
-        
+
         // Create test data
         $testUser = new User([
             'name' => 'Test Student',
             'email' => $email,
-            'role' => 'student'
+            'role' => 'student',
         ]);
 
         $service = app(NotificationService::class);
-        
+
         // This would normally send a welcome notification
         $this->info('Welcome email functionality tested (would be sent via NotificationService)');
     }
@@ -184,46 +185,46 @@ class TestEmailSystem extends Command
     private function sendGradeNotificationTest($email, $useQueue)
     {
         $this->info('Sending grade notification test...');
-        
+
         // Find a test student user or create mock data
         $testUser = User::where('role', 'student')->first();
-        
-        if (!$testUser) {
+
+        if (! $testUser) {
             $this->warn('No student users found. Creating mock notification test...');
             $testUser = new User([
                 'name' => 'Test Student',
                 'email' => $email,
-                'role' => 'student'
+                'role' => 'student',
             ]);
         }
 
         $service = app(NotificationService::class);
-        
+
         try {
             $notification = $service->notifyGradeReleased(
-                $testUser, 
-                'Test Module', 
-                'Test Assessment', 
+                $testUser,
+                'Test Module',
+                'Test Assessment',
                 85.0
             );
             $this->info('Grade notification test completed');
         } catch (\Exception $e) {
-            $this->warn('Grade notification test failed: ' . $e->getMessage());
+            $this->warn('Grade notification test failed: '.$e->getMessage());
         }
     }
 
     private function sendReminderTest($email, $useQueue)
     {
         $this->info('Sending reminder email test...');
-        
+
         $testUser = new User([
             'name' => 'Test Student',
             'email' => $email,
-            'role' => 'student'
+            'role' => 'student',
         ]);
 
         $service = app(NotificationService::class);
-        
+
         try {
             $notification = $service->notifyAssessmentDeadline(
                 $testUser,
@@ -233,8 +234,7 @@ class TestEmailSystem extends Command
             );
             $this->info('Reminder notification test completed');
         } catch (\Exception $e) {
-            $this->warn('Reminder notification test failed: ' . $e->getMessage());
+            $this->warn('Reminder notification test failed: '.$e->getMessage());
         }
     }
 }
-

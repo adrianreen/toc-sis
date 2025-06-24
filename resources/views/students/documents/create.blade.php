@@ -5,7 +5,7 @@
                 <h1 class="text-3xl font-bold text-gray-900">Upload Documents</h1>
                 <p class="text-gray-600 mt-1">Upload documents for {{ $student->full_name }}</p>
             </div>
-            <a href="{{ route('students.documents.index', $student) }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+            <a href="{{ route('students.documents.index', $student) }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer">
                 ← Back to Documents
             </a>
         </div>
@@ -18,9 +18,23 @@
             <div class="bg-white shadow-sm rounded-lg border">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">Upload New Documents</h3>
+                    @if (session('error'))
+                        <div class="mt-3 bg-red-50 border border-red-200 rounded-md p-3">
+                            <div class="text-sm text-red-800">
+                                <strong>Upload failed:</strong> {{ session('error') }}
+                            </div>
+                        </div>
+                    @endif
+                    @if (session('success'))
+                        <div class="mt-3 bg-green-50 border border-green-200 rounded-md p-3">
+                            <div class="text-sm text-green-800">
+                                {{ session('success') }}
+                            </div>
+                        </div>
+                    @endif
                 </div>
                 
-                <form action="{{ route('students.documents.store', $student) }}" method="POST" enctype="multipart/form-data" class="p-6">
+                <form action="{{ route('students.documents.store', $student) }}" method="POST" enctype="multipart/form-data" class="p-6" onsubmit="return validateForm()">
                     @csrf
                     
                     <!-- Document Type Selection -->
@@ -55,7 +69,7 @@
                         <label for="files" class="block text-sm font-medium text-gray-700 mb-2">Select Files</label>
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                             <input type="file" name="files[]" id="files" multiple accept=".pdf,.jpg,.jpeg,.png,.gif" required
-                                   class="hidden">
+                                   class="block w-full text-sm text-gray-500 border border-gray-300 rounded-md p-2 mb-2">
                             <div id="upload-area" class="cursor-pointer">
                                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
@@ -80,11 +94,12 @@
                     <!-- Submit Buttons -->
                     <div class="flex items-center justify-end space-x-3">
                         <a href="{{ route('students.documents.index', $student) }}" 
-                           class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors">
+                           class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">
                             Cancel
                         </a>
                         <button type="submit" 
-                                class="px-6 py-2 bg-toc-600 text-white rounded-md hover:bg-toc-700 transition-colors">
+                                class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                                style="background-color: #2563eb !important; color: white !important; cursor: pointer !important;">
                             Upload Documents
                         </button>
                     </div>
@@ -133,7 +148,14 @@
                 uploadArea.classList.remove('border-toc-500', 'bg-toc-50');
                 
                 const files = e.dataTransfer.files;
-                fileInput.files = files;
+                
+                // Create a new DataTransfer object to properly set files
+                const dt = new DataTransfer();
+                for (let i = 0; i < files.length; i++) {
+                    dt.items.add(files[i]);
+                }
+                fileInput.files = dt.files;
+                
                 displaySelectedFiles(files);
             });
 
@@ -176,5 +198,25 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
         });
+        
+        // Form validation function
+        function validateForm() {
+            const fileInput = document.getElementById('files');
+            const submitBtn = document.querySelector('button[type="submit"]');
+            
+            console.log('Form validation - Files selected:', fileInput.files.length);
+            
+            if (fileInput.files.length === 0) {
+                alert('Please select at least one file to upload.');
+                return false;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Uploading...';
+            submitBtn.style.opacity = '0.6';
+            
+            return true;
+        }
     </script>
 </x-app-layout>

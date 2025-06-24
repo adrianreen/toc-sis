@@ -12,13 +12,13 @@ class NotificationPreference extends Model
         'notification_type',
         'email_enabled',
         'in_app_enabled',
-        'advance_days'
+        'advance_days',
     ];
 
     protected $casts = [
         'email_enabled' => 'boolean',
         'in_app_enabled' => 'boolean',
-        'advance_days' => 'integer'
+        'advance_days' => 'integer',
     ];
 
     public function user(): BelongsTo
@@ -32,33 +32,33 @@ class NotificationPreference extends Model
             Notification::TYPE_ASSESSMENT_DUE => [
                 'email_enabled' => true,
                 'in_app_enabled' => true,
-                'advance_days' => 3
+                'advance_days' => 3,
             ],
             Notification::TYPE_GRADE_RELEASED => [
                 'email_enabled' => true,
                 'in_app_enabled' => true,
-                'advance_days' => 0
+                'advance_days' => 0,
             ],
             Notification::TYPE_APPROVAL_REQUIRED => [
                 'email_enabled' => true,
                 'in_app_enabled' => true,
-                'advance_days' => 0
+                'advance_days' => 0,
             ],
             Notification::TYPE_ANNOUNCEMENT => [
                 'email_enabled' => true,
                 'in_app_enabled' => true,
-                'advance_days' => 0
+                'advance_days' => 0,
             ],
             Notification::TYPE_EXTENSION_APPROVED => [
                 'email_enabled' => true,
                 'in_app_enabled' => true,
-                'advance_days' => 0
+                'advance_days' => 0,
             ],
             Notification::TYPE_DEFERRAL_APPROVED => [
                 'email_enabled' => true,
                 'in_app_enabled' => true,
-                'advance_days' => 0
-            ]
+                'advance_days' => 0,
+            ],
         ];
     }
 }

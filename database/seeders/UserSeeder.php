@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User; // Assuming your User model is in App\Models
+use App\Models\User;
+use Illuminate\Database\Seeder; // Assuming your User model is in App\Models
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -11,8 +11,6 @@ class UserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
     public function run(): void // Added the run() method
     {
@@ -22,37 +20,37 @@ class UserSeeder extends Seeder
                 'name' => 'Test Manager',
                 'email' => 'manager@test.local',
                 'role' => 'manager',
-                'azure_id' => 'test-manager-' . Str::random(10),
+                'azure_id' => 'test-manager-'.Str::random(10),
             ],
             [
                 'name' => 'Test Student Services',
                 'email' => 'studentservices@test.local',
                 'role' => 'student_services',
-                'azure_id' => 'test-ss-' . Str::random(10),
+                'azure_id' => 'test-ss-'.Str::random(10),
             ],
             [
                 'name' => 'John Teacher',
                 'email' => 'john.teacher@test.local',
                 'role' => 'teacher',
-                'azure_id' => 'test-teacher1-' . Str::random(10),
+                'azure_id' => 'test-teacher1-'.Str::random(10),
             ],
             [
                 'name' => 'Sarah Teacher',
                 'email' => 'sarah.teacher@test.local',
                 'role' => 'teacher',
-                'azure_id' => 'test-teacher2-' . Str::random(10),
+                'azure_id' => 'test-teacher2-'.Str::random(10),
             ],
             [
                 'name' => 'Mike Teacher',
                 'email' => 'mike.teacher@test.local',
                 'role' => 'teacher',
-                'azure_id' => 'test-teacher3-' . Str::random(10),
+                'azure_id' => 'test-teacher3-'.Str::random(10),
             ],
             [
                 'name' => 'Test Student',
                 'email' => 'student@test.local',
                 'role' => 'student',
-                'azure_id' => 'test-student-' . Str::random(10),
+                'azure_id' => 'test-student-'.Str::random(10),
             ],
         ];
 
@@ -74,7 +72,7 @@ class UserSeeder extends Seeder
         $this->command->info('Development users created successfully!');
         $this->command->table(
             ['Name', 'Email', 'Role'],
-            collect($users)->map(fn($user) => [$user['name'], $user['email'], $user['role']])->toArray()
+            collect($users)->map(fn ($user) => [$user['name'], $user['email'], $user['role']])->toArray()
         );
     } // Closing brace for the run() method
 } // Closing brace for the UserSeeder class

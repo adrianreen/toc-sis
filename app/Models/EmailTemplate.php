@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class EmailTemplate extends Model
 {
@@ -37,7 +37,7 @@ class EmailTemplate extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['name', 'subject', 'category', 'is_active'])
-            ->setDescriptionForEvent(fn(string $eventName) => "Email template {$eventName}")
+            ->setDescriptionForEvent(fn (string $eventName) => "Email template {$eventName}")
             ->useLogName('email_templates');
     }
 
@@ -84,6 +84,7 @@ class EmailTemplate extends Model
     public function getLastUsedAttribute(): ?string
     {
         $lastLog = $this->emailLogs()->latest('sent_at')->first();
+
         return $lastLog?->sent_at?->diffForHumans();
     }
 
@@ -149,7 +150,7 @@ class EmailTemplate extends Model
         $bodyText = $this->body_text;
 
         foreach ($variables as $key => $value) {
-            $placeholder = '{{' . $key . '}}';
+            $placeholder = '{{'.$key.'}}';
             $subject = str_replace($placeholder, $value ?? '', $subject);
             $bodyHtml = str_replace($placeholder, $value ?? '', $bodyHtml);
             $bodyText = str_replace($placeholder, $value ?? '', $bodyText);
@@ -181,11 +182,11 @@ class EmailTemplate extends Model
             ->where('enrolment_type', 'programme')
             ->with(['programmeInstance.programme'])
             ->first();
-            
+
         if ($activeProgrammeEnrolment && $activeProgrammeEnrolment->programmeInstance) {
             $programmeInstance = $activeProgrammeEnrolment->programmeInstance;
             $programme = $programmeInstance->programme;
-            
+
             // Programme variables
             $variables = array_merge($variables, [
                 'programme.title' => $programme->title,
@@ -194,7 +195,7 @@ class EmailTemplate extends Model
                 'programme.total_credits' => $programme->total_credits,
                 'programme.description' => $programme->description,
             ]);
-            
+
             // Programme instance variables (replaces cohort)
             $variables = array_merge($variables, [
                 'programme_instance.label' => $programmeInstance->label,

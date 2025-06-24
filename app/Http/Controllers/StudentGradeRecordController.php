@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StudentGradeRecord;
 use App\Models\ModuleInstance;
 use App\Models\Student;
+use App\Models\StudentGradeRecord;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -16,7 +16,7 @@ class StudentGradeRecordController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
+
         // Get module instances based on user role
         if ($user->role === 'manager') {
             $moduleInstances = ModuleInstance::with(['module', 'tutor', 'studentGradeRecords'])
@@ -33,22 +33,22 @@ class StudentGradeRecordController extends Controller
 
         // Calculate stats
         $stats = [
-            'total_assessments' => $moduleInstances->sum(function($instance) {
+            'total_assessments' => $moduleInstances->sum(function ($instance) {
                 return $instance->studentGradeRecords->count();
             }),
-            'pending_grading' => $moduleInstances->sum(function($instance) {
+            'pending_grading' => $moduleInstances->sum(function ($instance) {
                 return $instance->studentGradeRecords->whereNull('percentage')->count();
             }),
-            'graded_today' => $moduleInstances->sum(function($instance) {
+            'graded_today' => $moduleInstances->sum(function ($instance) {
                 return $instance->studentGradeRecords->where('grading_date', '>=', today())->count();
             }),
-            'overdue_release' => $moduleInstances->sum(function($instance) {
+            'overdue_release' => $moduleInstances->sum(function ($instance) {
                 return $instance->studentGradeRecords
                     ->whereNotNull('percentage')
                     ->where('is_visible_to_student', false)
                     ->where('release_date', '<', now())
                     ->count();
-            })
+            }),
         ];
 
         return view('assessments.index', compact('moduleInstances', 'stats'));
@@ -64,9 +64,9 @@ class StudentGradeRecordController extends Controller
             'tutor',
             'studentGradeRecords' => function ($query) {
                 $query->with('student')
-                      ->orderBy('student_id')
-                      ->orderBy('assessment_component_name');
-            }
+                    ->orderBy('student_id')
+                    ->orderBy('assessment_component_name');
+            },
         ]);
 
         // Group grade records by student
@@ -85,7 +85,7 @@ class StudentGradeRecordController extends Controller
     public function update(Request $request, StudentGradeRecord $gradeRecord)
     {
         $validated = $request->validate([
-            'grade' => 'nullable|numeric|min:0|max:' . $gradeRecord->max_grade,
+            'grade' => 'nullable|numeric|min:0|max:'.$gradeRecord->max_grade,
             'max_grade' => 'required|numeric|min:1',
             'feedback' => 'nullable|string',
             'submission_date' => 'nullable|date',
@@ -107,7 +107,7 @@ class StudentGradeRecordController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Grade updated successfully.',
-            'percentage' => $gradeRecord->percentage
+            'percentage' => $gradeRecord->percentage,
         ]);
     }
 
@@ -126,14 +126,14 @@ class StudentGradeRecordController extends Controller
             ]);
 
             $updatedCount = 0;
-            
+
             DB::transaction(function () use ($validated, &$updatedCount) {
                 foreach ($validated['grades'] as $gradeData) {
                     $gradeRecord = StudentGradeRecord::findOrFail($gradeData['id']);
-                    
+
                     // Fix: properly handle checkbox - if present = true, if absent = false
                     $isVisible = isset($gradeData['is_visible_to_student']) && $gradeData['is_visible_to_student'];
-                    
+
                     $gradeRecord->update([
                         'grade' => $gradeData['grade'] ?? null,
                         'feedback' => $gradeData['feedback'] ?? null,
@@ -141,19 +141,38 @@ class StudentGradeRecordController extends Controller
                         'graded_by_staff_id' => isset($gradeData['grade']) && $gradeData['grade'] !== null ? auth()->id() : $gradeRecord->graded_by_staff_id,
                         'is_visible_to_student' => $isVisible,
                     ]);
-                    
+
                     $updatedCount++;
                 }
             });
 
             return redirect()->route('grade-records.module-grading', $moduleInstance)
                 ->with('success', "Successfully updated grades for {$updatedCount} records.");
-                
+
         } catch (\Exception $e) {
             return redirect()->back()
-                ->withErrors(['error' => 'Failed to update grades: ' . $e->getMessage()])
+                ->withErrors(['error' => 'Failed to update grades: '.$e->getMessage()])
                 ->withInput();
         }
+    }
+
+    /**
+     * Toggle visibility for a single grade record
+     */
+    public function toggleSingleVisibility(StudentGradeRecord $gradeRecord)
+    {
+        $newVisibility = ! $gradeRecord->is_visible_to_student;
+
+        $gradeRecord->update([
+            'is_visible_to_student' => $newVisibility,
+            'release_date' => $newVisibility ? now() : null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Grade visibility updated successfully.',
+            'is_visible' => $newVisibility,
+        ]);
     }
 
     /**
@@ -183,7 +202,34 @@ class StudentGradeRecordController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Made {$component} {$action} to students.",
-            'updated_count' => $updateCount
+            'updated_count' => $updateCount,
+        ]);
+    }
+
+    /**
+     * Bulk update visibility for a specific assessment component
+     */
+    public function bulkComponentVisibility(Request $request, ModuleInstance $moduleInstance)
+    {
+        $validated = $request->validate([
+            'component_name' => 'required|string',
+            'visible' => 'required|boolean',
+        ]);
+
+        $updateCount = $moduleInstance->studentGradeRecords()
+            ->where('assessment_component_name', $validated['component_name'])
+            ->whereNotNull('grade') // Only update graded assessments
+            ->update([
+                'is_visible_to_student' => $validated['visible'],
+                'release_date' => $validated['visible'] ? now() : null,
+            ]);
+
+        $action = $validated['visible'] ? 'visible' : 'hidden';
+
+        return response()->json([
+            'success' => true,
+            'message' => "Made all {$validated['component_name']} grades {$action} to students.",
+            'updated_count' => $updateCount,
         ]);
     }
 
@@ -212,7 +258,71 @@ class StudentGradeRecordController extends Controller
         $component = $validated['component_name'] ?? 'all graded assessments';
 
         return redirect()->route('module-instances.grading', $moduleInstance)
-            ->with('success', "Scheduled release of {$component} for " . $validated['release_date']);
+            ->with('success', "Scheduled release of {$component} for ".$validated['release_date']);
+    }
+
+    /**
+     * Schedule component release (AJAX version)
+     */
+    public function scheduleComponentRelease(Request $request, ModuleInstance $moduleInstance)
+    {
+        $validated = $request->validate([
+            'component_name' => 'required|string',
+            'release_date' => 'required|date|after:now',
+        ]);
+
+        $updateCount = $moduleInstance->studentGradeRecords()
+            ->where('assessment_component_name', $validated['component_name'])
+            ->whereNotNull('grade') // Only schedule graded assessments
+            ->update([
+                'release_date' => $validated['release_date'],
+                'is_visible_to_student' => false, // Will become visible on release date
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Scheduled release of {$validated['component_name']} for {$validated['release_date']}",
+            'updated_count' => $updateCount,
+        ]);
+    }
+
+    /**
+     * Export grades for a specific component
+     */
+    public function exportComponent(Request $request, ModuleInstance $moduleInstance)
+    {
+        $componentName = $request->query('component');
+
+        if (! $componentName) {
+            return response()->json(['error' => 'Component name is required'], 400);
+        }
+
+        $gradeRecords = $moduleInstance->studentGradeRecords()
+            ->where('assessment_component_name', $componentName)
+            ->with('student')
+            ->orderBy('student_id')
+            ->get();
+
+        $exportData = $gradeRecords->map(function ($gradeRecord) {
+            return [
+                'student_number' => $gradeRecord->student->student_number,
+                'student_name' => $gradeRecord->student->full_name,
+                'grade' => $gradeRecord->grade,
+                'max_grade' => $gradeRecord->max_grade,
+                'percentage' => $gradeRecord->percentage,
+                'is_visible' => $gradeRecord->is_visible_to_student,
+                'graded_date' => $gradeRecord->graded_date?->format('Y-m-d'),
+                'submission_date' => $gradeRecord->submission_date?->format('Y-m-d'),
+                'feedback' => $gradeRecord->feedback,
+            ];
+        });
+
+        return response()->json([
+            'component_name' => $componentName,
+            'module' => $moduleInstance->module->title,
+            'data' => $exportData,
+            'total_records' => $exportData->count(),
+        ]);
     }
 
     /**
@@ -224,9 +334,9 @@ class StudentGradeRecordController extends Controller
             'module',
             'studentGradeRecords' => function ($query) {
                 $query->with('student')
-                      ->orderBy('student_id')
-                      ->orderBy('assessment_component_name');
-            }
+                    ->orderBy('student_id')
+                    ->orderBy('assessment_component_name');
+            },
         ]);
 
         // Group by student for export
@@ -235,12 +345,12 @@ class StudentGradeRecordController extends Controller
             ->map(function ($grades, $studentId) {
                 $student = $grades->first()->student;
                 $gradeData = ['student_number' => $student->student_number, 'student_name' => $student->full_name];
-                
+
                 foreach ($grades as $grade) {
                     $gradeData[$grade->assessment_component_name] = $grade->grade;
-                    $gradeData[$grade->assessment_component_name . '_percentage'] = $grade->percentage;
+                    $gradeData[$grade->assessment_component_name.'_percentage'] = $grade->percentage;
                 }
-                
+
                 return $gradeData;
             });
 
@@ -265,7 +375,7 @@ class StudentGradeRecordController extends Controller
         $user = auth()->user();
         $student = $user->student;
 
-        if (!$student) {
+        if (! $student) {
             abort(404, 'Student record not found.');
         }
 
@@ -279,6 +389,38 @@ class StudentGradeRecordController extends Controller
     }
 
     /**
+     * Ensure grade records exist for all students and assessment components
+     */
+    private function ensureGradeRecordsExist(ModuleInstance $moduleInstance, $enrolledStudents, $assessmentComponents)
+    {
+        foreach ($enrolledStudents as $student) {
+            foreach ($assessmentComponents as $component) {
+                $existingRecord = StudentGradeRecord::where([
+                    'student_id' => $student->id,
+                    'module_instance_id' => $moduleInstance->id,
+                    'assessment_component_name' => $component['component_name'],
+                ])->first();
+
+                if (! $existingRecord) {
+                    StudentGradeRecord::create([
+                        'student_id' => $student->id,
+                        'module_instance_id' => $moduleInstance->id,
+                        'assessment_component_name' => $component['component_name'],
+                        'max_grade' => 100, // Default max grade
+                        'grade' => null,
+                        'feedback' => null,
+                        'submission_date' => null,
+                        'graded_date' => null,
+                        'graded_by_staff_id' => null,
+                        'is_visible_to_student' => false,
+                        'release_date' => null,
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
      * Calculate and show module completion status
      */
     public function moduleCompletion(Student $student, ModuleInstance $moduleInstance)
@@ -289,12 +431,12 @@ class StudentGradeRecordController extends Controller
 
         $moduleInstance->load('module');
         $assessmentComponents = $moduleInstance->module->assessment_components;
-        
+
         $completion = [
             'total_components' => count($assessmentComponents),
             'graded_components' => $gradeRecords->whereNotNull('grade')->count(),
             'overall_percentage' => 0,
-            'component_results' => []
+            'component_results' => [],
         ];
 
         $totalWeightedScore = 0;
@@ -302,7 +444,7 @@ class StudentGradeRecordController extends Controller
 
         foreach ($assessmentComponents as $component) {
             $gradeRecord = $gradeRecords->where('assessment_component_name', $component['component_name'])->first();
-            
+
             $componentResult = [
                 'name' => $component['component_name'],
                 'weighting' => $component['weighting'],
@@ -310,13 +452,13 @@ class StudentGradeRecordController extends Controller
                 'component_pass_mark' => $component['component_pass_mark'] ?? 40,
                 'grade' => $gradeRecord?->grade,
                 'percentage' => $gradeRecord?->percentage,
-                'status' => 'pending'
+                'status' => 'pending',
             ];
 
             if ($gradeRecord && $gradeRecord->grade !== null) {
                 $passMark = $component['component_pass_mark'] ?? 40;
                 $percentage = $gradeRecord->percentage;
-                
+
                 if ($percentage >= $passMark) {
                     $componentResult['status'] = 'pass';
                 } else {
@@ -335,5 +477,66 @@ class StudentGradeRecordController extends Controller
         }
 
         return view('grade-records.module-completion', compact('student', 'moduleInstance', 'completion'));
+    }
+
+    /**
+     * Modern spreadsheet-like grading interface
+     */
+    public function modernGrading(ModuleInstance $moduleInstance)
+    {
+        $user = auth()->user();
+
+        // Check permissions
+        if (! in_array($user->role, ['manager', 'student_services', 'teacher'])) {
+            abort(403, 'Unauthorized');
+        }
+
+        if ($user->role === 'teacher' && $moduleInstance->tutor_id !== $user->id) {
+            abort(403, 'You can only grade modules you are assigned to teach');
+        }
+
+        // Load module with assessment strategy
+        $moduleInstance->load(['module', 'tutor']);
+        $assessmentComponents = $moduleInstance->module->assessment_strategy ?? [];
+
+        // Get all enrolled students for this module instance
+        $enrolledStudents = Student::whereHas('enrolments', function ($query) use ($moduleInstance) {
+            $query->where('status', 'active')
+                ->where(function ($q) use ($moduleInstance) {
+                    // Students enrolled in programme that includes this module
+                    $q->whereHas('programmeInstance.moduleInstances', function ($pq) use ($moduleInstance) {
+                        $pq->where('module_instances.id', $moduleInstance->id);
+                    })
+                    // OR students enrolled directly in this module
+                        ->orWhere('module_instance_id', $moduleInstance->id);
+                });
+        })->with(['enrolments'])->orderBy('last_name')->orderBy('first_name')->get();
+
+        // Ensure grade records exist for all enrolled students and all assessment components
+        $this->ensureGradeRecordsExist($moduleInstance, $enrolledStudents, $assessmentComponents);
+
+        // Get all grade records for this module instance, grouped by student
+        $gradeRecords = StudentGradeRecord::where('module_instance_id', $moduleInstance->id)
+            ->with(['student', 'gradedByStaff'])
+            ->get();
+
+        $groupedGradeRecords = $gradeRecords->groupBy('student_id');
+
+        // Calculate statistics
+        $stats = [
+            'total' => $gradeRecords->count(),
+            'graded' => $gradeRecords->whereNotNull('grade')->count(),
+            'pending' => $gradeRecords->whereNull('grade')->count(),
+            'visible' => $gradeRecords->where('is_visible_to_student', true)->count(),
+            'students' => $enrolledStudents->count(),
+        ];
+
+        return view('grade-records.modern-grading', compact(
+            'moduleInstance',
+            'assessmentComponents',
+            'enrolledStudents',
+            'groupedGradeRecords',
+            'stats'
+        ));
     }
 }

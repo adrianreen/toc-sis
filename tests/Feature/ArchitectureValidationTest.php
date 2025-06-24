@@ -2,18 +2,18 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\Programme;
-use App\Models\ProgrammeInstance;
+use App\Models\Enrolment;
 use App\Models\Module;
 use App\Models\ModuleInstance;
+use App\Models\Programme;
+use App\Models\ProgrammeInstance;
 use App\Models\Student;
-use App\Models\User;
-use App\Models\Enrolment;
 use App\Models\StudentGradeRecord;
+use App\Models\User;
 use App\Services\ArchitectureValidationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tests\TestCase;
 
 class ArchitectureValidationTest extends TestCase
 {
@@ -24,7 +24,7 @@ class ArchitectureValidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->validationService = new ArchitectureValidationService();
+        $this->validationService = new ArchitectureValidationService;
     }
 
     public function test_validates_complete_architecture_successfully()
@@ -136,7 +136,7 @@ class ArchitectureValidationTest extends TestCase
         // Create modules totaling 120 credits
         $module1 = Module::factory()->create(['credit_value' => 60]);
         $module2 = Module::factory()->create(['credit_value' => 60]);
-        
+
         $instance1 = ModuleInstance::factory()->create(['module_id' => $module1->id]);
         $instance2 = ModuleInstance::factory()->create(['module_id' => $module2->id]);
 
@@ -170,7 +170,7 @@ class ArchitectureValidationTest extends TestCase
         // Create modules totaling only 90 credits
         $module1 = Module::factory()->create(['credit_value' => 60]);
         $module2 = Module::factory()->create(['credit_value' => 30]);
-        
+
         $instance1 = ModuleInstance::factory()->create(['module_id' => $module1->id]);
         $instance2 = ModuleInstance::factory()->create(['module_id' => $module2->id]);
 
@@ -201,7 +201,7 @@ class ArchitectureValidationTest extends TestCase
 
         $this->assertContains('Removed 1 orphaned curriculum links', $results['fixed']);
         $this->assertContains('Removed 1 orphaned grade records', $results['fixed']);
-        
+
         // Verify removal
         $this->assertEquals(0, DB::table('programme_instance_curriculum')->count());
         $this->assertEquals(0, StudentGradeRecord::count());
@@ -213,7 +213,7 @@ class ArchitectureValidationTest extends TestCase
         $module = Module::factory()->create([
             'assessment_strategy' => [
                 ['component_name' => 'Essay', 'weighting' => 100, 'is_must_pass' => false],
-            ]
+            ],
         ]);
         $moduleInstance = ModuleInstance::factory()->create(['module_id' => $module->id]);
 
@@ -311,7 +311,7 @@ class ArchitectureValidationTest extends TestCase
 
         // Create module instances
         $teacher = User::factory()->create(['role' => 'teacher']);
-        
+
         $instance1 = ModuleInstance::create([
             'module_id' => $module1->id,
             'tutor_id' => $teacher->id,
@@ -333,7 +333,7 @@ class ArchitectureValidationTest extends TestCase
 
         // Create student and enrolment
         $student = Student::factory()->create();
-        
+
         Enrolment::create([
             'student_id' => $student->id,
             'enrolment_type' => 'programme',

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Student;
 use App\Models\Programme;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -17,38 +17,38 @@ class StudentController extends Controller
     {
         // Start with optimized base query
         $query = Student::with(['enrolments.programmeInstance.programme:id,title', 'enrolments.moduleInstance.module:id,module_code,title']);
-        
+
         // Enhanced search with better performance
         if ($request->filled('search')) {
             $search = trim($request->get('search'));
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 // Split search terms for better matching
                 $terms = array_filter(explode(' ', $search));
-                
+
                 foreach ($terms as $term) {
-                    $q->where(function($subQuery) use ($term) {
+                    $q->where(function ($subQuery) use ($term) {
                         $subQuery->where('student_number', 'like', "%{$term}%")
-                                ->orWhere('first_name', 'like', "%{$term}%")
-                                ->orWhere('last_name', 'like', "%{$term}%")
-                                ->orWhere('email', 'like', "%{$term}%")
-                                ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$term}%"]);
+                            ->orWhere('first_name', 'like', "%{$term}%")
+                            ->orWhere('last_name', 'like', "%{$term}%")
+                            ->orWhere('email', 'like', "%{$term}%")
+                            ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$term}%"]);
                     });
                 }
             });
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             $query->where('status', $request->get('status'));
         }
-        
+
         // Programme filter with better performance
         if ($request->filled('programme')) {
-            $query->whereHas('enrolments.programmeInstance.programme', function($q) use ($request) {
+            $query->whereHas('enrolments.programmeInstance.programme', function ($q) use ($request) {
                 $q->where('id', $request->get('programme'));
             });
         }
-        
+
         // Smart ordering - relevance for search, recent for browsing
         if ($request->filled('search')) {
             $search = trim($request->get('search'));
@@ -66,22 +66,22 @@ class StudentController extends Controller
         } else {
             $query->orderBy('created_at', 'desc');
         }
-        
+
         // Paginate with preserved parameters
         $students = $query->paginate(25)->withQueryString();
-        
+
         // Get programmes for filter dropdown with counts
         $programmes = Programme::select('id', 'title')
-            ->withCount(['programmeInstances as enrolments_count' => function($query) {
+            ->withCount(['programmeInstances as enrolments_count' => function ($query) {
                 $query->whereHas('enrolments');
             }])
             ->orderBy('title')
             ->get();
-        
+
         // Return JSON for AJAX requests
         if ($request->wantsJson()) {
             return response()->json([
-                'students' => $students->items()->map(function($student) {
+                'students' => $students->items()->map(function ($student) {
                     return [
                         'id' => $student->id,
                         'full_name' => $student->full_name,
@@ -89,7 +89,7 @@ class StudentController extends Controller
                         'email' => $student->email,
                         'status' => $student->status,
                         'created_at' => $student->created_at->toISOString(),
-                        'programmes' => $student->enrolments->where('enrolment_type', 'programme')->pluck('programmeInstance.programme.title')->unique()->values()->all()
+                        'programmes' => $student->enrolments->where('enrolment_type', 'programme')->pluck('programmeInstance.programme.title')->unique()->values()->all(),
                     ];
                 }),
                 'pagination' => [
@@ -104,10 +104,10 @@ class StudentController extends Controller
                     'search' => $request->get('search'),
                     'status' => $request->get('status'),
                     'programme' => $request->get('programme'),
-                ]
+                ],
             ]);
         }
-        
+
         return view('students.index', [
             'students' => $students,
             'programmes' => $programmes,
@@ -163,7 +163,7 @@ class StudentController extends Controller
     public function show(Student $student)
     {
         $student->load(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module', 'createdBy', 'updatedBy']);
-        
+
         return view('students.show', compact('student'));
     }
 
@@ -186,7 +186,7 @@ class StudentController extends Controller
             'email' => [
                 'required',
                 'email',
-                Rule::unique('students', 'email')->ignore($student->id)
+                Rule::unique('students', 'email')->ignore($student->id),
             ],
             'phone' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
@@ -203,10 +203,10 @@ class StudentController extends Controller
         // Track what changed for activity log
         $changes = [];
         foreach ($validated as $key => $value) {
-            if ($student->$key != $value) {
+            if ($value != $student->$key) {
                 $changes[$key] = [
                     'old' => $student->$key,
-                    'new' => $value
+                    'new' => $value,
                 ];
             }
         }
@@ -214,7 +214,7 @@ class StudentController extends Controller
         $student->update($validated);
 
         // Log the activity with changes
-        if (!empty($changes)) {
+        if (! empty($changes)) {
             activity()
                 ->causedBy(Auth::user())
                 ->performedOn($student)
@@ -233,25 +233,25 @@ class StudentController extends Controller
     {
         // Check if student has any active enrolments
         $activeEnrolments = $student->enrolments()->whereIn('status', ['active', 'deferred'])->count();
-        
+
         if ($activeEnrolments > 0) {
             // Determine where to redirect back to
-            $redirectRoute = request()->header('referer') && str_contains(request()->header('referer'), '/students/' . $student->id) 
-                ? 'students.show' 
+            $redirectRoute = request()->header('referer') && str_contains(request()->header('referer'), '/students/'.$student->id)
+                ? 'students.show'
                 : 'students.index';
-                
+
             if ($redirectRoute === 'students.show') {
                 return redirect()->route('students.show', $student)
                     ->with('error', "Cannot delete student with {$activeEnrolments} active enrolment(s). Please complete or cancel their enrolments first.");
             }
-            
+
             return redirect()->route('students.index')
                 ->with('error', "Cannot delete {$student->full_name} - they have {$activeEnrolments} active enrolment(s). Please complete or cancel their enrolments first.");
         }
 
         // Store student name for success message
         $studentName = $student->full_name;
-        
+
         // Log the activity before deletion
         activity()
             ->causedBy(Auth::user())
@@ -262,7 +262,7 @@ class StudentController extends Controller
         $student->delete();
 
         // Determine where to redirect back to
-        $redirectRoute = request()->header('referer') && str_contains(request()->header('referer'), '/students/' . $student->id) 
+        $redirectRoute = request()->header('referer') && str_contains(request()->header('referer'), '/students/'.$student->id)
             ? 'students.index'  // Always redirect to index if coming from show page (since student page no longer exists)
             : 'students.index';
 
@@ -333,33 +333,33 @@ class StudentController extends Controller
     public function search(Request $request)
     {
         $query = Student::with(['enrolments.programmeInstance.programme', 'enrolments.moduleInstance.module']);
-        
+
         // Get search term from either 'search' or 'q' parameter
         $search = $request->get('search') ?: $request->get('q');
-        
+
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('student_number', 'like', "%{$search}%")
-                  ->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
-        
+
         if ($request->filled('status')) {
             $query->where('status', $request->get('status'));
         }
-        
+
         if ($request->filled('programme')) {
-            $query->whereHas('enrolments.programmeInstance.programme', function($q) use ($request) {
+            $query->whereHas('enrolments.programmeInstance.programme', function ($q) use ($request) {
                 $q->where('id', $request->get('programme'));
             });
         }
-        
+
         // Smart result limiting based on use case
         $limit = $request->get('limit', 50); // Default 50, max 200
         $limit = min($limit, 200);
-        
+
         // Better ordering - relevance for search, recent for browsing
         if ($search) {
             $query->orderByRaw("
@@ -376,11 +376,11 @@ class StudentController extends Controller
         } else {
             $query->orderBy('created_at', 'desc');
         }
-        
+
         // Get total count before applying limit for better UX
         $totalCount = $query->count();
         $students = $query->limit($limit)->get();
-            
+
         return response()->json([
             'students' => $students->map(function ($student) {
                 return [
@@ -396,10 +396,9 @@ class StudentController extends Controller
             'total' => $totalCount,
             'showing' => $students->count(),
             'limit' => $limit,
-            'has_more' => $totalCount > $limit
+            'has_more' => $totalCount > $limit,
         ]);
     }
-
 
     /**
      * Bulk operations (for future implementation)
@@ -413,9 +412,9 @@ class StudentController extends Controller
             'action' => 'required|in:status_change,bulk_email,export',
             'status' => 'required_if:action,status_change|in:enquiry,enrolled,active,deferred,completed,cancelled',
         ]);
-        
+
         $students = Student::whereIn('id', $validated['student_ids'])->get();
-        
+
         switch ($validated['action']) {
             case 'status_change':
                 foreach ($students as $student) {
@@ -423,26 +422,26 @@ class StudentController extends Controller
                         'status' => $validated['status'],
                         'updated_by' => Auth::id()
                     ]);
-                    
+
                     activity()
                         ->causedBy(Auth::user())
                         ->performedOn($student)
                         ->log("Status changed to {$validated['status']} via bulk update");
                 }
-                
+
                 return response()->json([
                     'message' => "Updated {$students->count()} students successfully."
                 ]);
-                
+
             case 'export':
                 // Handle export logic
                 break;
-                
+
             case 'bulk_email':
                 // Handle bulk email logic
                 break;
         }
-        
+
         return response()->json(['message' => 'Operation completed successfully.']);
     }
     */
@@ -454,7 +453,7 @@ class StudentController extends Controller
     {
         $student->load([
             'enrolments.programmeInstance.programme',
-            'enrolments.moduleInstance.module'
+            'enrolments.moduleInstance.module',
         ]);
 
         // For admin/staff: show all historical grade records

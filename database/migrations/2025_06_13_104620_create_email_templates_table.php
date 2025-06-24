@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users');
             $table->foreignId('updated_by')->nullable()->constrained('users');
             $table->timestamps();
-            
+
             $table->index(['category', 'is_active']);
             $table->index('system_template');
         });

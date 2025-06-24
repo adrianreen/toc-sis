@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Enrolment;
 use App\Models\ExtensionRequest;
 use App\Models\Student;
-use App\Models\Enrolment;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,8 +16,7 @@ class ExtensionRequestController extends Controller
 {
     public function __construct(
         private NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     /**
      * Display student's extension requests
@@ -25,20 +24,20 @@ class ExtensionRequestController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         if ($user->isStudent()) {
             $extensionRequests = ExtensionRequest::where('student_id', $user->student_id)
                 ->with(['enrolment.programme', 'reviewer'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
-                
+
             return view('extension-requests.index', compact('extensionRequests'));
         } else {
             // Staff view - all extension requests
             $extensionRequests = ExtensionRequest::with(['student', 'enrolment.programme', 'reviewer'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
-                
+
             return view('extension-requests.staff-index', compact('extensionRequests'));
         }
     }
@@ -48,12 +47,12 @@ class ExtensionRequestController extends Controller
      */
     public function create()
     {
-        if (!Auth::user()->isStudent()) {
+        if (! Auth::user()->isStudent()) {
             abort(403, 'Only students can create extension requests.');
         }
 
         $student = Student::find(Auth::user()->student_id);
-        if (!$student) {
+        if (! $student) {
             return redirect()->route('dashboard')->with('error', 'Student record not found.');
         }
 
@@ -75,12 +74,12 @@ class ExtensionRequestController extends Controller
      */
     public function store(Request $request)
     {
-        if (!Auth::user()->isStudent()) {
+        if (! Auth::user()->isStudent()) {
             abort(403, 'Only students can create extension requests.');
         }
 
         $student = Student::find(Auth::user()->student_id);
-        if (!$student) {
+        if (! $student) {
             return redirect()->route('dashboard')->with('error', 'Student record not found.');
         }
 
@@ -90,7 +89,7 @@ class ExtensionRequestController extends Controller
                 'exists:enrolments,id',
                 Rule::exists('enrolments')->where(function ($query) use ($student) {
                     return $query->where('student_id', $student->id);
-                })
+                }),
             ],
             'contact_number' => 'required|string|max:20',
             'extension_type' => 'required|in:two_weeks_free,eight_weeks_minor,twenty_four_weeks_major,medical',
@@ -113,7 +112,7 @@ class ExtensionRequestController extends Controller
             }
 
             // Validate medical certificate requirement
-            if ($validated['extension_type'] === 'medical' && !$medicalCertPath) {
+            if ($validated['extension_type'] === 'medical' && ! $medicalCertPath) {
                 throw new \Exception('Medical certificate is required for medical extensions.');
             }
 
@@ -121,10 +120,10 @@ class ExtensionRequestController extends Controller
             $extensionRequest->student_id = $student->id;
             $extensionRequest->student_number = $student->student_number;
             $extensionRequest->medical_certificate_path = $medicalCertPath;
-            
+
             // Calculate extension fee
             $extensionRequest->extension_fee = $extensionRequest->calculateExtensionFee();
-            
+
             // Calculate requested completion date (except for medical which is manual)
             if ($validated['extension_type'] !== 'medical') {
                 $extensionRequest->requested_completion_date = $extensionRequest->calculateRequestedCompletionDate();
@@ -142,7 +141,7 @@ class ExtensionRequestController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             // Clean up uploaded file if something went wrong
             if ($medicalCertPath) {
                 Storage::disk('private')->delete($medicalCertPath);
@@ -150,7 +149,7 @@ class ExtensionRequestController extends Controller
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Failed to submit extension request: ' . $e->getMessage());
+                ->with('error', 'Failed to submit extension request: '.$e->getMessage());
         }
     }
 
@@ -166,7 +165,7 @@ class ExtensionRequestController extends Controller
             }
         } else {
             // Staff can view all extension requests
-            if (!in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
+            if (! in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
                 abort(403);
             }
         }
@@ -181,11 +180,11 @@ class ExtensionRequestController extends Controller
      */
     public function edit(ExtensionRequest $extensionRequest)
     {
-        if (!in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
+        if (! in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
             abort(403, 'Only staff can review extension requests.');
         }
 
-        if (!$extensionRequest->isPending()) {
+        if (! $extensionRequest->isPending()) {
             return redirect()->route('extension-requests.show', $extensionRequest)
                 ->with('error', 'This extension request has already been reviewed.');
         }
@@ -200,11 +199,11 @@ class ExtensionRequestController extends Controller
      */
     public function update(Request $request, ExtensionRequest $extensionRequest)
     {
-        if (!in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
+        if (! in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
             abort(403, 'Only staff can review extension requests.');
         }
 
-        if (!$extensionRequest->isPending()) {
+        if (! $extensionRequest->isPending()) {
             return redirect()->route('extension-requests.show', $extensionRequest)
                 ->with('error', 'This extension request has already been reviewed.');
         }
@@ -229,7 +228,7 @@ class ExtensionRequestController extends Controller
             // If approved, update the enrolment completion date
             if ($validated['status'] === 'approved' && $extensionRequest->requested_completion_date) {
                 $extensionRequest->enrolment->update([
-                    'completion_date' => $extensionRequest->requested_completion_date
+                    'completion_date' => $extensionRequest->requested_completion_date,
                 ]);
             }
 
@@ -239,14 +238,16 @@ class ExtensionRequestController extends Controller
             DB::commit();
 
             $statusText = $validated['status'] === 'approved' ? 'approved' : 'rejected';
+
             return redirect()->route('extension-requests.show', $extensionRequest)
                 ->with('success', "Extension request has been {$statusText}.");
 
         } catch (\Exception $e) {
             DB::rollback();
+
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Failed to update extension request: ' . $e->getMessage());
+                ->with('error', 'Failed to update extension request: '.$e->getMessage());
         }
     }
 
@@ -261,22 +262,22 @@ class ExtensionRequestController extends Controller
                 abort(403);
             }
         } else {
-            if (!in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
+            if (! in_array(Auth::user()->role, ['manager', 'student_services', 'teacher'])) {
                 abort(403);
             }
         }
 
-        if (!$extensionRequest->medical_certificate_path) {
+        if (! $extensionRequest->medical_certificate_path) {
             abort(404, 'Medical certificate not found.');
         }
 
-        if (!Storage::disk('private')->exists($extensionRequest->medical_certificate_path)) {
+        if (! Storage::disk('private')->exists($extensionRequest->medical_certificate_path)) {
             abort(404, 'Medical certificate file not found.');
         }
 
         return Storage::disk('private')->download(
             $extensionRequest->medical_certificate_path,
-            'medical-certificate-' . $extensionRequest->id . '.pdf'
+            'medical-certificate-'.$extensionRequest->id.'.pdf'
         );
     }
 
@@ -291,7 +292,7 @@ class ExtensionRequestController extends Controller
             $this->notificationService->notifyApprovalRequired(
                 $user,
                 'Extension Request',
-                $extensionRequest->student->first_name . ' ' . $extensionRequest->student->last_name,
+                $extensionRequest->student->first_name.' '.$extensionRequest->student->last_name,
                 route('extension-requests.show', $extensionRequest)
             );
         }
@@ -303,7 +304,7 @@ class ExtensionRequestController extends Controller
     private function notifyStudentOfDecision(ExtensionRequest $extensionRequest): void
     {
         $studentUser = \App\Models\User::where('student_id', $extensionRequest->student_id)->first();
-        
+
         if ($studentUser) {
             if ($extensionRequest->isApproved()) {
                 $this->notificationService->notifyCourseExtensionApproved(

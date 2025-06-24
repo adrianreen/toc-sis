@@ -2,23 +2,24 @@
 
 namespace App\Services;
 
-use App\Models\StudentDocument;
 use App\Models\Student;
+use App\Models\StudentDocument;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Exception;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class DocumentUploadService
 {
     private const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     private const ALLOWED_MIME_TYPES = [
         'application/pdf',
         'image/jpeg',
         'image/png',
-        'image/gif'
+        'image/gif',
     ];
 
     private const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
@@ -36,7 +37,7 @@ class DocumentUploadService
         // Generate storage path
         $storagePath = $this->generateStoragePath($documentType, $student->id);
         $storedFilename = $this->generateStoredFilename($file, $student->id);
-        $fullPath = $storagePath . '/' . $storedFilename;
+        $fullPath = $storagePath.'/'.$storedFilename;
 
         // Calculate file hash for integrity
         $fileHash = hash_file('sha256', $file->getPathname());
@@ -73,7 +74,7 @@ class DocumentUploadService
             'description' => $description,
             'uploaded_by' => Auth::id(),
             'uploaded_at' => now(),
-            'metadata' => $this->extractMetadata($file)
+            'metadata' => $this->extractMetadata($file),
         ]);
 
         // Log activity
@@ -83,7 +84,7 @@ class DocumentUploadService
             ->withProperties([
                 'student_id' => $student->id,
                 'document_type' => $documentType,
-                'file_size' => $file->getSize()
+                'file_size' => $file->getSize(),
             ])
             ->log('Document uploaded');
 
@@ -98,18 +99,18 @@ class DocumentUploadService
         }
 
         // Check MIME type
-        if (!in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES)) {
+        if (! in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES)) {
             throw new Exception('File type not allowed. Only PDF, JPEG, PNG, and GIF files are permitted.');
         }
 
         // Check extension
         $extension = strtolower($file->getClientOriginalExtension());
-        if (!in_array($extension, self::ALLOWED_EXTENSIONS)) {
+        if (! in_array($extension, self::ALLOWED_EXTENSIONS)) {
             throw new Exception('File extension not allowed.');
         }
 
         // Additional security: check if file is actually what it claims to be
-        if (!$this->verifyFileType($file)) {
+        if (! $this->verifyFileType($file)) {
             throw new Exception('File appears to be corrupted or is not the expected file type.');
         }
     }
@@ -150,7 +151,7 @@ class DocumentUploadService
     {
         $year = date('Y');
         $month = date('m');
-        
+
         return "{$documentType}/{$year}/{$month}";
     }
 
@@ -159,7 +160,7 @@ class DocumentUploadService
         $extension = $file->getClientOriginalExtension();
         $timestamp = now()->format('Ymd-His');
         $random = Str::random(8);
-        
+
         return "student-{$studentId}-{$timestamp}-{$random}.{$extension}";
     }
 
@@ -167,8 +168,8 @@ class DocumentUploadService
     {
         $typeLabels = StudentDocument::getDocumentTypeLabels();
         $baseTitle = $typeLabels[$documentType] ?? 'Document';
-        
-        return "{$baseTitle} - " . now()->format('M d, Y');
+
+        return "{$baseTitle} - ".now()->format('M d, Y');
     }
 
     private function extractMetadata(UploadedFile $file): array
@@ -176,7 +177,7 @@ class DocumentUploadService
         $metadata = [
             'original_extension' => $file->getClientOriginalExtension(),
             'upload_timestamp' => now()->toISOString(),
-            'user_agent' => request()->header('User-Agent')
+            'user_agent' => request()->header('User-Agent'),
         ];
 
         // Extract additional metadata for images
@@ -210,7 +211,7 @@ class DocumentUploadService
                 ->withProperties([
                     'student_id' => $document->student_id,
                     'document_type' => $document->document_type,
-                    'original_filename' => $document->original_filename
+                    'original_filename' => $document->original_filename,
                 ])
                 ->log('Document deleted');
 
@@ -229,7 +230,7 @@ class DocumentUploadService
             'status' => 'verified',
             'verified_by' => $verifier->id,
             'verified_at' => now(),
-            'rejection_reason' => null
+            'rejection_reason' => null,
         ]);
 
         activity()
@@ -246,7 +247,7 @@ class DocumentUploadService
             'status' => 'rejected',
             'verified_by' => $verifier->id,
             'verified_at' => now(),
-            'rejection_reason' => $reason
+            'rejection_reason' => $reason,
         ]);
 
         activity()

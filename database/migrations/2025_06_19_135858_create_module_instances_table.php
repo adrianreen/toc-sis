@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('delivery_style', ['sync', 'async']);
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['module_id', 'start_date']);
             $table->index('tutor_id');
         });

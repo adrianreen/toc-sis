@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/RepeatAssessment.php
 
 namespace App\Models;
@@ -6,8 +7,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class RepeatAssessment extends Model
 {
@@ -77,7 +78,7 @@ class RepeatAssessment extends Model
                 'notification_sent', 'notification_date', 'notification_method',
                 'moodle_setup_status', 'moodle_setup_date', 'moodle_course_id',
                 'workflow_stage', 'deadline_date', 'priority_level',
-                'assigned_to', 'last_contact_date'
+                'assigned_to', 'last_contact_date',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
@@ -138,7 +139,7 @@ class RepeatAssessment extends Model
             ->log('Repeat assessment approved');
     }
 
-    public function reject(string $reason = null): void
+    public function reject(?string $reason = null): void
     {
         $this->update([
             'status' => 'rejected',
@@ -170,7 +171,7 @@ class RepeatAssessment extends Model
         return $this->payment_status === 'waived';
     }
 
-    public function markAsPaid(string $method, float $amount, string $notes = null): void
+    public function markAsPaid(string $method, float $amount, ?string $notes = null): void
     {
         $this->update([
             'payment_status' => 'paid',
@@ -188,12 +189,12 @@ class RepeatAssessment extends Model
             ->withProperties([
                 'method' => $method,
                 'amount' => $amount,
-                'notes' => $notes
+                'notes' => $notes,
             ])
             ->log('Payment recorded for repeat assessment');
     }
 
-    public function waivePayment(string $reason = null): void
+    public function waivePayment(?string $reason = null): void
     {
         $this->update([
             'payment_status' => 'waived',
@@ -217,7 +218,7 @@ class RepeatAssessment extends Model
         return $this->notification_sent;
     }
 
-    public function markNotificationSent(string $method, string $notes = null): void
+    public function markNotificationSent(string $method, ?string $notes = null): void
     {
         $this->update([
             'notification_sent' => true,
@@ -248,7 +249,7 @@ class RepeatAssessment extends Model
         return $this->moodle_setup_status === 'completed';
     }
 
-    public function markMoodleSetupComplete(string $courseId, string $notes = null): void
+    public function markMoodleSetupComplete(string $courseId, ?string $notes = null): void
     {
         $this->update([
             'moodle_setup_status' => 'completed',
@@ -302,7 +303,7 @@ class RepeatAssessment extends Model
                 }
                 break;
             case 'moodle_setup':
-                if ($this->isMoodleSetupComplete() || !$this->isMoodleSetupRequired()) {
+                if ($this->isMoodleSetupComplete() || ! $this->isMoodleSetupRequired()) {
                     $this->workflow_stage = 'active';
                 }
                 break;
@@ -314,10 +315,10 @@ class RepeatAssessment extends Model
     public function canProgress(): bool
     {
         return match ($this->workflow_stage) {
-            'identified' => !$this->notification_sent,
+            'identified' => ! $this->notification_sent,
             'notified' => $this->isPaymentPending(),
             'payment_pending' => true,
-            'moodle_setup' => !$this->isMoodleSetupComplete(),
+            'moodle_setup' => ! $this->isMoodleSetupComplete(),
             'active' => false,
             'completed' => false,
             'cancelled' => false,
@@ -326,7 +327,7 @@ class RepeatAssessment extends Model
     }
 
     // Contact and communication
-    public function addContactHistory(string $type, string $method, string $notes = null): void
+    public function addContactHistory(string $type, string $method, ?string $notes = null): void
     {
         $history = $this->contact_history ?? [];
         $history[] = [
@@ -363,22 +364,22 @@ class RepeatAssessment extends Model
     // Priority and deadline management
     public function isOverdue(): bool
     {
-        return $this->deadline_date && $this->deadline_date->isPast() && !in_array($this->workflow_stage, ['completed', 'cancelled']);
+        return $this->deadline_date && $this->deadline_date->isPast() && ! in_array($this->workflow_stage, ['completed', 'cancelled']);
     }
 
     public function isDueSoon(int $days = 7): bool
     {
-        return $this->deadline_date && $this->deadline_date->diffInDays(now()) <= $days && !$this->isOverdue();
+        return $this->deadline_date && $this->deadline_date->diffInDays(now()) <= $days && ! $this->isOverdue();
     }
 
     public function escalatePriority(): void
     {
         $priorities = ['low', 'medium', 'high', 'urgent'];
         $currentIndex = array_search($this->priority_level, $priorities);
-        
+
         if ($currentIndex !== false && $currentIndex < count($priorities) - 1) {
             $this->update(['priority_level' => $priorities[$currentIndex + 1]]);
-            
+
             activity()
                 ->performedOn($this)
                 ->causedBy(auth()->user())
@@ -405,13 +406,13 @@ class RepeatAssessment extends Model
     public function scopeOverdue($query)
     {
         return $query->where('deadline_date', '<', now())
-                     ->whereNotIn('workflow_stage', ['completed', 'cancelled']);
+            ->whereNotIn('workflow_stage', ['completed', 'cancelled']);
     }
 
     public function scopeDueSoon($query, int $days = 7)
     {
         return $query->whereBetween('deadline_date', [now(), now()->addDays($days)])
-                     ->whereNotIn('workflow_stage', ['completed', 'cancelled']);
+            ->whereNotIn('workflow_stage', ['completed', 'cancelled']);
     }
 
     public function scopeAssignedTo($query, int $userId)

@@ -25,22 +25,22 @@ class TemplateMail extends Mailable
     public function build()
     {
         $processed = $this->template->replaceVariables(
-            $this->student, 
-            $this->sender, 
+            $this->student,
+            $this->sender,
             $this->customVariables
         );
 
         $mail = $this->subject($processed['subject'])
-                     ->view('mail.template', [
-                         'content' => $processed['body_html'],
-                         'student' => $this->student,
-                         'sender' => $this->sender,
-                         'subject' => $processed['subject'],
-                         'recipient_email' => $this->student->email,
-                     ]);
+            ->view('mail.template', [
+                'content' => $processed['body_html'],
+                'student' => $this->student,
+                'sender' => $this->sender,
+                'subject' => $processed['subject'],
+                'recipient_email' => $this->student->email,
+            ]);
 
         // Add text version if available
-        if (!empty($processed['body_text'])) {
+        if (! empty($processed['body_text'])) {
             $mail->text('mail.template-text', [
                 'content' => $processed['body_text'],
                 'student' => $this->student,

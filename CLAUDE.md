@@ -6,6 +6,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a comprehensive Laravel-based Student Information System for The Open College (TOC), managing academic programmes, student enrolments, assessments, and academic progress tracking.
 
+## 🚨 CRITICAL UI/UX STANDARDS - ALWAYS FOLLOW
+
+**NEVER create buttons that are white text on white background or similar low-contrast issues!**
+**ALWAYS add hover cursor changes (cursor-pointer) to clickable elements!**
+
+### UI Standards Checklist:
+- ✅ **Button Contrast**: Always use high-contrast color combinations (e.g., `bg-toc-600 text-white` or `bg-blue-600 text-white`)
+- ✅ **Hover States**: ALL clickable elements must have `hover:` states and `cursor-pointer`
+- ✅ **Visual Feedback**: Buttons must have `transition-colors` for smooth hover effects
+- ✅ **Accessibility**: Ensure text meets WCAG contrast requirements
+- ✅ **Consistency**: Use established color patterns from the design system
+
+**Example of correct button styling:**
+```html
+<button class="bg-toc-600 hover:bg-toc-700 text-white px-4 py-2 rounded-lg transition-colors cursor-pointer">
+    Click Me
+</button>
+```
+
+**NEVER use unclear color combinations like:**
+- `text-white bg-white` (invisible text)
+- `text-gray-400 bg-gray-300` (poor contrast)
+- Missing hover states on clickable elements
+- Missing `cursor-pointer` on interactive elements
+
 ## Development Commands
 
 ### Laravel/PHP Commands

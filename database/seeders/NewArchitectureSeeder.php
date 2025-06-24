@@ -2,16 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Programme;
-use App\Models\ProgrammeInstance;
+use App\Models\Enrolment;
 use App\Models\Module;
 use App\Models\ModuleInstance;
+use App\Models\Programme;
+use App\Models\ProgrammeInstance;
 use App\Models\Student;
-use App\Models\Enrolment;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class NewArchitectureSeeder extends Seeder
 {
@@ -27,7 +26,7 @@ class NewArchitectureSeeder extends Seeder
             'nfq_level' => 8,
             'total_credits' => 180,
             'description' => 'A comprehensive business management degree programme',
-            'learning_outcomes' => 'Students will develop skills in leadership, strategy, and operations management.'
+            'learning_outcomes' => 'Students will develop skills in leadership, strategy, and operations management.',
         ]);
 
         $diplomaMarketing = Programme::create([
@@ -36,7 +35,7 @@ class NewArchitectureSeeder extends Seeder
             'nfq_level' => 6,
             'total_credits' => 60,
             'description' => 'Professional diploma in digital marketing strategies',
-            'learning_outcomes' => 'Students will master digital marketing tools and strategies.'
+            'learning_outcomes' => 'Students will master digital marketing tools and strategies.',
         ]);
 
         // Create programme instances
@@ -45,7 +44,7 @@ class NewArchitectureSeeder extends Seeder
             'label' => 'September 2024 Intake',
             'intake_start_date' => Carbon::create(2024, 9, 1),
             'intake_end_date' => Carbon::create(2027, 6, 30),
-            'default_delivery_style' => 'sync'
+            'default_delivery_style' => 'sync',
         ]);
 
         $diplomaMarketingJan2025 = ProgrammeInstance::create([
@@ -53,7 +52,7 @@ class NewArchitectureSeeder extends Seeder
             'label' => 'January 2025 Rolling',
             'intake_start_date' => Carbon::create(2025, 1, 1),
             'intake_end_date' => Carbon::create(2025, 12, 31),
-            'default_delivery_style' => 'async'
+            'default_delivery_style' => 'async',
         ]);
 
         // Create sample modules
@@ -66,17 +65,17 @@ class NewArchitectureSeeder extends Seeder
                     'component_name' => 'Strategic Analysis Essay',
                     'weighting' => 40,
                     'is_must_pass' => false,
-                    'component_pass_mark' => null
+                    'component_pass_mark' => null,
                 ],
                 [
                     'component_name' => 'Final Examination',
                     'weighting' => 60,
                     'is_must_pass' => true,
-                    'component_pass_mark' => 40
-                ]
+                    'component_pass_mark' => 40,
+                ],
             ],
             'allows_standalone_enrolment' => true,
-            'async_instance_cadence' => 'quarterly'
+            'async_instance_cadence' => 'quarterly',
         ]);
 
         $digitalMarketing = Module::create([
@@ -88,17 +87,17 @@ class NewArchitectureSeeder extends Seeder
                     'component_name' => 'Campaign Project',
                     'weighting' => 70,
                     'is_must_pass' => false,
-                    'component_pass_mark' => null
+                    'component_pass_mark' => null,
                 ],
                 [
                     'component_name' => 'Reflection Portfolio',
                     'weighting' => 30,
                     'is_must_pass' => false,
-                    'component_pass_mark' => null
-                ]
+                    'component_pass_mark' => null,
+                ],
             ],
             'allows_standalone_enrolment' => true,
-            'async_instance_cadence' => 'monthly'
+            'async_instance_cadence' => 'monthly',
         ]);
 
         $employmentLaw = Module::create([
@@ -110,26 +109,26 @@ class NewArchitectureSeeder extends Seeder
                     'component_name' => 'Case Study Analysis',
                     'weighting' => 100,
                     'is_must_pass' => false,
-                    'component_pass_mark' => null
-                ]
+                    'component_pass_mark' => null,
+                ],
             ],
             'allows_standalone_enrolment' => true,
-            'async_instance_cadence' => 'bi_annually'
+            'async_instance_cadence' => 'bi_annually',
         ]);
 
         // Find or create tutor users
         $tutor1 = User::firstOrCreate([
-            'email' => 'john.smith@theopencollege.com'
+            'email' => 'john.smith@theopencollege.com',
         ], [
             'name' => 'John Smith',
-            'role' => 'teacher'
+            'role' => 'teacher',
         ]);
 
         $tutor2 = User::firstOrCreate([
-            'email' => 'sarah.jones@theopencollege.com'
+            'email' => 'sarah.jones@theopencollege.com',
         ], [
-            'name' => 'Sarah Jones', 
-            'role' => 'teacher'
+            'name' => 'Sarah Jones',
+            'role' => 'teacher',
         ]);
 
         // Create module instances
@@ -138,7 +137,7 @@ class NewArchitectureSeeder extends Seeder
             'tutor_id' => $tutor1->id,
             'start_date' => Carbon::create(2024, 9, 15),
             'target_end_date' => Carbon::create(2024, 12, 15),
-            'delivery_style' => 'sync'
+            'delivery_style' => 'sync',
         ]);
 
         $digitalMarketingJan2025 = ModuleInstance::create([
@@ -146,7 +145,7 @@ class NewArchitectureSeeder extends Seeder
             'tutor_id' => $tutor2->id,
             'start_date' => Carbon::create(2025, 1, 15),
             'target_end_date' => Carbon::create(2025, 3, 15),
-            'delivery_style' => 'async'
+            'delivery_style' => 'async',
         ]);
 
         $employmentLawStandalone = ModuleInstance::create([
@@ -154,7 +153,7 @@ class NewArchitectureSeeder extends Seeder
             'tutor_id' => $tutor1->id,
             'start_date' => Carbon::create(2024, 10, 1),
             'target_end_date' => Carbon::create(2024, 11, 30),
-            'delivery_style' => 'async'
+            'delivery_style' => 'async',
         ]);
 
         // Link modules to programme instances (curriculum)
@@ -173,7 +172,7 @@ class NewArchitectureSeeder extends Seeder
             'county' => 'Dublin',
             'eircode' => 'D01 X123',
             'date_of_birth' => Carbon::create(1995, 5, 15),
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         $student2 = Student::create([
@@ -187,7 +186,7 @@ class NewArchitectureSeeder extends Seeder
             'county' => 'Cork',
             'eircode' => 'T12 Y456',
             'date_of_birth' => Carbon::create(1992, 8, 22),
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         // Create sample enrolments
@@ -198,7 +197,7 @@ class NewArchitectureSeeder extends Seeder
             'programme_instance_id' => $baBusinessSept2024->id,
             'module_instance_id' => null,
             'enrolment_date' => Carbon::create(2024, 8, 15),
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         // Standalone module enrolments
@@ -208,7 +207,7 @@ class NewArchitectureSeeder extends Seeder
             'programme_instance_id' => null,
             'module_instance_id' => $employmentLawStandalone->id,
             'enrolment_date' => Carbon::create(2024, 9, 20),
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         Enrolment::create([
@@ -217,7 +216,7 @@ class NewArchitectureSeeder extends Seeder
             'programme_instance_id' => null,
             'module_instance_id' => $employmentLawStandalone->id,
             'enrolment_date' => Carbon::create(2024, 9, 25),
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         $this->command->info('New architecture seeded successfully!');

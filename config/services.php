@@ -34,7 +34,7 @@ return [
         'client_secret' => env('AZURE_CLIENT_SECRET'),
         'redirect' => env('AZURE_REDIRECT_URI'),
         'tenant' => env('AZURE_TENANT_ID'),
-        
+
         // CRUCIAL: These parameters are needed for proper ID token with groups
         'parameters' => [
             'scope' => 'openid profile email',
@@ -42,15 +42,15 @@ return [
             'response_mode' => 'query',
             'prompt' => 'select_account',
         ],
-        
+
         // Alternative method - you can also specify scopes directly
         'scopes' => ['openid', 'profile', 'email'],
-        
+
         // Group ID mappings for role assignment
         'group_managers' => env('AZURE_GROUP_MANAGERS'),
         'group_student_services' => env('AZURE_GROUP_STUDENT_SERVICES'),
         'group_teachers' => env('AZURE_GROUP_TEACHERS'),
-        
+
         // Optional: Additional settings that can help with group claims
         'logout_uri' => env('AZURE_LOGOUT_URI', env('APP_URL')),
         'tenant_id' => env('AZURE_TENANT_ID'), // Some providers need this separately

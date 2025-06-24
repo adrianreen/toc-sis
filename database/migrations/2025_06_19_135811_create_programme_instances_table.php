@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('default_delivery_style', ['sync', 'async']);
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['programme_id', 'intake_start_date']);
         });
     }

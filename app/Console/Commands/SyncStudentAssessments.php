@@ -6,7 +6,6 @@ use App\Models\Enrolment;
 use App\Models\ModuleInstance;
 use App\Services\EnrolmentService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class SyncStudentAssessments extends Command
 {
@@ -38,8 +37,9 @@ class SyncStudentAssessments extends Command
     {
         $this->error('❌ This command is deprecated and incompatible with the new 4-level architecture.');
         $this->info('   Please use the EnrolmentService methods instead.');
+
         return Command::FAILURE;
-        
+
         $dryRun = $this->option('dry-run');
         if ($dryRun) {
             $this->warn('DRY RUN MODE - No changes will be made');
@@ -55,7 +55,7 @@ class SyncStudentAssessments extends Command
         try {
             // Get enrollments to process
             $enrolments = $this->getEnrolmentsToProcess();
-            
+
             $this->info("Found {$enrolments->count()} student enrolments to process");
 
             $bar = $this->output->createProgressBar($enrolments->count());
@@ -69,9 +69,9 @@ class SyncStudentAssessments extends Command
                     $stats['assessments_created'] += $result['assessments'];
                 } catch (\Exception $e) {
                     $stats['errors']++;
-                    $this->error("\nError processing student {$enrolment->student->student_number}: " . $e->getMessage());
+                    $this->error("\nError processing student {$enrolment->student->student_number}: ".$e->getMessage());
                 }
-                
+
                 $bar->advance();
             }
 
@@ -82,7 +82,8 @@ class SyncStudentAssessments extends Command
             $this->displayResults($stats, $dryRun);
 
         } catch (\Exception $e) {
-            $this->error('Command failed: ' . $e->getMessage());
+            $this->error('Command failed: '.$e->getMessage());
+
             return Command::FAILURE;
         }
 
@@ -116,7 +117,7 @@ class SyncStudentAssessments extends Command
     {
         $student = $enrolment->student;
         $cohort = $enrolment->cohort;
-        
+
         $stats = ['module_enrolments' => 0, 'assessments' => 0];
 
         // Get module instances for this cohort
@@ -130,24 +131,24 @@ class SyncStudentAssessments extends Command
                 ->where('module_instance_id', $moduleInstance->id)
                 ->first();
 
-            if (!$existingEnrolment) {
-                if (!$dryRun) {
+            if (! $existingEnrolment) {
+                if (! $dryRun) {
                     $this->enrolmentService->enrolInSingleModuleInstance($student, $enrolment, $moduleInstance);
                 }
                 $stats['module_enrolments']++;
-                
+
                 // Count assessments that would be created
                 $assessmentCount = $moduleInstance->module->assessmentComponents()
                     ->where('is_active', true)
                     ->count();
                 $stats['assessments'] += $assessmentCount;
-                
+
                 $this->line("\n  ✓ Enrolled {$student->student_number} in {$moduleInstance->instance_code}");
             } else {
                 // Check if all assessments exist
                 $missingAssessments = $this->checkMissingAssessments($existingEnrolment, $moduleInstance);
                 if ($missingAssessments > 0) {
-                    if (!$dryRun) {
+                    if (! $dryRun) {
                         $this->createMissingAssessments($existingEnrolment, $moduleInstance);
                     }
                     $stats['assessments'] += $missingAssessments;

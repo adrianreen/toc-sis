@@ -277,14 +277,15 @@
                         <h3 class="text-lg font-semibold">Documents</h3>
                         <div class="flex items-center space-x-2">
                             <a href="{{ route('students.documents.create', $student) }}?type=rpl_proof" 
-                               class="inline-flex items-center px-3 py-2 bg-toc-600 text-white text-sm rounded-md hover:bg-toc-700 transition-colors">
+                               class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+                               style="background-color: #2563eb !important; color: white !important; cursor: pointer !important;">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
                                 Upload RPL Documents
                             </a>
                             <a href="{{ route('students.documents.index', $student) }}" 
-                               class="text-toc-600 hover:text-toc-800 text-sm font-medium">
+                               class="text-toc-600 hover:text-toc-800 text-sm font-medium cursor-pointer">
                                 View All
                             </a>
                         </div>

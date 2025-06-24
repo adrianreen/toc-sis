@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentGradeRecord extends Model
 {
@@ -53,6 +53,7 @@ class StudentGradeRecord extends Model
         if ($this->grade === null || $this->max_grade === null || $this->max_grade == 0) {
             return null;
         }
+
         return ($this->grade / $this->max_grade) * 100;
     }
 

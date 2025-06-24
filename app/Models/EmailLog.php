@@ -69,7 +69,7 @@ class EmailLog extends Model
 
     public function getDeliveryStatusBadgeAttribute(): string
     {
-        return match($this->delivery_status) {
+        return match ($this->delivery_status) {
             'sent' => '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sent</span>',
             'pending' => '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>',
             'failed' => '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Failed</span>',
@@ -96,7 +96,7 @@ class EmailLog extends Model
 
     public function markAsOpened(): void
     {
-        if (!$this->opened_at) {
+        if (! $this->opened_at) {
             $this->update(['opened_at' => now()]);
         }
     }

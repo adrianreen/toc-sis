@@ -4,11 +4,10 @@ namespace App\Services;
 
 use App\Models\Notification;
 use App\Models\NotificationPreference;
-use App\Models\User;
-use App\Models\StudentAssessment;
 use App\Models\StudentGradeRecord;
-use Illuminate\Support\Facades\Mail;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -32,7 +31,7 @@ class NotificationService
         ]);
 
         // If not scheduled, send immediately
-        if (!$scheduledFor) {
+        if (! $scheduledFor) {
             $this->sendNotification($notification);
         }
 
@@ -46,7 +45,7 @@ class NotificationService
             $preferences = $this->getUserPreferences($user, $notification->type);
 
             // Send email notification if enabled
-            if ($preferences['email_enabled'] && !$notification->email_sent) {
+            if ($preferences['email_enabled'] && ! $notification->email_sent) {
                 $this->sendEmailNotification($notification);
             }
 
@@ -54,81 +53,15 @@ class NotificationService
             Log::info('Notification created', [
                 'user_id' => $user->id,
                 'type' => $notification->type,
-                'title' => $notification->title
+                'title' => $notification->title,
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send notification', [
                 'notification_id' => $notification->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             // Don't re-throw - notification failures shouldn't break the app
         }
-    }
-
-    /**
-     * @deprecated Use notifyAssessmentDeadline() for new architecture
-     */
-    public function notifyAssessmentDue(StudentAssessment $assessment, int $daysBeforeDue = 3): void
-    {
-        \Log::warning('Deprecated method notifyAssessmentDue called - use notifyAssessmentDeadline for new architecture');
-        
-        $student = $assessment->studentModuleEnrolment->student;
-        $user = $student->user;
-
-        if (!$user) {
-            return;
-        }
-
-        $module = $assessment->studentModuleEnrolment->moduleInstance->module;
-        $title = "Assessment Due Soon: {$assessment->assessmentComponent->name}";
-        $message = "Your assessment '{$assessment->assessmentComponent->name}' for {$module->title} is due in {$daysBeforeDue} days on {$assessment->due_date->format('d M Y')}.";
-        $actionUrl = route('students.assessments');
-
-        $this->createNotification(
-            $user,
-            Notification::TYPE_ASSESSMENT_DUE,
-            $title,
-            $message,
-            $actionUrl,
-            [
-                'assessment_id' => $assessment->id,
-                'days_before' => $daysBeforeDue,
-                'due_date' => $assessment->due_date->toISOString()
-            ]
-        );
-    }
-
-    /**
-     * @deprecated Use notifyStudentGradeRecord() for new architecture
-     */
-    public function notifyGradeReleased(StudentAssessment $assessment): void
-    {
-        \Log::warning('Deprecated method notifyGradeReleased called - use notifyStudentGradeRecord for new architecture');
-        
-        $student = $assessment->studentModuleEnrolment->student;
-        $user = $student->user;
-
-        if (!$user || !$assessment->isVisibleToStudent()) {
-            return;
-        }
-
-        $module = $assessment->studentModuleEnrolment->moduleInstance->module;
-        $title = "Grade Released: {$assessment->assessmentComponent->name}";
-        $message = "Your grade for '{$assessment->assessmentComponent->name}' in {$module->title} is now available.";
-        $actionUrl = route('students.progress');
-
-        $this->createNotification(
-            $user,
-            Notification::TYPE_GRADE_RELEASED,
-            $title,
-            $message,
-            $actionUrl,
-            [
-                'assessment_id' => $assessment->id,
-                'grade' => $assessment->grade,
-                'status' => $assessment->status
-            ]
-        );
     }
 
     public function notifyApprovalRequired(User $staffUser, string $type, string $itemName, string $actionUrl): void
@@ -144,14 +77,14 @@ class NotificationService
             $actionUrl,
             [
                 'approval_type' => $type,
-                'item_name' => $itemName
+                'item_name' => $itemName,
             ]
         );
     }
 
     public function notifyExtensionApproved(User $user, string $assessmentName, \DateTime $newDueDate): void
     {
-        $title = "Extension Approved";
+        $title = 'Extension Approved';
         $message = "Your extension request for '{$assessmentName}' has been approved. New due date: {$newDueDate->format('d M Y')}.";
         $actionUrl = route('students.assessments');
 
@@ -163,14 +96,14 @@ class NotificationService
             $actionUrl,
             [
                 'assessment_name' => $assessmentName,
-                'new_due_date' => $newDueDate->format('Y-m-d')
+                'new_due_date' => $newDueDate->format('Y-m-d'),
             ]
         );
     }
 
     public function notifyDeferralApproved(User $user, string $programmeName): void
     {
-        $title = "Deferral Approved";
+        $title = 'Deferral Approved';
         $message = "Your deferral request for '{$programmeName}' has been approved.";
         $actionUrl = route('students.enrolments');
 
@@ -181,7 +114,7 @@ class NotificationService
             $message,
             $actionUrl,
             [
-                'programme_name' => $programmeName
+                'programme_name' => $programmeName,
             ]
         );
     }
@@ -221,7 +154,7 @@ class NotificationService
             [
                 'module_name' => $moduleName,
                 'assessment_name' => $assessmentName,
-                'grade' => $grade
+                'grade' => $grade,
             ]
         );
     }
@@ -242,7 +175,7 @@ class NotificationService
                 'assessment_name' => $assessmentName,
                 'module_name' => $moduleName,
                 'days_before' => $daysBeforeDue,
-                'due_date' => $dueDate->format('Y-m-d')
+                'due_date' => $dueDate->format('Y-m-d'),
             ]
         );
     }
@@ -252,20 +185,20 @@ class NotificationService
         $student = $gradeRecord->student;
         $user = $student->user;
 
-        if (!$user || !$gradeRecord->is_visible_to_student) {
+        if (! $user || ! $gradeRecord->is_visible_to_student) {
             return null;
         }
 
         $moduleInstance = $gradeRecord->moduleInstance;
         $module = $moduleInstance->module;
-        
+
         $title = "Grade Released: {$gradeRecord->assessment_component_name}";
         $message = "Your grade for '{$gradeRecord->assessment_component_name}' in {$module->title} is now available.";
-        
+
         if ($gradeRecord->grade !== null) {
             $message .= " Grade: {$gradeRecord->grade}%";
         }
-        
+
         $actionUrl = route('students.progress');
 
         return $this->createNotification(
@@ -278,7 +211,7 @@ class NotificationService
                 'grade_record_id' => $gradeRecord->id,
                 'module_name' => $module->title,
                 'assessment_name' => $gradeRecord->assessment_component_name,
-                'grade' => $gradeRecord->grade
+                'grade' => $gradeRecord->grade,
             ]
         );
     }
@@ -297,7 +230,7 @@ class NotificationService
             } catch (\Exception $e) {
                 Log::error('Failed to process scheduled notification', [
                     'notification_id' => $notification->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
                 // Continue processing other notifications
             }
@@ -316,16 +249,17 @@ class NotificationService
             return [
                 'email_enabled' => $preference->email_enabled,
                 'in_app_enabled' => $preference->in_app_enabled,
-                'advance_days' => $preference->advance_days
+                'advance_days' => $preference->advance_days,
             ];
         }
 
         // Return default preferences
         $defaults = NotificationPreference::getDefaultPreferences();
+
         return $defaults[$notificationType] ?? [
             'email_enabled' => true,
             'in_app_enabled' => true,
-            'advance_days' => 3
+            'advance_days' => 3,
         ];
     }
 
@@ -336,7 +270,7 @@ class NotificationService
             // In production, you'd want to use proper Mail templates
             Mail::raw($notification->message, function ($message) use ($notification) {
                 $message->to($notification->user->email)
-                       ->subject($notification->title);
+                    ->subject($notification->title);
             });
 
             $notification->update(['email_sent' => true]);
@@ -344,15 +278,15 @@ class NotificationService
             Log::error('Failed to send email notification', [
                 'notification_id' => $notification->id,
                 'user_id' => $notification->user_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
         }
     }
 
     public function notifyCourseExtensionApproved(User $user, string $courseName, \DateTime $newCompletionDate): void
     {
-        $title = "Extension Request Approved";
-        $message = "Your extension request for '{$courseName}' has been approved. New completion date: " . $newCompletionDate->format('F j, Y');
+        $title = 'Extension Request Approved';
+        $message = "Your extension request for '{$courseName}' has been approved. New completion date: ".$newCompletionDate->format('F j, Y');
         $actionUrl = route('extension-requests.index');
 
         $this->createNotification(
@@ -363,7 +297,7 @@ class NotificationService
             $actionUrl,
             [
                 'course_name' => $courseName,
-                'new_completion_date' => $newCompletionDate->format('Y-m-d')
+                'new_completion_date' => $newCompletionDate->format('Y-m-d'),
             ]
         );
     }
@@ -374,7 +308,7 @@ class NotificationService
             $user,
             'repeat_assessment_required',
             'Repeat Assessment Required',
-            "You need to complete a repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name}. " .
+            "You need to complete a repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name}. ".
             "Payment of €{$repeatAssessment->payment_amount} is required before you can proceed.",
             route('students.assessments'), // Student assessment view route
             [
@@ -394,8 +328,8 @@ class NotificationService
             $user,
             'repeat_assessment_payment_received',
             'Repeat Assessment Payment Received',
-            "Your payment for the repeat assessment of {$repeatAssessment->studentAssessment->assessmentComponent->name} has been received. " .
-            "Your repeat assessment will be set up shortly.",
+            "Your payment for the repeat assessment of {$repeatAssessment->studentAssessment->assessmentComponent->name} has been received. ".
+            'Your repeat assessment will be set up shortly.',
             route('students.assessments'),
             [
                 'repeat_assessment_id' => $repeatAssessment->id,
@@ -412,8 +346,8 @@ class NotificationService
             $user,
             'repeat_assessment_ready',
             'Repeat Assessment Ready',
-            "Your repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name} is now ready. " .
-            "You can access it through your student portal.",
+            "Your repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name} is now ready. ".
+            'You can access it through your student portal.',
             route('students.assessments'),
             [
                 'repeat_assessment_id' => $repeatAssessment->id,
@@ -428,12 +362,12 @@ class NotificationService
     {
         $studentName = $repeatAssessment->student->full_name;
         $assessmentName = $repeatAssessment->studentAssessment->assessmentComponent->name;
-        
+
         $this->createNotification(
             $staffUser,
             'repeat_assessment_reminder_staff',
             'Repeat Assessment Action Required',
-            "Repeat assessment for {$studentName} - {$assessmentName} requires attention. " .
+            "Repeat assessment for {$studentName} - {$assessmentName} requires attention. ".
             "Status: {$repeatAssessment->workflow_stage}, Priority: {$repeatAssessment->priority_level}",
             route('repeat-assessments.show', $repeatAssessment),
             [
@@ -455,7 +389,7 @@ class NotificationService
             NotificationPreference::firstOrCreate(
                 [
                     'user_id' => $user->id,
-                    'notification_type' => $type
+                    'notification_type' => $type,
                 ],
                 $settings
             );

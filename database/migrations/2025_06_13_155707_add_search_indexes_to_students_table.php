@@ -15,14 +15,14 @@ return new class extends Migration
             // Individual indexes for exact matches (fastest)
             $table->index('student_number', 'idx_students_number');
             $table->index('email', 'idx_students_email');
-            
+
             // Composite indexes for name searches
             $table->index(['first_name', 'last_name'], 'idx_students_name');
             $table->index(['last_name', 'first_name'], 'idx_students_name_reverse');
-            
+
             // General search index for status filtering
             $table->index(['status', 'created_at'], 'idx_students_status_created');
-            
+
             // Soft delete index for active records only
             $table->index(['deleted_at', 'status'], 'idx_students_active');
         });

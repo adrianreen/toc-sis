@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Enquiry extends Model
 {
@@ -43,7 +43,7 @@ class Enquiry extends Model
         'microsoft_account_created',
         'converted_student_id',
         'created_by',
-        'updated_by'
+        'updated_by',
     ];
 
     protected $casts = [
@@ -61,15 +61,15 @@ class Enquiry extends Model
         $lastEnquiry = self::whereYear('created_at', $year)
             ->orderBy('enquiry_number', 'desc')
             ->first();
-        
+
         if ($lastEnquiry) {
             $lastNumber = intval(substr($lastEnquiry->enquiry_number, -4));
             $nextNumber = $lastNumber + 1;
         } else {
             $nextNumber = 1;
         }
-        
-        return 'ENQ' . $year . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+        return 'ENQ'.$year.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     public function getFullNameAttribute(): string
@@ -89,7 +89,7 @@ class Enquiry extends Model
 
     public function canConvertToStudent(): bool
     {
-        return $this->status === 'accepted' && !$this->converted_student_id;
+        return $this->status === 'accepted' && ! $this->converted_student_id;
     }
 
     public function programme(): BelongsTo

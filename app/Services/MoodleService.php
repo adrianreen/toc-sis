@@ -2,23 +2,25 @@
 
 namespace App\Services;
 
+use App\Models\ModuleInstance;
+use App\Models\Student;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
-use App\Models\Student;
-use App\Models\ModuleInstance;
 
 class MoodleService
 {
     protected Client $client;
+
     protected string $baseUrl;
+
     protected string $token;
 
     public function __construct()
     {
         $this->baseUrl = config('moodle.url');
         $this->token = config('moodle.token');
-        
+
         $this->client = new Client([
             'base_uri' => $this->baseUrl,
             'timeout' => 30,
@@ -37,13 +39,13 @@ class MoodleService
                     'wstoken' => $this->token,
                     'wsfunction' => $function,
                     'moodlewsrestformat' => 'json',
-                ] + $parameters
+                ] + $parameters,
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
 
             if (isset($data['exception'])) {
-                throw new \Exception("Moodle API Error: " . $data['message']);
+                throw new \Exception('Moodle API Error: '.$data['message']);
             }
 
             return $data;
@@ -51,9 +53,9 @@ class MoodleService
             Log::error('Moodle API request failed', [
                 'function' => $function,
                 'parameters' => $parameters,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            throw new \Exception('Failed to communicate with Moodle: ' . $e->getMessage());
+            throw new \Exception('Failed to communicate with Moodle: '.$e->getMessage());
         }
     }
 
@@ -63,10 +65,10 @@ class MoodleService
     public function createCourse(ModuleInstance $moduleInstance): array
     {
         $courseData = [
-            'courses[0][fullname]' => $moduleInstance->module->title . ' - ' . $moduleInstance->start_date->format('M Y'),
-            'courses[0][shortname]' => $moduleInstance->module->module_code . '_' . $moduleInstance->id,
+            'courses[0][fullname]' => $moduleInstance->module->title.' - '.$moduleInstance->start_date->format('M Y'),
+            'courses[0][shortname]' => $moduleInstance->module->module_code.'_'.$moduleInstance->id,
             'courses[0][categoryid]' => config('moodle.default_category_id', 1),
-            'courses[0][summary]' => 'Module: ' . $moduleInstance->module->title . ' (Credits: ' . $moduleInstance->module->credit_value . ')',
+            'courses[0][summary]' => 'Module: '.$moduleInstance->module->title.' (Credits: '.$moduleInstance->module->credit_value.')',
             'courses[0][summaryformat]' => 1, // HTML format
             'courses[0][format]' => 'topics',
             'courses[0][showgrades]' => 1,
@@ -82,7 +84,7 @@ class MoodleService
             Log::info('Moodle course created successfully', [
                 'module_instance_id' => $moduleInstance->id,
                 'moodle_course_id' => $result[0]['id'],
-                'course_shortname' => $moduleInstance->instance_code
+                'course_shortname' => $moduleInstance->instance_code,
             ]);
 
             // Store the Moodle course ID in the module instance
@@ -101,7 +103,7 @@ class MoodleService
     {
         // First, try to get the user by email
         $existingUser = $this->getUserByEmail($student->email);
-        
+
         if ($existingUser) {
             // Update existing user
             $userData = [
@@ -112,6 +114,7 @@ class MoodleService
             ];
 
             $result = $this->makeRequest('core_user_update_users', $userData);
+
             return $existingUser;
         } else {
             // Create new user
@@ -133,7 +136,7 @@ class MoodleService
                 Log::info('Moodle user created successfully', [
                     'student_id' => $student->id,
                     'moodle_user_id' => $result[0]['id'],
-                    'username' => $userData['users[0][username]']
+                    'username' => $userData['users[0][username]'],
                 ]);
 
                 // Store the Moodle user ID
@@ -152,12 +155,12 @@ class MoodleService
     public function enrollStudent(Student $student, ModuleInstance $moduleInstance, string $role = 'student'): bool
     {
         // Ensure user exists in Moodle
-        if (!$student->moodle_user_id) {
+        if (! $student->moodle_user_id) {
             $this->createOrUpdateUser($student);
         }
 
         // Ensure course exists in Moodle
-        if (!$moduleInstance->moodle_course_id) {
+        if (! $moduleInstance->moodle_course_id) {
             $this->createCourse($moduleInstance);
         }
 
@@ -178,7 +181,7 @@ class MoodleService
                 'student_id' => $student->id,
                 'module_instance_id' => $moduleInstance->id,
                 'moodle_user_id' => $student->moodle_user_id,
-                'moodle_course_id' => $moduleInstance->moodle_course_id
+                'moodle_course_id' => $moduleInstance->moodle_course_id,
             ]);
 
             return true;
@@ -186,7 +189,7 @@ class MoodleService
             Log::error('Failed to enroll student in Moodle course', [
                 'student_id' => $student->id,
                 'module_instance_id' => $moduleInstance->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -201,7 +204,7 @@ class MoodleService
         $roleId = $this->getRoleId($role);
 
         // Ensure course exists
-        if (!$moduleInstance->moodle_course_id) {
+        if (! $moduleInstance->moodle_course_id) {
             $this->createCourse($moduleInstance);
         }
 
@@ -209,7 +212,7 @@ class MoodleService
         $enrollmentData = [];
         foreach ($students as $index => $student) {
             // Ensure user exists in Moodle
-            if (!$student->moodle_user_id) {
+            if (! $student->moodle_user_id) {
                 $this->createOrUpdateUser($student);
             }
 
@@ -226,7 +229,7 @@ class MoodleService
             Log::info('Bulk enrollment completed', [
                 'module_instance_id' => $moduleInstance->id,
                 'student_count' => count($students),
-                'moodle_course_id' => $moduleInstance->moodle_course_id
+                'moodle_course_id' => $moduleInstance->moodle_course_id,
             ]);
 
             return ['success' => true, 'enrolled_count' => count($students)];
@@ -234,7 +237,7 @@ class MoodleService
             Log::error('Bulk enrollment failed', [
                 'module_instance_id' => $moduleInstance->id,
                 'student_count' => count($students),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
             throw $e;
         }
@@ -246,7 +249,7 @@ class MoodleService
     public function getCourse(int $courseId): array
     {
         $result = $this->makeRequest('core_course_get_courses', [
-            'options[ids][0]' => $courseId
+            'options[ids][0]' => $courseId,
         ]);
 
         if (isset($result[0])) {
@@ -262,7 +265,7 @@ class MoodleService
     public function getCourseEnrollments(int $courseId): array
     {
         return $this->makeRequest('core_enrol_get_enrolled_users', [
-            'courseid' => $courseId
+            'courseid' => $courseId,
         ]);
     }
 
@@ -274,7 +277,7 @@ class MoodleService
         try {
             $result = $this->makeRequest('core_user_get_users', [
                 'criteria[0][key]' => 'email',
-                'criteria[0][value]' => $email
+                'criteria[0][value]' => $email,
             ]);
 
             return isset($result['users'][0]) ? $result['users'][0] : null;
@@ -288,11 +291,11 @@ class MoodleService
      */
     protected function generateUsername(Student $student): string
     {
-        $baseUsername = strtolower($student->first_name . '.' . $student->last_name);
+        $baseUsername = strtolower($student->first_name.'.'.$student->last_name);
         $baseUsername = preg_replace('/[^a-z0-9.]/', '', $baseUsername);
-        
+
         // Add student number to make it unique
-        return $baseUsername . '.' . $student->student_number;
+        return $baseUsername.'.'.$student->student_number;
     }
 
     /**
@@ -300,7 +303,7 @@ class MoodleService
      */
     protected function generateTemporaryPassword(): string
     {
-        return 'temp' . rand(1000, 9999) . '!';
+        return 'temp'.rand(1000, 9999).'!';
     }
 
     /**
@@ -325,7 +328,7 @@ class MoodleService
     {
         try {
             $result = $this->makeRequest('core_webservice_get_site_info');
-            
+
             return [
                 'success' => true,
                 'site_name' => $result['sitename'] ?? 'Unknown',
@@ -335,7 +338,7 @@ class MoodleService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -354,14 +357,14 @@ class MoodleService
             if ($moduleInstance->moodle_course_id) {
                 // Course exists, just enroll the student
                 $enrolled = $this->enrollStudent($student, $moduleInstance);
-                
+
                 if ($enrolled) {
-                    Log::info("Student enrolled in existing Moodle course for repeat assessment", [
+                    Log::info('Student enrolled in existing Moodle course for repeat assessment', [
                         'student_id' => $student->id,
                         'course_id' => $moduleInstance->moodle_course_id,
-                        'repeat_assessment_id' => $repeatAssessment->id
+                        'repeat_assessment_id' => $repeatAssessment->id,
                     ]);
-                    
+
                     return $moduleInstance->moodle_course_id;
                 } else {
                     throw new \Exception('Failed to enroll student in existing Moodle course');
@@ -371,7 +374,7 @@ class MoodleService
             // Create a new course for this repeat assessment
             $courseName = "Repeat Assessment - {$moduleInstance->module->title} - {$repeatAssessment->assessment_component_name}";
             $courseShortName = "REPEAT_{$moduleInstance->module->module_code}_{$repeatAssessment->id}";
-            
+
             $courseData = [
                 'fullname' => $courseName,
                 'shortname' => $courseShortName,
@@ -383,10 +386,10 @@ class MoodleService
             ];
 
             $response = $this->makeRequest('core_course_create_courses', [
-                'courses' => [$courseData]
+                'courses' => [$courseData],
             ]);
 
-            if (empty($response) || !isset($response[0]['id'])) {
+            if (empty($response) || ! isset($response[0]['id'])) {
                 throw new \Exception('Failed to create Moodle course');
             }
 
@@ -394,29 +397,29 @@ class MoodleService
 
             // Enroll the student in the new course
             $enrolled = $this->enrollStudentInCourse($student, $courseId);
-            
-            if (!$enrolled) {
+
+            if (! $enrolled) {
                 throw new \Exception('Failed to enroll student in new Moodle course');
             }
 
             // Update the module instance with the course ID for future use
             $moduleInstance->update(['moodle_course_id' => $courseId]);
 
-            Log::info("New Moodle course created for repeat assessment", [
+            Log::info('New Moodle course created for repeat assessment', [
                 'student_id' => $student->id,
                 'course_id' => $courseId,
                 'course_name' => $courseName,
-                'repeat_assessment_id' => $repeatAssessment->id
+                'repeat_assessment_id' => $repeatAssessment->id,
             ]);
 
             return (string) $courseId;
 
         } catch (\Exception $e) {
-            Log::error("Failed to setup Moodle course for repeat assessment", [
+            Log::error('Failed to setup Moodle course for repeat assessment', [
                 'repeat_assessment_id' => $repeatAssessment->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             throw $e;
         }
     }
@@ -429,16 +432,17 @@ class MoodleService
         try {
             // First, ensure the user exists in Moodle
             $moodleUserId = $this->createOrUpdateUser($student);
-            
-            if (!$moodleUserId) {
+
+            if (! $moodleUserId) {
                 return false;
             }
 
             // Get the role ID for the specified role
             $roleId = $this->getRoleId($role);
-            
-            if (!$roleId) {
-                Log::error("Invalid role specified for Moodle enrollment", ['role' => $role]);
+
+            if (! $roleId) {
+                Log::error('Invalid role specified for Moodle enrollment', ['role' => $role]);
+
                 return false;
             }
 
@@ -448,25 +452,25 @@ class MoodleService
                     'roleid' => $roleId,
                     'userid' => $moodleUserId,
                     'courseid' => $courseId,
-                ]]
+                ]],
             ]);
 
-            Log::info("Student enrolled in Moodle course", [
+            Log::info('Student enrolled in Moodle course', [
                 'student_id' => $student->id,
                 'moodle_user_id' => $moodleUserId,
                 'course_id' => $courseId,
-                'role' => $role
+                'role' => $role,
             ]);
 
             return true;
 
         } catch (\Exception $e) {
-            Log::error("Failed to enroll student in Moodle course", [
+            Log::error('Failed to enroll student in Moodle course', [
                 'student_id' => $student->id,
                 'course_id' => $courseId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
-            
+
             return false;
         }
     }

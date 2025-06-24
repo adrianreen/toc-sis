@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Module extends Model
 {
@@ -29,7 +29,7 @@ class Module extends Model
     {
         return [
             'title' => 'required|string|max:255',
-            'module_code' => 'required|string|max:20' . ($id ? '|unique:modules,module_code,' . $id : '|unique:modules'),
+            'module_code' => 'required|string|max:20'.($id ? '|unique:modules,module_code,'.$id : '|unique:modules'),
             'credit_value' => 'required|integer|min:1|max:60',
             'description' => 'nullable|string',
             'nfq_level' => 'nullable|integer|min:1|max:10',
@@ -54,6 +54,7 @@ class Module extends Model
         foreach ($this->assessment_strategy as $component) {
             $components[] = (object) $component;
         }
+
         return $components;
     }
 }
