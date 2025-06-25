@@ -209,8 +209,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('policies/{policy}', [PolicyController::class, 'update'])->name('policies.update');
         Route::delete('policies/{policy}', [PolicyController::class, 'destroy'])->name('policies.destroy');
 
-        // Legacy Assessment routes (DEPRECATED - Use StudentGradeRecord system above)
-        // These routes are kept temporarily for transition period
+        // Assessment routes using StudentGradeRecord system
         Route::get('assessments', [StudentGradeRecordController::class, 'index'])->name('assessments.index');
         Route::get('students/{student}/progress', [StudentController::class, 'progress'])->name('students.show-progress');
     });
