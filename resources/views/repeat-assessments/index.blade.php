@@ -13,7 +13,7 @@
                     
                     <div class="flex flex-col sm:flex-row gap-3">
                         <a href="{{ route('repeat-assessments.create') }}" 
-                           class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors">
+                           class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M12 4v16m8-8H4"/>
                             </svg>
@@ -22,8 +22,9 @@
                         
                         {{-- Auto-populate button --}}
                         <button type="button" 
-                                onclick="showAutoPopulateModal()"
-                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                id="auto-populate-btn"
+                                onclick="console.log('Inline onclick fired'); console.log('window.showAutoPopulateModal exists:', typeof window.showAutoPopulateModal); if(window.showAutoPopulateModal) { window.showAutoPopulateModal(); } else { console.error('Function not found'); }"
+                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
@@ -188,13 +189,13 @@
                             <div class="flex items-center space-x-4">
                                 <label class="flex items-center">
                                     <input type="checkbox" name="overdue" value="1" {{ request('overdue') ? 'checked' : '' }} 
-                                           class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500">
+                                           class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500 cursor-pointer">
                                     <span class="ml-2 text-sm text-gray-700">Overdue</span>
                                 </label>
                                 
                                 <label class="flex items-center">
                                     <input type="checkbox" name="due_soon" value="7" {{ request('due_soon') ? 'checked' : '' }}
-                                           class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500">
+                                           class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500 cursor-pointer">
                                     <span class="ml-2 text-sm text-gray-700">Due Soon</span>
                                 </label>
                             </div>
@@ -210,7 +211,7 @@
                             
                             @if(request()->hasAny(['search', 'workflow_stage', 'payment_status', 'priority_level', 'assigned_to', 'overdue', 'due_soon']))
                                 <a href="{{ route('repeat-assessments.index') }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-gray-300 border border-transparent rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
+                                   class="inline-flex items-center px-4 py-2 bg-gray-300 border border-transparent rounded-lg font-medium text-sm text-gray-700 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer">
                                     Clear Filters
                                 </a>
                             @endif
@@ -228,7 +229,7 @@
                         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
                             <div class="flex items-center">
                                 <label class="flex items-center">
-                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500">
+                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500 cursor-pointer">
                                     <span class="ml-2 text-sm text-gray-700">Select All</span>
                                 </label>
                             </div>
@@ -255,7 +256,7 @@
                                     @endforeach
                                 </select>
 
-                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors">
+                                <button type="submit" class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
                                     Apply
                                 </button>
                             </div>
@@ -273,7 +274,7 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left">
-                                        <input type="checkbox" id="select-all-header" class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500">
+                                        <input type="checkbox" id="select-all-header" class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500 cursor-pointer">
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assessment</th>
@@ -290,13 +291,13 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4">
                                             <input type="checkbox" name="repeat_assessment_ids[]" value="{{ $repeat->id }}" 
-                                                   class="repeat-checkbox rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500">
+                                                   class="repeat-checkbox rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500 cursor-pointer">
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
                                                 <div class="ml-4">
                                                     <div class="text-sm font-medium text-gray-900">
-                                                        <a href="{{ route('students.show', $repeat->student) }}" class="hover:text-toc-600">
+                                                        <a href="{{ route('students.show', $repeat->student) }}" class="hover:text-toc-600 cursor-pointer">
                                                             {{ $repeat->student->full_name }}
                                                         </a>
                                                     </div>
@@ -307,6 +308,15 @@
                                         <td class="px-6 py-4">
                                             <div class="text-sm font-medium text-gray-900">{{ $repeat->studentGradeRecord->assessment_component_name }}</div>
                                             <div class="text-sm text-gray-500">{{ $repeat->moduleInstance->module->title }}</div>
+                                            @if($repeat->studentGradeRecord && $repeat->moduleInstance->module)
+                                                @php
+                                                    $passMarkUsed = $repeat->moduleInstance->module->getComponentPassMark($repeat->studentGradeRecord->assessment_component_name);
+                                                    $percentage = $repeat->studentGradeRecord->percentage;
+                                                @endphp
+                                                <div class="text-xs text-gray-400 mt-1">
+                                                    Grade: {{ number_format($percentage, 1) }}% | Pass mark: {{ $passMarkUsed }}%
+                                                </div>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <x-status-badge :status="$repeat->workflow_stage" :type="'workflow'"/>
@@ -334,9 +344,9 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div class="flex items-center space-x-2">
                                                 <a href="{{ route('repeat-assessments.show', $repeat) }}" 
-                                                   class="text-toc-600 hover:text-toc-900">View</a>
+                                                   class="text-toc-600 hover:text-toc-900 cursor-pointer">View</a>
                                                 <a href="{{ route('repeat-assessments.edit', $repeat) }}" 
-                                                   class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                                   class="text-indigo-600 hover:text-indigo-900 cursor-pointer">Edit</a>
                                             </div>
                                         </td>
                                     </tr>
@@ -348,15 +358,39 @@
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">No repeat assessments</h3>
-                            <p class="mt-1 text-sm text-gray-500">Get started by creating a repeat assessment.</p>
-                            <div class="mt-6">
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">No repeat assessments yet</h3>
+                            <p class="mt-1 text-sm text-gray-500">
+                                The modern repeat assessment system is ready! Use Auto-Populate to find failed students automatically, 
+                                or create individual repeat assessments manually.
+                            </p>
+                            
+                            <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                                <h4 class="text-sm font-medium text-blue-900 mb-2">✨ New Features</h4>
+                                <div class="text-xs text-blue-700 space-y-1 text-left">
+                                    <div>• Flexible pass marks per module (40%, 45%, 50%)</div>
+                                    <div>• Component-specific pass requirements</div>
+                                    <div>• Smart auto-populate finds 103 failed assessments</div>
+                                    <div>• Complete workflow management</div>
+                                    <div>• Payment tracking & Moodle integration</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 space-x-3">
+                                <button id="auto-populate-btn-empty" 
+                                       onclick="console.log('Empty state button clicked'); console.log('Function type:', typeof window.showAutoPopulateModal); if(window.showAutoPopulateModal) { window.showAutoPopulateModal(); } else { console.error('Function not available yet'); }"
+                                       class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                    Auto-Populate (Recommended)
+                                </button>
+                                
                                 <a href="{{ route('repeat-assessments.create') }}" 
-                                   class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors">
+                                   class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                         <path d="M12 4v16m8-8H4"/>
                                     </svg>
-                                    Create Repeat Assessment
+                                    Create Manually
                                 </a>
                             </div>
                         </div>
@@ -374,13 +408,28 @@
     </div>
 
     {{-- Auto-populate Modal --}}
-    <div id="auto-populate-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div id="auto-populate-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50" style="display: none;">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Auto-Populate Repeat Assessments</h3>
                 <form id="auto-populate-form" method="POST" action="{{ route('repeat-assessments.auto-populate') }}">
                     @csrf
                     <div class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div>
+                                    <h4 class="text-sm font-medium text-blue-900">Smart Pass Mark Detection</h4>
+                                    <p class="text-sm text-blue-700 mt-1">
+                                        Auto-populate uses flexible pass marks: each module can have different pass requirements (40%, 45%, 50%, etc.). 
+                                        Individual assessment components can override the module default.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div>
                             <label for="deadline_days" class="block text-sm font-medium text-gray-700">Deadline (Days from now)</label>
                             <input type="number" name="deadline_days" id="deadline_days" value="30" min="1" max="365" required
@@ -393,17 +442,17 @@
                         </div>
                         <div class="flex items-center space-x-2">
                             <input type="checkbox" name="dry_run" id="dry_run" value="1" checked
-                                   class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500">
+                                   class="rounded border-gray-300 text-toc-600 focus:border-toc-500 focus:ring-toc-500 cursor-pointer">
                             <label for="dry_run" class="text-sm text-gray-700">Preview only (don't create)</label>
                         </div>
                     </div>
                     <div class="flex items-center justify-end mt-6 space-x-3">
-                        <button type="button" onclick="hideAutoPopulateModal()" 
-                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        <button type="button" id="auto-populate-cancel" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 cursor-pointer">
                             Cancel
                         </button>
                         <button type="submit" 
-                                class="px-4 py-2 bg-toc-600 text-white rounded-lg hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-toc-500">
+                                class="px-4 py-2 bg-toc-600 text-white rounded-lg hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-toc-500 cursor-pointer">
                             Preview
                         </button>
                     </div>
@@ -412,10 +461,72 @@
         </div>
     </div>
 
+    <!-- Inline script for immediate function availability -->
+    <script>
+        console.log('Defining modal functions immediately...');
+        
+        // Auto-populate modal functions (global scope)
+        window.showAutoPopulateModal = function() {
+            console.log('showAutoPopulateModal called');
+            const modal = document.getElementById('auto-populate-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'block';
+                console.log('Modal should now be visible');
+            } else {
+                console.error('Modal element not found');
+            }
+        }
+        
+        // Also create a global function reference
+        function showAutoPopulateModal() {
+            window.showAutoPopulateModal();
+        }
+
+        window.hideAutoPopulateModal = function() {
+            const modal = document.getElementById('auto-populate-modal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+        
+        function hideAutoPopulateModal() {
+            window.hideAutoPopulateModal();
+        }
+        
+        console.log('Modal functions defined. Type:', typeof window.showAutoPopulateModal);
+    </script>
+
     @push('scripts')
     <script>
+
         // Bulk actions functionality
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('Repeat Assessments DOMContentLoaded started');
+            
+            // Auto-populate button event listeners
+            const autoPopulateBtns = document.querySelectorAll('#auto-populate-btn, #auto-populate-btn-empty');
+            console.log('Found auto-populate buttons:', autoPopulateBtns.length);
+            
+            autoPopulateBtns.forEach(btn => {
+                if (btn) {
+                    console.log('Setting up click listener for button:', btn.id);
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('Auto-populate button clicked');
+                        showAutoPopulateModal();
+                    });
+                }
+            });
+
+            // Modal cancel button
+            const cancelBtn = document.getElementById('auto-populate-cancel');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    hideAutoPopulateModal();
+                });
+            }
+
             const selectAll = document.getElementById('select-all');
             const selectAllHeader = document.getElementById('select-all-header');
             const checkboxes = document.querySelectorAll('.repeat-checkbox');
@@ -481,15 +592,6 @@
             }
         });
 
-        // Auto-populate modal functions
-        function showAutoPopulateModal() {
-            document.getElementById('auto-populate-modal').classList.remove('hidden');
-        }
-
-        function hideAutoPopulateModal() {
-            document.getElementById('auto-populate-modal').classList.add('hidden');
-        }
-
         // Auto-populate form submission
         document.getElementById('auto-populate-form').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -510,9 +612,11 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.count > 0) {
-                        const message = `Found ${data.count} failed assessments that can be auto-populated:\\n\\n` +
-                                      data.assessments.slice(0, 10).map(a => `• ${a.student_name} - ${a.assessment_name} (${a.module_name})`).join('\\n') +
-                                      (data.assessments.length > 10 ? `\\n... and ${data.assessments.length - 10} more` : '');
+                        const message = `Found ${data.count} failed assessments using flexible pass marks:\\n\\n` +
+                                      data.assessments.slice(0, 8).map(a => 
+                                          `• ${a.student_name} - ${a.assessment_name}\\n  Grade: ${a.percentage}% | Pass mark: ${a.pass_mark_used}% | Module: ${a.module_name}`
+                                      ).join('\\n\\n') +
+                                      (data.assessments.length > 8 ? `\\n\\n... and ${data.assessments.length - 8} more failed assessments` : '');
                         
                         if (confirm(message + '\\n\\nProceed to create these repeat assessments?')) {
                             formData.delete('dry_run');

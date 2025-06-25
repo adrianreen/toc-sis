@@ -36,7 +36,7 @@ trait HasStudentSearch
     /**
      * Get pagination size from config
      */
-    protected function getPaginationSize(string $model = null): int
+    protected function getPaginationSize(?string $model = null): int
     {
         if ($model && config("pagination.per_model.{$model}")) {
             return config("pagination.per_model.{$model}");

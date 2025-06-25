@@ -465,26 +465,37 @@ class RepeatAssessmentController extends Controller
             'dry_run' => 'boolean',
         ]);
 
-        $query = StudentAssessment::where('status', 'failed')
+        // Get all graded records that don't have repeat assessments yet
+        $query = StudentGradeRecord::whereNotNull('grade')
+            ->whereNotNull('max_grade')
             ->whereDoesntHave('repeatAssessments')
-            ->with(['studentModuleEnrolment.student', 'assessmentComponent']);
+            ->with(['student', 'moduleInstance.module']);
 
-        if ($validated['module_instance_id']) {
-            $query->whereHas('studentModuleEnrolment', function ($q) use ($validated) {
-                $q->where('module_instance_id', $validated['module_instance_id']);
-            });
+        if (!empty($validated['module_instance_id'])) {
+            $query->where('module_instance_id', $validated['module_instance_id']);
         }
 
-        $failedAssessments = $query->get();
+        $allGradeRecords = $query->get();
+        
+        // Filter for failed assessments using module-specific pass marks
+        $failedGradeRecords = $allGradeRecords->filter(function ($gradeRecord) {
+            return $gradeRecord->moduleInstance->module->isGradeRecordFailed($gradeRecord);
+        });
 
         if ($validated['dry_run'] ?? false) {
             return response()->json([
-                'count' => $failedAssessments->count(),
-                'assessments' => $failedAssessments->map(function ($assessment) {
+                'count' => $failedGradeRecords->count(),
+                'assessments' => $failedGradeRecords->map(function ($gradeRecord) {
+                    $module = $gradeRecord->moduleInstance->module;
+                    $passMarkUsed = $module->getComponentPassMark($gradeRecord->assessment_component_name);
+                    
                     return [
-                        'student_name' => $assessment->studentModuleEnrolment->student->full_name,
-                        'assessment_name' => $assessment->assessmentComponent->name,
-                        'module_name' => $assessment->assessmentComponent->module->name,
+                        'student_name' => $gradeRecord->student->full_name,
+                        'assessment_name' => $gradeRecord->assessment_component_name,
+                        'module_name' => $module->title,
+                        'percentage' => round($gradeRecord->percentage, 1),
+                        'pass_mark_used' => $passMarkUsed,
+                        'is_must_pass' => $module->isComponentMustPass($gradeRecord->assessment_component_name),
                     ];
                 }),
             ]);
@@ -493,12 +504,12 @@ class RepeatAssessmentController extends Controller
         $created = 0;
         $deadline = now()->addDays($validated['deadline_days']);
 
-        DB::transaction(function () use ($failedAssessments, $validated, $deadline, &$created) {
-            foreach ($failedAssessments as $assessment) {
+        DB::transaction(function () use ($failedGradeRecords, $validated, $deadline, &$created) {
+            foreach ($failedGradeRecords as $gradeRecord) {
                 RepeatAssessment::create([
-                    'student_assessment_id' => $assessment->id,
-                    'student_id' => $assessment->studentModuleEnrolment->student_id,
-                    'module_instance_id' => $assessment->studentModuleEnrolment->module_instance_id,
+                    'student_grade_record_id' => $gradeRecord->id,
+                    'student_id' => $gradeRecord->student_id,
+                    'module_instance_id' => $gradeRecord->module_instance_id,
                     'reason' => 'Auto-populated from failed assessment',
                     'repeat_due_date' => $deadline,
                     'cap_grade' => 40,
@@ -556,31 +567,52 @@ class RepeatAssessmentController extends Controller
     public function getFailedAssessments(Student $student)
     {
         try {
-            $failedAssessments = StudentGradeRecord::with([
+            $allGradeRecords = StudentGradeRecord::with([
                 'moduleInstance.module',
                 'student',
             ])
                 ->where('student_id', $student->id)
-                ->where(function ($query) {
-                    $query->where('percentage', '<', 40)
-                        ->whereNotNull('percentage');
-                })
+                ->whereNotNull('grade')
+                ->whereNotNull('max_grade')
                 ->whereDoesntHave('repeatAssessments') // Don't include assessments that already have repeat assessments
-                ->get()
+                ->get();
+
+            // Filter for failed assessments using module-specific pass marks
+            $failedGradeRecords = $allGradeRecords->filter(function ($gradeRecord) {
+                return $gradeRecord->moduleInstance->module->isGradeRecordFailed($gradeRecord);
+            });
+
+            $failedAssessments = $failedGradeRecords
                 ->groupBy('module_instance_id')
                 ->map(function ($gradeRecords) {
                     $moduleInstance = $gradeRecords->first()->moduleInstance;
-                    $failedComponents = $gradeRecords->where('percentage', '<', 40)->count();
-                    $totalComponents = count($moduleInstance->module->assessment_strategy ?? []);
+                    $module = $moduleInstance->module;
+                    
+                    // Count failed components using module-specific pass marks
+                    $failedComponents = $gradeRecords->filter(function($record) use ($module) {
+                        return $module->isGradeRecordFailed($record);
+                    })->count();
+                    
+                    $totalComponents = count($module->assessment_strategy ?? []);
 
                     return [
                         'module_instance_id' => $moduleInstance->id,
-                        'module_title' => $moduleInstance->module->title,
-                        'module_code' => $moduleInstance->module->module_code,
+                        'module_title' => $module->title,
+                        'module_code' => $module->module_code,
                         'failed_components' => $failedComponents,
                         'total_components' => $totalComponents,
-                        'lowest_grade' => $gradeRecords->min('percentage'),
-                        'last_graded' => $gradeRecords->whereNotNull('graded_at')->max('graded_at')?->format('Y-m-d'),
+                        'lowest_grade' => $gradeRecords->min(function($record) { return $record->percentage; }),
+                        'last_graded' => $gradeRecords->whereNotNull('graded_date')->max('graded_date')?->format('Y-m-d'),
+                        'default_pass_mark' => $module->getDefaultPassMark(),
+                        'components_detail' => $gradeRecords->map(function($record) use ($module) {
+                            return [
+                                'name' => $record->assessment_component_name,
+                                'percentage' => round($record->percentage, 1),
+                                'pass_mark' => $module->getComponentPassMark($record->assessment_component_name),
+                                'is_must_pass' => $module->isComponentMustPass($record->assessment_component_name),
+                                'is_failed' => $module->isGradeRecordFailed($record),
+                            ];
+                        })->values(),
                     ];
                 })
                 ->values();

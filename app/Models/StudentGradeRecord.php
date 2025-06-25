@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentGradeRecord extends Model
@@ -46,6 +47,11 @@ class StudentGradeRecord extends Model
     public function gradedByStaff(): BelongsTo
     {
         return $this->belongsTo(User::class, 'graded_by_staff_id');
+    }
+
+    public function repeatAssessments(): HasMany
+    {
+        return $this->hasMany(RepeatAssessment::class);
     }
 
     public function getPercentageAttribute(): ?float

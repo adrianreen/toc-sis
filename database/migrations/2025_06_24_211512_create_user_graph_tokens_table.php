@@ -20,7 +20,7 @@ return new class extends Migration
             $table->json('scopes')->nullable(); // Track granted scopes
             $table->timestamp('last_refreshed_at')->nullable();
             $table->timestamps();
-            
+
             // Indexes for performance
             $table->index('user_id');
             $table->index('expires_at');

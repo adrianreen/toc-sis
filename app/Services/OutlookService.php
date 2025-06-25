@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\User;
 use Exception;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -49,7 +48,7 @@ class OutlookService
     {
         try {
             // Check if user has valid token and email permissions
-            if (!$this->tokenService->hasEmailPermissions($user)) {
+            if (! $this->tokenService->hasEmailPermissions($user)) {
                 return [
                     'error' => 'no_permissions',
                     'message' => 'Email access not authorized. Please re-authenticate.',
@@ -66,7 +65,7 @@ class OutlookService
                 ->causedBy($user)
                 ->withProperties([
                     'unread_count' => $unreadCount,
-                    'recent_emails_count' => count($recentEmails)
+                    'recent_emails_count' => count($recentEmails),
                 ])
                 ->log('Email dashboard accessed');
 
@@ -80,7 +79,7 @@ class OutlookService
             Log::error('Error getting email summary', [
                 'user_id' => $user->id,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
@@ -112,8 +111,9 @@ class OutlookService
     {
         $accessToken = $this->tokenService->getValidToken($user);
 
-        if (!$accessToken) {
+        if (! $accessToken) {
             Log::warning('No valid access token for email fetch', ['user_id' => $user->id]);
+
             return [];
         }
 
@@ -122,18 +122,19 @@ class OutlookService
                 ->get('https://graph.microsoft.com/v1.0/me/messages', [
                     '$top' => $count,
                     '$orderby' => 'receivedDateTime desc',
-                    '$select' => 'id,subject,sender,receivedDateTime,isRead,bodyPreview,importance'
+                    '$select' => 'id,subject,sender,receivedDateTime,isRead,bodyPreview,importance',
                 ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return $this->formatEmailData($data['value'] ?? []);
             }
 
             Log::error('Graph API error fetching emails', [
                 'user_id' => $user->id,
                 'status' => $response->status(),
-                'error' => $response->json()
+                'error' => $response->json(),
             ]);
 
             return [];
@@ -141,7 +142,7 @@ class OutlookService
         } catch (Exception $e) {
             Log::error('Exception fetching emails', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return [];
@@ -155,25 +156,26 @@ class OutlookService
     {
         $accessToken = $this->tokenService->getValidToken($user);
 
-        if (!$accessToken) {
+        if (! $accessToken) {
             return 0;
         }
 
         try {
             $response = Http::withToken($accessToken)
                 ->get('https://graph.microsoft.com/v1.0/me/mailFolders/inbox', [
-                    '$select' => 'unreadItemCount'
+                    '$select' => 'unreadItemCount',
                 ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+
                 return $data['unreadItemCount'] ?? 0;
             }
 
             Log::error('Graph API error fetching unread count', [
                 'user_id' => $user->id,
                 'status' => $response->status(),
-                'error' => $response->json()
+                'error' => $response->json(),
             ]);
 
             return 0;
@@ -181,7 +183,7 @@ class OutlookService
         } catch (Exception $e) {
             Log::error('Exception fetching unread count', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return 0;
@@ -214,7 +216,7 @@ class OutlookService
      */
     private function formatDateTime(?string $dateTime): string
     {
-        if (!$dateTime) {
+        if (! $dateTime) {
             return '';
         }
 
@@ -230,7 +232,7 @@ class OutlookService
      */
     private function humanDateTime(?string $dateTime): string
     {
-        if (!$dateTime) {
+        if (! $dateTime) {
             return '';
         }
 
@@ -256,6 +258,7 @@ class OutlookService
     {
         try {
             $response = Http::timeout(5)->get('https://graph.microsoft.com/v1.0/$metadata');
+
             return $response->successful();
         } catch (Exception $e) {
             return false;
@@ -273,7 +276,7 @@ class OutlookService
             'cache_stats' => [
                 'email_cache_hits' => Cache::get('email_cache_hits', 0),
                 'email_cache_misses' => Cache::get('email_cache_misses', 0),
-            ]
+            ],
         ];
     }
 }

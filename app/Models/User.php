@@ -105,6 +105,6 @@ class User extends Authenticatable
      */
     public function hasValidGraphToken(): bool
     {
-        return $this->graphToken && !$this->graphToken->isExpired();
+        return $this->graphToken && ! $this->graphToken->isExpired();
     }
 }

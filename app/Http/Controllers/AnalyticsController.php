@@ -9,9 +9,7 @@ use Illuminate\Http\Request;
 
 class AnalyticsController extends Controller
 {
-    public function __construct(private AnalyticsService $analyticsService)
-    {
-    }
+    public function __construct(private AnalyticsService $analyticsService) {}
 
     /**
      * Get system overview analytics

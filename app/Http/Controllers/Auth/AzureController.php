@@ -21,11 +21,11 @@ class AzureController extends Controller
     {
         return Socialite::driver('azure')
             ->scopes([
-                'User.Read', 
-                'Group.Read.All', 
+                'User.Read',
+                'Group.Read.All',
                 'Directory.Read.All',
                 'https://graph.microsoft.com/Mail.Read',
-                'https://graph.microsoft.com/offline_access'
+                'https://graph.microsoft.com/offline_access',
             ])
             ->redirect();
     }
@@ -369,12 +369,13 @@ class AzureController extends Controller
     {
         try {
             // Check if we have the necessary token data
-            if (!$azureUser->token || !property_exists($azureUser, 'refreshToken')) {
+            if (! $azureUser->token || ! property_exists($azureUser, 'refreshToken')) {
                 Log::info('Azure user missing Graph API tokens', [
                     'user_id' => $user->id,
-                    'has_token' => !empty($azureUser->token),
+                    'has_token' => ! empty($azureUser->token),
                     'has_refresh_token' => property_exists($azureUser, 'refreshToken'),
                 ]);
+
                 return;
             }
 
@@ -392,7 +393,7 @@ class AzureController extends Controller
 
             Log::info('Graph API tokens stored successfully', [
                 'user_id' => $user->id,
-                'has_refresh_token' => !empty($graphToken->refresh_token),
+                'has_refresh_token' => ! empty($graphToken->refresh_token),
                 'expires_at' => $graphToken->expires_at,
             ]);
 

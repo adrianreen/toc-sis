@@ -308,12 +308,12 @@ class NotificationService
             $user,
             'repeat_assessment_required',
             'Repeat Assessment Required',
-            "You need to complete a repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name}. ".
+            "You need to complete a repeat assessment for {$repeatAssessment->assessment_component_name}. ".
             "Payment of €{$repeatAssessment->payment_amount} is required before you can proceed.",
-            route('students.assessments'), // Student assessment view route
+            route('students.grades'), // Student grades view route
             [
                 'repeat_assessment_id' => $repeatAssessment->id,
-                'assessment_name' => $repeatAssessment->studentAssessment->assessmentComponent->name,
+                'assessment_name' => $repeatAssessment->assessment_component_name,
                 'module_name' => $repeatAssessment->moduleInstance->module->name,
                 'payment_amount' => $repeatAssessment->payment_amount,
                 'due_date' => $repeatAssessment->repeat_due_date->format('Y-m-d'),
@@ -328,12 +328,12 @@ class NotificationService
             $user,
             'repeat_assessment_payment_received',
             'Repeat Assessment Payment Received',
-            "Your payment for the repeat assessment of {$repeatAssessment->studentAssessment->assessmentComponent->name} has been received. ".
+            "Your payment for the repeat assessment of {$repeatAssessment->assessment_component_name} has been received. ".
             'Your repeat assessment will be set up shortly.',
-            route('students.assessments'),
+            route('students.grades'),
             [
                 'repeat_assessment_id' => $repeatAssessment->id,
-                'assessment_name' => $repeatAssessment->studentAssessment->assessmentComponent->name,
+                'assessment_name' => $repeatAssessment->assessment_component_name,
                 'payment_amount' => $repeatAssessment->payment_amount,
                 'payment_method' => $repeatAssessment->payment_method,
             ]
@@ -346,12 +346,12 @@ class NotificationService
             $user,
             'repeat_assessment_ready',
             'Repeat Assessment Ready',
-            "Your repeat assessment for {$repeatAssessment->studentAssessment->assessmentComponent->name} is now ready. ".
+            "Your repeat assessment for {$repeatAssessment->assessment_component_name} is now ready. ".
             'You can access it through your student portal.',
-            route('students.assessments'),
+            route('students.grades'),
             [
                 'repeat_assessment_id' => $repeatAssessment->id,
-                'assessment_name' => $repeatAssessment->studentAssessment->assessmentComponent->name,
+                'assessment_name' => $repeatAssessment->assessment_component_name,
                 'due_date' => $repeatAssessment->repeat_due_date->format('Y-m-d'),
                 'moodle_course_id' => $repeatAssessment->moodle_course_id,
             ]
@@ -361,7 +361,7 @@ class NotificationService
     public function notifyRepeatAssessmentReminderStaff(User $staffUser, $repeatAssessment): void
     {
         $studentName = $repeatAssessment->student->full_name;
-        $assessmentName = $repeatAssessment->studentAssessment->assessmentComponent->name;
+        $assessmentName = $repeatAssessment->assessment_component_name;
 
         $this->createNotification(
             $staffUser,

@@ -11,6 +11,7 @@ use App\Http\Controllers\ExtensionRequestController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ModuleInstanceController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PolicyController;
 use App\Http\Controllers\ProgrammeController;
 use App\Http\Controllers\ProgrammeInstanceController;
 use App\Http\Controllers\RepeatAssessmentController;
@@ -200,6 +201,14 @@ Route::middleware(['auth'])->group(function () {
         // API endpoints
         Route::get('api/students/{student}/failed-assessments', [RepeatAssessmentController::class, 'getFailedAssessments'])->name('api.students.failed-assessments');
 
+        // Policy Management System
+        Route::get('policies/manage', [PolicyController::class, 'manage'])->name('policies.manage');
+        Route::get('policies/create', [PolicyController::class, 'create'])->name('policies.create');
+        Route::post('policies', [PolicyController::class, 'store'])->name('policies.store');
+        Route::get('policies/{policy}/edit', [PolicyController::class, 'edit'])->name('policies.edit');
+        Route::put('policies/{policy}', [PolicyController::class, 'update'])->name('policies.update');
+        Route::delete('policies/{policy}', [PolicyController::class, 'destroy'])->name('policies.destroy');
+
         // Legacy Assessment routes (DEPRECATED - Use StudentGradeRecord system above)
         // These routes are kept temporarily for transition period
         Route::get('assessments', [StudentGradeRecordController::class, 'index'])->name('assessments.index');
@@ -331,6 +340,13 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::patch('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 
+    // =================================================================
+    // POLICY ROUTES - All authenticated users can view policies
+    // =================================================================
+    Route::get('policies', [PolicyController::class, 'index'])->name('policies.index');
+    Route::get('policies/{policy}', [PolicyController::class, 'show'])->name('policies.show');
+    Route::get('policies/{policy}/download', [PolicyController::class, 'download'])->name('policies.download');
+
     // Manager-only notification routes
     Route::middleware(['role:manager'])->group(function () {
         Route::get('admin/notifications', [NotificationController::class, 'adminDashboard'])->name('notifications.admin');
@@ -357,14 +373,14 @@ Route::middleware(['auth'])->group(function () {
     // =================================================================
     // EMAIL API ROUTES - Graph API Integration
     // =================================================================
-    
+
     // Email summary for dashboard widget
     Route::get('/api/email-summary', [App\Http\Controllers\Api\EmailController::class, 'summary'])
         ->name('api.email.summary');
-    
+
     Route::post('/api/email/refresh', [App\Http\Controllers\Api\EmailController::class, 'refresh'])
         ->name('api.email.refresh');
-    
+
     // Manager/admin only routes
     Route::middleware(['role:manager,student_services'])->group(function () {
         Route::get('/api/email/health', [App\Http\Controllers\Api\EmailController::class, 'health'])

@@ -26,7 +26,7 @@ class EmailController extends Controller
         try {
             $user = Auth::user();
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'error' => 'unauthorized',
                     'message' => 'Authentication required',
@@ -50,7 +50,7 @@ class EmailController extends Controller
             Log::error('Email summary API error', [
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -69,16 +69,17 @@ class EmailController extends Controller
     {
         try {
             $health = $this->outlookService->getServiceHealth();
+
             return response()->json($health);
 
         } catch (\Exception $e) {
             Log::error('Email health check error', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'graph_api_available' => false,
-                'error' => 'Health check failed'
+                'error' => 'Health check failed',
             ], 500);
         }
     }
@@ -91,10 +92,10 @@ class EmailController extends Controller
         try {
             $user = Auth::user();
 
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'error' => 'unauthorized',
-                    'message' => 'Authentication required'
+                    'message' => 'Authentication required',
                 ], 401);
             }
 
@@ -103,20 +104,19 @@ class EmailController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Email cache refreshed',
-                'data' => $emailData
+                'data' => $emailData,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Email cache refresh error', [
                 'user_id' => Auth::id(),
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'error' => 'refresh_failed',
-                'message' => 'Failed to refresh email cache'
+                'message' => 'Failed to refresh email cache',
             ], 500);
         }
     }
-
 }

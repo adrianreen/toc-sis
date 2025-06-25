@@ -236,10 +236,10 @@
                      @mouseleave="open = false">
                     <button @click="open = !open" 
                             class="group relative flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                                   {{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*') 
+                                   {{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*', 'policies.manage', 'policies.create', 'policies.edit') 
                                       ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 
                                       : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50' }}"
-                            :class="{ 'bg-slate-100': open && !{{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*') ? 'true' : 'false' }} }">
+                            :class="{ 'bg-slate-100': open && !{{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*', 'policies.manage', 'policies.create', 'policies.edit') ? 'true' : 'false' }} }">
                         
                         
                         <svg class="w-4 h-4 mr-3 {{ request()->routeIs('programmes.*', 'programme-instances.*', 'modules.*', 'module-instances.*', 'reports.*', 'notifications.admin', 'notifications.announcement', 'admin.email-templates.*', 'admin.system-health.*', 'moodle.*') ? 'text-toc-600' : 'text-slate-500 group-hover:text-slate-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -386,10 +386,40 @@
                                     Moodle Integration
                                 </a>
                             @endif
+                            <a href="{{ route('policies.manage') }}" 
+                               class="group flex items-center mx-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                                      {{ request()->routeIs('policies.manage', 'policies.create', 'policies.edit') 
+                                         ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 
+                                         : 'text-gray-700 hover:text-slate-900 hover:bg-slate-100' }}">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-lg {{ request()->routeIs('policies.manage', 'policies.create', 'policies.edit') ? 'bg-blue-100' : 'bg-amber-100 group-hover:bg-amber-200' }} mr-3">
+                                    <svg class="w-4 h-4 {{ request()->routeIs('policies.manage', 'policies.create', 'policies.edit') ? 'text-toc-600' : 'text-amber-600' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                Policy Management
+                            </a>
                         </div>
                     </div>
                 </div>
                 @endif
+
+                <!-- Policies Link - Available to all authenticated users -->
+                <a href="{{ route('policies.index') }}" 
+                   class="group relative flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 
+                          {{ request()->routeIs('policies.index', 'policies.show') 
+                             ? 'bg-toc-50 text-toc-700 border border-toc-200 shadow-sm' 
+                             : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50' }}">
+                    
+                    <!-- Active state glow -->
+                    @if(request()->routeIs('policies.index', 'policies.show'))
+                        <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-toc-500/10 to-toc-400/10 blur-sm"></div>
+                    @endif
+                    
+                    <svg class="w-4 h-4 mr-3 {{ request()->routeIs('policies.index', 'policies.show') ? 'text-toc-600' : 'text-slate-500 group-hover:text-slate-700' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Policies</span>
+                </a>
             </div>
 
             <!-- User Profile Section -->

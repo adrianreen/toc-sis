@@ -11,12 +11,12 @@ return [
     | when specific requirements differ.
     |
     */
-    
+
     'default_per_page' => 20,
     'max_per_page' => 100,
     'student_search_limit' => 50,
     'analytics_limit' => 1000,
-    
+
     /*
     |--------------------------------------------------------------------------
     | Per-Model Pagination Overrides
@@ -26,7 +26,7 @@ return [
     | different defaults than the global setting.
     |
     */
-    
+
     'per_model' => [
         'students' => 25,
         'notifications' => 15,

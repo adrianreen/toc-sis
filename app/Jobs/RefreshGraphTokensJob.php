@@ -29,21 +29,21 @@ class RefreshGraphTokensJob implements ShouldQueue
     {
         try {
             Log::info('Refreshing Graph tokens for user', ['user_id' => $this->user->id]);
-            
+
             $newToken = $tokenService->refreshToken($this->user);
-            
+
             if ($newToken) {
                 Log::info('Graph tokens refreshed successfully', ['user_id' => $this->user->id]);
             } else {
                 Log::warning('Failed to refresh Graph tokens', ['user_id' => $this->user->id]);
             }
-            
+
         } catch (\Exception $e) {
             Log::error('Error in RefreshGraphTokensJob', [
                 'user_id' => $this->user->id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             throw $e; // Re-throw to mark job as failed
         }
     }

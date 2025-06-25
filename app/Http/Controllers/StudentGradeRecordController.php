@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 class StudentGradeRecordController extends Controller
 {
     use HasStudentSearch;
+
     /**
      * Show assessment management interface for staff
      */
@@ -178,12 +179,12 @@ class StudentGradeRecordController extends Controller
                 foreach ($validated['grades'] as $gradeData) {
                     // Find or create the grade record
                     $gradeRecord = null;
-                    
+
                     if ($gradeData['grade_record_id']) {
                         $gradeRecord = StudentGradeRecord::find($gradeData['grade_record_id']);
                     }
 
-                    if (!$gradeRecord) {
+                    if (! $gradeRecord) {
                         $gradeRecord = StudentGradeRecord::firstOrCreate([
                             'student_id' => $gradeData['student_id'],
                             'module_instance_id' => $moduleInstance->id,
@@ -202,14 +203,14 @@ class StudentGradeRecordController extends Controller
 
                     // Update the grade record
                     $updateData = [];
-                    
+
                     if ($gradeData['grade'] !== null && $gradeData['grade'] !== '') {
                         $updateData['grade'] = $gradeData['grade'];
                         $updateData['graded_date'] = now();
                         $updateData['graded_by_staff_id'] = auth()->id();
                     }
 
-                    if (!empty($updateData)) {
+                    if (! empty($updateData)) {
                         $gradeRecord->update($updateData);
                         $updatedCount++;
                     }
@@ -305,7 +306,7 @@ class StudentGradeRecordController extends Controller
                 ->where('assessment_component_name', $validated['component_name'])
                 ->first();
 
-            if (!$gradeRecord) {
+            if (! $gradeRecord) {
                 return $this->errorResponse('Grade record not found');
             }
 
@@ -337,7 +338,7 @@ class StudentGradeRecordController extends Controller
                 'visible' => 'required|boolean',
             ]);
 
-            // For individual overall visibility, we can use a custom field or 
+            // For individual overall visibility, we can use a custom field or
             // control it through all components. For now, let's use all components approach
             $updateCount = $moduleInstance->studentGradeRecords()
                 ->where('student_id', $validated['student_id'])

@@ -11,8 +11,11 @@ use Illuminate\Support\Facades\Log;
 class GraphTokenService
 {
     private string $clientId;
+
     private string $clientSecret;
+
     private string $tenantId;
+
     private string $redirectUri;
 
     public function __construct()
@@ -54,23 +57,26 @@ class GraphTokenService
     {
         $graphToken = $user->graphToken;
 
-        if (!$graphToken) {
+        if (! $graphToken) {
             Log::info('No Graph token found for user', ['user_id' => $user->id]);
+
             return null;
         }
 
         // If token is not expired, return it
-        if (!$graphToken->isExpired()) {
+        if (! $graphToken->isExpired()) {
             return $graphToken->access_token;
         }
 
         // Try to refresh the token
         if ($graphToken->refresh_token) {
             Log::info('Attempting to refresh Graph token', ['user_id' => $user->id]);
+
             return $this->refreshToken($user);
         }
 
         Log::warning('Graph token expired and no refresh token available', ['user_id' => $user->id]);
+
         return null;
     }
 
@@ -81,7 +87,7 @@ class GraphTokenService
     {
         $graphToken = $user->graphToken;
 
-        if (!$graphToken || !$graphToken->refresh_token) {
+        if (! $graphToken || ! $graphToken->refresh_token) {
             return null;
         }
 
@@ -99,23 +105,25 @@ class GraphTokenService
                 $this->storeTokens($user, $tokenData);
 
                 Log::info('Graph token refreshed successfully', ['user_id' => $user->id]);
+
                 return $tokenData['access_token'];
             }
 
             Log::error('Failed to refresh Graph token', [
                 'user_id' => $user->id,
                 'status' => $response->status(),
-                'error' => $response->json()
+                'error' => $response->json(),
             ]);
 
             // If refresh fails, remove the invalid token
             $graphToken->delete();
+
             return null;
 
         } catch (Exception $e) {
             Log::error('Exception during token refresh', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -144,13 +152,14 @@ class GraphTokenService
                 $graphToken = $this->storeTokens($user, $tokenData);
 
                 Log::info('Graph tokens obtained successfully', ['user_id' => $user->id]);
+
                 return $graphToken;
             }
 
             Log::error('Failed to exchange code for Graph tokens', [
                 'user_id' => $user->id,
                 'status' => $response->status(),
-                'error' => $response->json()
+                'error' => $response->json(),
             ]);
 
             return null;
@@ -158,7 +167,7 @@ class GraphTokenService
         } catch (Exception $e) {
             Log::error('Exception during code exchange', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return null;
@@ -172,7 +181,7 @@ class GraphTokenService
     {
         $graphToken = $user->graphToken;
 
-        if (!$graphToken) {
+        if (! $graphToken) {
             return true; // Already revoked/no tokens
         }
 
@@ -181,7 +190,7 @@ class GraphTokenService
             if ($graphToken->refresh_token) {
                 Http::asForm()->post("https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/logout", [
                     'token' => $graphToken->refresh_token,
-                    'token_type_hint' => 'refresh_token'
+                    'token_type_hint' => 'refresh_token',
                 ]);
             }
 
@@ -189,16 +198,18 @@ class GraphTokenService
             $graphToken->delete();
 
             Log::info('Graph tokens revoked', ['user_id' => $user->id]);
+
             return true;
 
         } catch (Exception $e) {
             Log::error('Error revoking Graph tokens', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             // Still delete from our database even if remote revocation fails
             $graphToken->delete();
+
             return false;
         }
     }
@@ -210,11 +221,11 @@ class GraphTokenService
     {
         $graphToken = $user->graphToken;
 
-        if (!$graphToken) {
+        if (! $graphToken) {
             return false;
         }
 
-        return $graphToken->hasScope('https://graph.microsoft.com/Mail.Read') || 
+        return $graphToken->hasScope('https://graph.microsoft.com/Mail.Read') ||
                $graphToken->hasScope('Mail.Read');
     }
 

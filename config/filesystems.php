@@ -47,6 +47,14 @@ return [
             'report' => false,
         ],
 
+        'private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private'),
+            'serve' => false,
+            'throw' => false,
+            'visibility' => 'private',
+        ],
+
         'student_documents' => [
             'driver' => 'local',
             'root' => storage_path('app/private/student-documents'),
