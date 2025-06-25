@@ -1,18 +1,38 @@
 {{-- resources/views/assessments/index.blade.php --}}
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                @if(Auth::user()->role === 'teacher')
-                    My Assessments & Grading
-                @else
-                    Assessment Management
-                @endif
-            </h2>
-            <div class="space-x-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    @if(Auth::user()->role === 'teacher')
+                        My Assessments & Grading
+                    @else
+                        Modern Assessment Management
+                    @endif
+                </h2>
+                <p class="text-sm text-gray-600 mt-1">
+                    @if(Auth::user()->role === 'teacher')
+                        Manage grades for your assigned modules using the modern grading interface
+                    @else
+                        Comprehensive assessment management with modern grading tools
+                    @endif
+                </p>
+            </div>
+            <div class="flex items-center space-x-3">
                 @if($stats['pending_grading'] > 0)
-                    <span class="bg-orange-500 text-white font-bold py-2 px-4 rounded">
-                        Pending Grading: {{ $stats['pending_grading'] }}
+                    <span class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-orange-100 text-orange-800">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        {{ $stats['pending_grading'] }} Pending
+                    </span>
+                @endif
+                @if($stats['overdue_release'] > 0)
+                    <span class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium bg-red-100 text-red-800">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        {{ $stats['overdue_release'] }} Overdue
                     </span>
                 @endif
             </div>
@@ -139,6 +159,11 @@
                                                 <div class="text-sm text-gray-500">
                                                     {{ $instance->module->title }}
                                                 </div>
+                                                @if($instance->module->assessment_strategy)
+                                                    <div class="text-xs text-gray-400 mt-1">
+                                                        {{ count($instance->module->assessment_strategy) }} assessment components
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <div class="text-sm text-gray-900">
@@ -175,14 +200,28 @@
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                 <div class="flex space-x-2">
+                                                    <a href="{{ route('grade-records.modern-grading', $instance) }}" 
+                                                       class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-xs text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                        Modern Grading
+                                                    </a>
+                                                    
                                                     <a href="{{ route('grade-records.module-grading', $instance) }}" 
-                                                       class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-xs">
-                                                        Grade Students
+                                                       class="inline-flex items-center px-3 py-2 bg-gray-600 border border-transparent rounded-lg font-medium text-xs text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer">
+                                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                            <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                                                        </svg>
+                                                        Traditional
                                                     </a>
                                                     
                                                     @if($totalGradeRecords > 0)
                                                         <a href="{{ route('grade-records.export', $instance) }}" 
-                                                           class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded text-xs">
+                                                           class="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-lg font-medium text-xs text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors cursor-pointer">
+                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                            </svg>
                                                             Export
                                                         </a>
                                                     @endif
@@ -260,10 +299,9 @@
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-blue-700">
-                                <strong>Quick Help:</strong> Click "Grade Students" to access the grading interface for each module. 
-                                <strong>Use Bulk Grading (recommended)</strong> for efficient grading of multiple students at once, 
-                                or use individual grading when you need detailed feedback. Students will automatically 
-                                see their results and final grades once you complete grading.
+                                <strong>Quick Help:</strong> Use <strong>"Modern Grading" (recommended)</strong> for an advanced spreadsheet-style interface with heatmaps, bulk operations, and real-time grade entry. 
+                                Use "Traditional" for a simple form-based interface. Students will automatically see their results once you mark them as visible. 
+                                The modern interface offers faster grading with visual feedback and better bulk operations.
                             </p>
                         </div>
                     </div>

@@ -42,15 +42,16 @@ class StudentGradeRecordController extends Controller
                 return $instance->studentGradeRecords->count();
             }),
             'pending_grading' => $moduleInstances->sum(function ($instance) {
-                return $instance->studentGradeRecords->whereNull('percentage')->count();
+                return $instance->studentGradeRecords->whereNull('grade')->count();
             }),
             'graded_today' => $moduleInstances->sum(function ($instance) {
                 return $instance->studentGradeRecords->where('grading_date', '>=', today())->count();
             }),
             'overdue_release' => $moduleInstances->sum(function ($instance) {
                 return $instance->studentGradeRecords
-                    ->whereNotNull('percentage')
+                    ->whereNotNull('grade')
                     ->where('is_visible_to_student', false)
+                    ->whereNotNull('release_date')
                     ->where('release_date', '<', now())
                     ->count();
             }),
