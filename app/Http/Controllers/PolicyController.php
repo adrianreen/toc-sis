@@ -363,6 +363,38 @@ class PolicyController extends Controller
     }
 
     /**
+     * Display PDF file inline for viewing
+     */
+    public function viewPdf(Policy $policy)
+    {
+        $user = auth()->user();
+        $programmeTypes = $this->getUserProgrammeTypes($user);
+        
+        if (!$this->canUserAccessPolicy($policy, $programmeTypes)) {
+            abort(403, 'You do not have access to this policy.');
+        }
+
+        if (!$policy->hasFile()) {
+            abort(404, 'Policy file not found.');
+        }
+
+        // Log view for analytics (but not download since it's just viewing)
+        PolicyView::logView($policy, $user, 'viewed_inline');
+        $policy->incrementViews();
+
+        $filePath = Storage::disk('private')->path($policy->file_path);
+        
+        if (!file_exists($filePath)) {
+            abort(404, 'Policy file not found on disk.');
+        }
+
+        return response()->file($filePath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $policy->file_name . '"'
+        ]);
+    }
+
+    /**
      * Get programme types a user has access to
      */
     private function getUserProgrammeTypes($user): array

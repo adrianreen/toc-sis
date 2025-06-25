@@ -345,6 +345,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('policies', [PolicyController::class, 'index'])->name('policies.index');
     Route::get('policies/{policy}', [PolicyController::class, 'show'])->name('policies.show');
     Route::get('policies/{policy}/download', [PolicyController::class, 'download'])->name('policies.download');
+    Route::get('policies/{policy}/view-pdf', [PolicyController::class, 'viewPdf'])->name('policies.view-pdf');
 
     // Manager-only notification routes
     Route::middleware(['role:manager'])->group(function () {

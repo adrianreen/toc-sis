@@ -94,12 +94,21 @@
                             {{-- Action Buttons --}}
                             <div class="flex items-center space-x-3 ml-6">
                                 @if($policy->hasFile())
+                                    <button onclick="togglePdfView()" 
+                                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors cursor-pointer">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        View PDF
+                                    </button>
+                                    
                                     <a href="{{ route('policies.download', $policy) }}" 
                                        class="inline-flex items-center px-4 py-2 bg-toc-600 border border-transparent rounded-lg font-medium text-sm text-white hover:bg-toc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
                                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                                         </svg>
-                                        Download PDF
+                                        Download
                                         @if($policy->getFileSizeHuman())
                                             <span class="ml-1 text-xs opacity-75">({{ $policy->getFileSizeHuman() }})</span>
                                         @endif
@@ -137,18 +146,40 @@
                         </div>
                     @endif
 
-                    {{-- File Information --}}
+                    {{-- PDF Viewer --}}
                     @if($policy->hasFile())
-                        <div class="mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            <h2 class="text-lg font-semibold text-gray-900 mb-3">Policy Document</h2>
-                            <div class="flex items-center justify-between">
+                        <div class="mb-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h2 class="text-lg font-semibold text-gray-900">Policy Document</h2>
+                                <div class="flex items-center space-x-3">
+                                    <button onclick="togglePdfView()" 
+                                            id="toggle-pdf-btn"
+                                            class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                        <span id="toggle-text">View PDF</span>
+                                    </button>
+                                    <a href="{{ route('policies.download', $policy) }}" 
+                                       class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                </div>
+                            </div>
+
+                            {{-- PDF Info Card --}}
+                            <div id="pdf-info" class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0">
                                         <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                             <path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                                         </svg>
                                     </div>
-                                    <div class="ml-4">
+                                    <div class="ml-4 flex-1">
                                         <h3 class="text-sm font-medium text-gray-900">{{ $policy->file_name }}</h3>
                                         <p class="text-sm text-gray-500">
                                             PDF Document • {{ $policy->getFileSizeHuman() }}
@@ -158,13 +189,34 @@
                                         </p>
                                     </div>
                                 </div>
-                                <a href="{{ route('policies.download', $policy) }}" 
-                                   class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-toc-500 transition-colors cursor-pointer">
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    Download
-                                </a>
+                            </div>
+
+                            {{-- PDF Viewer --}}
+                            <div id="pdf-viewer" class="hidden mt-4 border border-gray-300 rounded-lg overflow-hidden bg-white">
+                                <div class="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
+                                    <div class="text-sm font-medium text-gray-700">{{ $policy->file_name }}</div>
+                                    <div class="flex items-center space-x-2">
+                                        <a href="{{ route('policies.view-pdf', $policy) }}" 
+                                           target="_blank"
+                                           class="text-sm text-gray-600 hover:text-gray-900 cursor-pointer">
+                                            Open in new tab
+                                        </a>
+                                        <span class="text-gray-400">|</span>
+                                        <button onclick="togglePdfView()" class="text-sm text-gray-600 hover:text-gray-900 cursor-pointer">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                                <iframe id="pdf-frame" 
+                                        src="" 
+                                        class="w-full"
+                                        style="height: 800px;"
+                                        title="Policy PDF Document">
+                                    <p class="p-4 text-center text-gray-500">
+                                        Your browser does not support PDF viewing. 
+                                        <a href="{{ route('policies.download', $policy) }}" class="text-toc-600 hover:text-toc-700 cursor-pointer">Download the PDF</a> instead.
+                                    </p>
+                                </iframe>
                             </div>
                         </div>
                     @endif
@@ -297,4 +349,42 @@
             </x-card>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        function togglePdfView() {
+            const viewer = document.getElementById('pdf-viewer');
+            const info = document.getElementById('pdf-info');
+            const toggleText = document.getElementById('toggle-text');
+            const frame = document.getElementById('pdf-frame');
+            
+            if (viewer.classList.contains('hidden')) {
+                // Show PDF viewer
+                viewer.classList.remove('hidden');
+                info.classList.add('hidden');
+                toggleText.textContent = 'Hide PDF';
+                
+                // Load PDF if not already loaded
+                if (!frame.src) {
+                    frame.src = '{{ route("policies.view-pdf", $policy) }}';
+                }
+                
+                // Scroll to PDF viewer
+                viewer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                // Hide PDF viewer
+                viewer.classList.add('hidden');
+                info.classList.remove('hidden');
+                toggleText.textContent = 'View PDF';
+            }
+        }
+
+        // Auto-expand PDF if URL has #pdf hash
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.location.hash === '#pdf') {
+                togglePdfView();
+            }
+        });
+    </script>
+    @endpush
 </x-app-layout>
