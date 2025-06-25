@@ -350,13 +350,20 @@
         </div>
     </div>
 
-    @push('scripts')
     <script>
-        function togglePdfView() {
+        // Define toggle function globally
+        window.togglePdfView = function() {
             const viewer = document.getElementById('pdf-viewer');
             const info = document.getElementById('pdf-info');
             const toggleText = document.getElementById('toggle-text');
             const frame = document.getElementById('pdf-frame');
+            
+            console.log('Toggle PDF View called', {viewer, info, toggleText, frame}); // Debug log
+            
+            if (!viewer || !info || !toggleText || !frame) {
+                console.error('PDF viewer elements not found');
+                return;
+            }
             
             if (viewer.classList.contains('hidden')) {
                 // Show PDF viewer
@@ -377,14 +384,14 @@
                 info.classList.remove('hidden');
                 toggleText.textContent = 'View PDF';
             }
-        }
+        };
 
         // Auto-expand PDF if URL has #pdf hash
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking for #pdf hash:', window.location.hash);
             if (window.location.hash === '#pdf') {
                 togglePdfView();
             }
         });
     </script>
-    @endpush
 </x-app-layout>
