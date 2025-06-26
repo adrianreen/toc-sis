@@ -71,7 +71,7 @@ class Module extends Model
                 return $component['component_pass_mark'] ?? $this->getDefaultPassMark();
             }
         }
-        
+
         return $this->getDefaultPassMark();
     }
 
@@ -93,7 +93,7 @@ class Module extends Model
                 return $component['is_must_pass'] ?? false;
             }
         }
-        
+
         return false;
     }
 
@@ -102,11 +102,12 @@ class Module extends Model
      */
     public function isGradeRecordFailed(object $gradeRecord): bool
     {
-        if (!$gradeRecord->isGraded()) {
+        if (! $gradeRecord->isGraded()) {
             return false;
         }
 
         $componentPassMark = $this->getComponentPassMark($gradeRecord->assessment_component_name);
+
         return $gradeRecord->percentage < $componentPassMark;
     }
 }

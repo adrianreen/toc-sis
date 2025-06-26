@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('viewed_at')->useCurrent();
             $table->string('ip_address')->nullable();
             $table->text('user_agent')->nullable();
-            
+
             // Index for analytics queries
             $table->index(['policy_id', 'action', 'viewed_at']);
             $table->index(['user_id', 'viewed_at']);

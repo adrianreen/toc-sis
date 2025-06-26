@@ -31,7 +31,7 @@ return new class extends Migration
             $table->integer('download_count')->default(0);
             $table->timestamps();
             $table->softDeletes();
-            
+
             // Indexes for performance
             $table->index(['status', 'scope']);
             $table->index(['programme_type', 'status']);

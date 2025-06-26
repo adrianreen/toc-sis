@@ -471,12 +471,12 @@ class RepeatAssessmentController extends Controller
             ->whereDoesntHave('repeatAssessments')
             ->with(['student', 'moduleInstance.module']);
 
-        if (!empty($validated['module_instance_id'])) {
+        if (! empty($validated['module_instance_id'])) {
             $query->where('module_instance_id', $validated['module_instance_id']);
         }
 
         $allGradeRecords = $query->get();
-        
+
         // Filter for failed assessments using module-specific pass marks
         $failedGradeRecords = $allGradeRecords->filter(function ($gradeRecord) {
             return $gradeRecord->moduleInstance->module->isGradeRecordFailed($gradeRecord);
@@ -488,7 +488,7 @@ class RepeatAssessmentController extends Controller
                 'assessments' => $failedGradeRecords->map(function ($gradeRecord) {
                     $module = $gradeRecord->moduleInstance->module;
                     $passMarkUsed = $module->getComponentPassMark($gradeRecord->assessment_component_name);
-                    
+
                     return [
                         'student_name' => $gradeRecord->student->full_name,
                         'assessment_name' => $gradeRecord->assessment_component_name,
@@ -587,12 +587,12 @@ class RepeatAssessmentController extends Controller
                 ->map(function ($gradeRecords) {
                     $moduleInstance = $gradeRecords->first()->moduleInstance;
                     $module = $moduleInstance->module;
-                    
+
                     // Count failed components using module-specific pass marks
-                    $failedComponents = $gradeRecords->filter(function($record) use ($module) {
+                    $failedComponents = $gradeRecords->filter(function ($record) use ($module) {
                         return $module->isGradeRecordFailed($record);
                     })->count();
-                    
+
                     $totalComponents = count($module->assessment_strategy ?? []);
 
                     return [
@@ -601,10 +601,12 @@ class RepeatAssessmentController extends Controller
                         'module_code' => $module->module_code,
                         'failed_components' => $failedComponents,
                         'total_components' => $totalComponents,
-                        'lowest_grade' => $gradeRecords->min(function($record) { return $record->percentage; }),
+                        'lowest_grade' => $gradeRecords->min(function ($record) {
+                            return $record->percentage;
+                        }),
                         'last_graded' => $gradeRecords->whereNotNull('graded_date')->max('graded_date')?->format('Y-m-d'),
                         'default_pass_mark' => $module->getDefaultPassMark(),
-                        'components_detail' => $gradeRecords->map(function($record) use ($module) {
+                        'components_detail' => $gradeRecords->map(function ($record) use ($module) {
                             return [
                                 'name' => $record->assessment_component_name,
                                 'percentage' => round($record->percentage, 1),

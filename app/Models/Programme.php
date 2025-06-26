@@ -22,6 +22,7 @@ class Programme extends Model
     protected $casts = [
         'nfq_level' => 'integer',
         'total_credits' => 'integer',
+        'learning_outcomes' => 'array',
     ];
 
     public static function rules()

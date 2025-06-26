@@ -17,10 +17,10 @@ return new class extends Migration
             $table->foreignId('programme_id')->nullable()->constrained()->onDelete('cascade');
             $table->timestamp('assigned_at')->useCurrent();
             $table->timestamps();
-            
+
             // Prevent duplicate assignments
             $table->unique(['policy_id', 'programme_id']);
-            
+
             // Index for performance
             $table->index(['programme_id', 'policy_id']);
         });

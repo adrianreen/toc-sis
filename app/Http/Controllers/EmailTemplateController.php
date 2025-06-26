@@ -91,7 +91,10 @@ class EmailTemplateController extends Controller
 
         $availableVariables = EmailTemplate::getAvailableVariables();
 
-        return view('admin.email-templates.show', compact('emailTemplate', 'recentLogs', 'availableVariables'));
+        // Alias emailTemplate as template for the view
+        $template = $emailTemplate;
+
+        return view('admin.email-templates.show', compact('template', 'recentLogs', 'availableVariables'));
     }
 
     public function edit(EmailTemplate $emailTemplate)

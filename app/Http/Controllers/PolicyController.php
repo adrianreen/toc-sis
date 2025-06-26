@@ -17,7 +17,7 @@ class PolicyController extends Controller
     {
         // Manager/Student Services can manage policies
         $this->middleware(['auth', 'role:manager,student_services'])->except(['index', 'show', 'download']);
-        
+
         // All authenticated users can view policies
         $this->middleware('auth')->only(['index', 'show', 'download']);
     }
@@ -28,22 +28,22 @@ class PolicyController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        
+
         // Determine programme types user has access to
         $programmeTypes = $this->getUserProgrammeTypes($user);
-        
+
         // Get categories with published policies
         $categories = PolicyCategory::active()
             ->ordered()
             ->with(['publishedPolicies' => function ($query) use ($programmeTypes) {
                 $query->where(function ($q) use ($programmeTypes) {
                     $q->where('scope', 'college')
-                      ->orWhere(function ($subQ) use ($programmeTypes) {
-                          $subQ->where('scope', 'programme')
-                               ->whereIn('programme_type', $programmeTypes);
-                      });
+                        ->orWhere(function ($subQ) use ($programmeTypes) {
+                            $subQ->where('scope', 'programme')
+                                ->whereIn('programme_type', $programmeTypes);
+                        });
                 })
-                ->orderBy('title');
+                    ->orderBy('title');
             }])
             ->get()
             ->filter(function ($category) {
@@ -56,15 +56,15 @@ class PolicyController extends Controller
             $searchResults = Policy::published()
                 ->where(function ($query) use ($searchTerm) {
                     $query->where('title', 'like', "%{$searchTerm}%")
-                          ->orWhere('description', 'like', "%{$searchTerm}%")
-                          ->orWhere('content', 'like', "%{$searchTerm}%");
+                        ->orWhere('description', 'like', "%{$searchTerm}%")
+                        ->orWhere('content', 'like', "%{$searchTerm}%");
                 })
                 ->where(function ($q) use ($programmeTypes) {
                     $q->where('scope', 'college')
-                      ->orWhere(function ($subQ) use ($programmeTypes) {
-                          $subQ->where('scope', 'programme')
-                               ->whereIn('programme_type', $programmeTypes);
-                      });
+                        ->orWhere(function ($subQ) use ($programmeTypes) {
+                            $subQ->where('scope', 'programme')
+                                ->whereIn('programme_type', $programmeTypes);
+                        });
                 })
                 ->with('category')
                 ->get();
@@ -100,14 +100,14 @@ class PolicyController extends Controller
             $searchTerm = $request->search;
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('title', 'like', "%{$searchTerm}%")
-                  ->orWhere('description', 'like', "%{$searchTerm}%");
+                    ->orWhere('description', 'like', "%{$searchTerm}%");
             });
         }
 
         $policies = $query->paginate(20)->appends($request->query());
-        
+
         $categories = PolicyCategory::active()->ordered()->get();
-        
+
         $stats = [
             'total' => Policy::count(),
             'published' => Policy::where('status', 'published')->count(),
@@ -125,7 +125,7 @@ class PolicyController extends Controller
     {
         $categories = PolicyCategory::active()->ordered()->get();
         $programmes = Programme::orderBy('title')->get();
-        
+
         return view('policies.create', compact('categories', 'programmes'));
     }
 
@@ -160,32 +160,32 @@ class PolicyController extends Controller
         \Log::info('File upload debug', [
             'hasFile' => $request->hasFile('policy_file'),
             'files' => $request->allFiles(),
-            'request_data' => $request->except(['password', '_token'])
+            'request_data' => $request->except(['password', '_token']),
         ]);
 
         if ($request->hasFile('policy_file')) {
             $file = $request->file('policy_file');
             $fileName = $file->getClientOriginalName();
             $fileSize = $file->getSize();
-            
+
             \Log::info('Processing file upload', [
                 'fileName' => $fileName,
                 'fileSize' => $fileSize,
-                'fileType' => $file->getMimeType()
+                'fileType' => $file->getMimeType(),
             ]);
-            
+
             // Store in private disk for security
             try {
                 $filePath = $file->store('policies', 'private');
-                
+
                 \Log::info('File stored successfully', [
                     'filePath' => $filePath,
-                    'exists' => $filePath ? \Storage::disk('private')->exists($filePath) : false
+                    'exists' => $filePath ? \Storage::disk('private')->exists($filePath) : false,
                 ]);
             } catch (\Exception $e) {
                 \Log::error('File storage failed', [
                     'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
+                    'trace' => $e->getTraceAsString(),
                 ]);
                 throw $e;
             }
@@ -206,7 +206,7 @@ class PolicyController extends Controller
             'file_name' => $fileName,
             'file_size' => $fileSize,
             'created_by' => auth()->id(),
-            'published_at' => $validated['status'] === 'published' 
+            'published_at' => $validated['status'] === 'published'
                 ? ($validated['published_at'] ?? now())
                 : null,
         ]);
@@ -228,8 +228,8 @@ class PolicyController extends Controller
         // Check if user can access this policy
         $user = auth()->user();
         $programmeTypes = $this->getUserProgrammeTypes($user);
-        
-        if (!$this->canUserAccessPolicy($policy, $programmeTypes)) {
+
+        if (! $this->canUserAccessPolicy($policy, $programmeTypes)) {
             abort(403, 'You do not have access to this policy.');
         }
 
@@ -249,7 +249,7 @@ class PolicyController extends Controller
     {
         $categories = PolicyCategory::active()->ordered()->get();
         $programmes = Programme::orderBy('title')->get();
-        
+
         return view('policies.edit', compact('policy', 'categories', 'programmes'));
     }
 
@@ -298,7 +298,7 @@ class PolicyController extends Controller
         }
 
         // Handle publication
-        if ($validated['status'] === 'published' && !$policy->published_at) {
+        if ($validated['status'] === 'published' && ! $policy->published_at) {
             $validated['published_at'] = $validated['published_at'] ?? now();
         } elseif ($validated['status'] !== 'published') {
             $validated['published_at'] = null;
@@ -346,12 +346,12 @@ class PolicyController extends Controller
     {
         $user = auth()->user();
         $programmeTypes = $this->getUserProgrammeTypes($user);
-        
-        if (!$this->canUserAccessPolicy($policy, $programmeTypes)) {
+
+        if (! $this->canUserAccessPolicy($policy, $programmeTypes)) {
             abort(403, 'You do not have access to this policy.');
         }
 
-        if (!$policy->hasFile()) {
+        if (! $policy->hasFile()) {
             abort(404, 'Policy file not found.');
         }
 
@@ -369,12 +369,12 @@ class PolicyController extends Controller
     {
         $user = auth()->user();
         $programmeTypes = $this->getUserProgrammeTypes($user);
-        
-        if (!$this->canUserAccessPolicy($policy, $programmeTypes)) {
+
+        if (! $this->canUserAccessPolicy($policy, $programmeTypes)) {
             abort(403, 'You do not have access to this policy.');
         }
 
-        if (!$policy->hasFile()) {
+        if (! $policy->hasFile()) {
             abort(404, 'Policy file not found.');
         }
 
@@ -383,14 +383,22 @@ class PolicyController extends Controller
         $policy->incrementViews();
 
         $filePath = Storage::disk('private')->path($policy->file_path);
-        
-        if (!file_exists($filePath)) {
+
+        if (! file_exists($filePath)) {
             abort(404, 'Policy file not found on disk.');
         }
 
-        return response()->file($filePath, [
+        // Optimized headers for iframe embedding
+        return response(file_get_contents($filePath), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $policy->file_name . '"'
+            'Content-Disposition' => 'inline; filename="'.$policy->file_name.'"',
+            'Content-Length' => filesize($filePath),
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+            'Pragma' => 'no-cache',
+            'X-Frame-Options' => 'SAMEORIGIN', // Allow iframe embedding from same origin
+            'X-Content-Type-Options' => 'nosniff',
+            'Referrer-Policy' => 'strict-origin-when-cross-origin',
         ]);
     }
 
@@ -407,7 +415,7 @@ class PolicyController extends Controller
         // For students, determine based on their enrolments
         if ($user->role === 'student' && $user->student) {
             $programmeTypes = ['all']; // Always include college-wide policies
-            
+
             // Get programme types from student's enrolments
             foreach ($user->student->enrolments as $enrolment) {
                 if ($enrolment->programmeInstance) {
@@ -417,7 +425,7 @@ class PolicyController extends Controller
                     $programmeTypes = array_merge($programmeTypes, ['elc', 'degree_obu', 'qqi']);
                 }
             }
-            
+
             return array_unique($programmeTypes);
         }
 
@@ -430,7 +438,7 @@ class PolicyController extends Controller
     private function canUserAccessPolicy(Policy $policy, array $programmeTypes): bool
     {
         // Must be published (unless user is staff)
-        if (!$policy->isPublished() && !in_array(auth()->user()->role, ['manager', 'student_services', 'teacher'])) {
+        if (! $policy->isPublished() && ! in_array(auth()->user()->role, ['manager', 'student_services', 'teacher'])) {
             return false;
         }
 

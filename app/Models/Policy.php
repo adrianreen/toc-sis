@@ -12,7 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Policy extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -107,7 +107,7 @@ class Policy extends Model
     {
         return $query->where(function ($q) use ($programmeType) {
             $q->where('programme_type', 'all')
-              ->orWhere('programme_type', $programmeType);
+                ->orWhere('programme_type', $programmeType);
         });
     }
 
@@ -140,7 +140,7 @@ class Policy extends Model
      */
     public function hasFile(): bool
     {
-        return !empty($this->file_path) && Storage::disk('private')->exists($this->file_path);
+        return ! empty($this->file_path) && Storage::disk('private')->exists($this->file_path);
     }
 
     /**
@@ -148,7 +148,7 @@ class Policy extends Model
      */
     public function getFileUrl(): ?string
     {
-        if (!$this->hasFile()) {
+        if (! $this->hasFile()) {
             return null;
         }
 
@@ -160,18 +160,18 @@ class Policy extends Model
      */
     public function getFileSizeHuman(): ?string
     {
-        if (!$this->file_size) {
+        if (! $this->file_size) {
             return null;
         }
 
         $bytes = $this->file_size;
         $units = ['B', 'KB', 'MB', 'GB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
-        return round($bytes, 2) . ' ' . $units[$i];
+
+        return round($bytes, 2).' '.$units[$i];
     }
 
     /**
@@ -195,7 +195,7 @@ class Policy extends Model
      */
     public function getProgrammeTypeLabel(): string
     {
-        return match($this->programme_type) {
+        return match ($this->programme_type) {
             'all' => 'All Programmes',
             'elc' => 'ELC Programmes',
             'degree_obu' => 'Degree (OBU) Programmes',
@@ -209,7 +209,7 @@ class Policy extends Model
      */
     public function getScopeLabel(): string
     {
-        return match($this->scope) {
+        return match ($this->scope) {
             'college' => 'College-wide',
             'programme' => 'Programme-specific',
             default => ucfirst($this->scope),
@@ -221,7 +221,7 @@ class Policy extends Model
      */
     public function getStatusColor(): string
     {
-        return match($this->status) {
+        return match ($this->status) {
             'published' => 'green',
             'draft' => 'yellow',
             'archived' => 'gray',
