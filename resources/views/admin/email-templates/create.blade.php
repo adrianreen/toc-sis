@@ -637,7 +637,7 @@
             const allVariables = [...variableMatches, ...subjectMatches];
             
             if (allVariables.length === 0) {
-                suggestions.push('Consider adding variables (like {{student.name}}) to personalize your email');
+                suggestions.push('Consider adding variables (like ' + '{{student.name}}' + ') to personalize your email');
             }
             
             // Check for unrecognized variables
