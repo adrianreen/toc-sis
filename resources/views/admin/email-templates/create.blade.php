@@ -437,7 +437,9 @@
             let previewBody = bodyHtml;
             
             Object.keys(sampleData).forEach(variable => {
-                const regex = new RegExp('\\{\\{' + variable + '\\}\\}', 'g');
+                const openBr = '\\{\\{';
+                const closeBr = '\\}\\}';
+                const regex = new RegExp(openBr + variable + closeBr, 'g');
                 previewSubject = previewSubject.replace(regex, sampleData[variable]);
                 previewBody = previewBody.replace(regex, sampleData[variable]);
             });
@@ -464,7 +466,9 @@
 
         // Enhanced copy function with modern clipboard API
         function copyToClipboard(variableName) {
-            const fullVariable = '{{' + variableName + '}}';
+            const openBr = '{' + '{';
+            const closeBr = '}' + '}';
+            const fullVariable = openBr + variableName + closeBr;
             
             // Use modern clipboard API if available
             if (navigator.clipboard && window.isSecureContext) {
@@ -526,7 +530,9 @@
         
         function handleDragStart(event) {
             draggedVariable = event.target.getAttribute('data-variable');
-            event.dataTransfer.setData('text/plain', '{{' + draggedVariable + '}}');
+            const openBr = '{' + '{';
+            const closeBr = '}' + '}';
+            event.dataTransfer.setData('text/plain', openBr + draggedVariable + closeBr);
             event.target.style.opacity = '0.5';
             event.target.style.transform = 'scale(0.95)';
         }
@@ -555,7 +561,9 @@
             dropIndicator.classList.add('hidden');
             
             if (draggedVariable) {
-                const variableText = '{{' + draggedVariable + '}}';
+                const openBr = '{' + '{';
+                const closeBr = '}' + '}';
+                const variableText = openBr + draggedVariable + closeBr;
                 
                 // Get cursor position in Quill
                 const range = quill.getSelection();
@@ -639,7 +647,9 @@
             const allVariables = [...variableMatches, ...subjectMatches];
             
             if (allVariables.length === 0) {
-                suggestions.push('Consider adding variables (like ' + '{{' + 'student.name' + '}}' + ') to personalize your email');
+                const openVar = '{' + '{';
+                const closeVar = '}' + '}';
+                suggestions.push('Consider adding variables (like ' + openVar + 'student.name' + closeVar + ') to personalize your email');
             }
             
             // Check for unrecognized variables
