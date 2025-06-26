@@ -203,7 +203,7 @@
                             <!-- Hidden textarea for form submission -->
                             <textarea id="body_html" name="body_html" required style="display: none;">{{ old('body_html') }}</textarea>
                             <p class="mt-1 text-xs text-gray-500">
-                                Use the rich text editor to format your email. Variables like <code>{!! '{{student.name}}' !!}</code> will be replaced automatically.
+                                Use the rich text editor to format your email. Variables like <code>{!! '{{' . 'student.name' . '}}' !!}</code> will be replaced automatically.
                                 <br><strong>Tips:</strong> Drag variables from sidebar into editor • <kbd class="bg-gray-100 px-1 rounded">Ctrl+S</kbd> to save • <kbd class="bg-gray-100 px-1 rounded">Ctrl+P</kbd> to preview • <kbd class="bg-gray-100 px-1 rounded">Ctrl+Shift+V</kbd> to validate
                             </p>
                         </div>
@@ -437,7 +437,7 @@
             let previewBody = bodyHtml;
             
             Object.keys(sampleData).forEach(variable => {
-                const regex = new RegExp(`\\{\\{${variable}\\}\\}`, 'g');
+                const regex = new RegExp('\\{\\{' + variable + '\\}\\}', 'g');
                 previewSubject = previewSubject.replace(regex, sampleData[variable]);
                 previewBody = previewBody.replace(regex, sampleData[variable]);
             });
@@ -583,11 +583,10 @@
             }
             
             const toast = document.createElement('div');
-            toast.className = `toast-notification fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium z-50 transform translate-y-full transition-transform duration-300 ${
-                type === 'success' ? 'bg-green-500' : 
-                type === 'error' ? 'bg-red-500' : 
-                type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-            }`;
+            const colorClass = type === 'success' ? 'bg-green-500' : 
+                              type === 'error' ? 'bg-red-500' : 
+                              type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+            toast.className = 'toast-notification fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium z-50 transform translate-y-full transition-transform duration-300 ' + colorClass;
             toast.textContent = message;
             
             document.body.appendChild(toast);
@@ -632,12 +631,15 @@
             if (bodyHtml && bodyHtml.length < 50) warnings.push('Email content seems too short for a meaningful message');
             
             // Variable validation
-            const variableMatches = bodyHtml.match(/\{\{[^}]+\}\}/g) || [];
-            const subjectMatches = subject.match(/\{\{[^}]+\}\}/g) || [];
+            const openBrace = '{';
+            const closeBrace = '}';
+            const varPattern = new RegExp('\\' + openBrace + '\\' + openBrace + '[^' + closeBrace + ']+\\' + closeBrace + '\\' + closeBrace, 'g');
+            const variableMatches = bodyHtml.match(varPattern) || [];
+            const subjectMatches = subject.match(varPattern) || [];
             const allVariables = [...variableMatches, ...subjectMatches];
             
             if (allVariables.length === 0) {
-                suggestions.push('Consider adding variables (like ' + '{{student.name}}' + ') to personalize your email');
+                suggestions.push('Consider adding variables (like ' + '{{' + 'student.name' + '}}' + ') to personalize your email');
             }
             
             // Check for unrecognized variables
@@ -650,7 +652,7 @@
             allVariables.forEach(variable => {
                 const cleanVar = variable.replace(/[{}]/g, '');
                 if (!knownVariables.includes(cleanVar)) {
-                    warnings.push(`Unknown variable: ${variable} - may not be replaced when sent`);
+                    warnings.push('Unknown variable: ' + variable + ' - may not be replaced when sent');
                 }
             });
             
@@ -684,7 +686,7 @@
             if (errors.length > 0) {
                 html += '<div class="mb-3"><strong>Errors:</strong><ul class="list-disc list-inside mt-1">';
                 errors.forEach(error => {
-                    html += `<li>${error}</li>`;
+                    html += '<li>' + error + '</li>';
                 });
                 html += '</ul></div>';
             }
@@ -692,7 +694,7 @@
             if (warnings.length > 0) {
                 html += '<div class="mb-3"><strong>Warnings:</strong><ul class="list-disc list-inside mt-1">';
                 warnings.forEach(warning => {
-                    html += `<li>${warning}</li>`;
+                    html += '<li>' + warning + '</li>';
                 });
                 html += '</ul></div>';
             }
@@ -700,7 +702,7 @@
             if (suggestions.length > 0) {
                 html += '<div class="mb-3"><strong>Suggestions:</strong><ul class="list-disc list-inside mt-1">';
                 suggestions.forEach(suggestion => {
-                    html += `<li>${suggestion}</li>`;
+                    html += '<li>' + suggestion + '</li>';
                 });
                 html += '</ul></div>';
             }
@@ -709,9 +711,9 @@
             resultsContainer.classList.remove('hidden');
             
             if (errors.length > 0) {
-                showToast(`Template has ${errors.length} error(s) that need fixing`, 'error');
+                showToast('Template has ' + errors.length + ' error(s) that need fixing', 'error');
             } else if (warnings.length > 0) {
-                showToast(`Template validation completed with ${warnings.length} warning(s)`, 'warning');
+                showToast('Template validation completed with ' + warnings.length + ' warning(s)', 'warning');
             } else {
                 showToast('Template validation completed successfully', 'success');
             }
