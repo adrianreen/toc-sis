@@ -56,6 +56,12 @@ Route::middleware(['auth'])->group(function () {
     // API routes for dashboard search
     Route::middleware(['role:manager,student_services,teacher'])->group(function () {
         Route::get('/api/students/search', [StudentController::class, 'search'])->name('students.search');
+        
+        // Table preferences API
+        Route::get('/api/table-preferences/{tableName}', [App\Http\Controllers\Api\TablePreferencesController::class, 'show'])->name('api.table-preferences.show');
+        Route::post('/api/table-preferences/{tableName}', [App\Http\Controllers\Api\TablePreferencesController::class, 'store'])->name('api.table-preferences.store');
+        Route::delete('/api/table-preferences/{tableName}', [App\Http\Controllers\Api\TablePreferencesController::class, 'reset'])->name('api.table-preferences.reset');
+        Route::get('/api/table-preferences/{tableName}/columns', [App\Http\Controllers\Api\TablePreferencesController::class, 'columns'])->name('api.table-preferences.columns');
     });
 
     // =================================================================
@@ -111,6 +117,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('enquiries/{enquiry}/convert', [EnquiryController::class, 'convertToStudent'])->name('enquiries.convert');
 
         Route::resource('students', StudentController::class);
+        
+        // Note: Standard students index now uses configurable table
 
         // Student recycle bin routes
         Route::get('students-recycle-bin', [StudentController::class, 'recycleBin'])->name('students.recycle-bin');
@@ -428,3 +436,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('my-documents');
 
 });
+Route::get('/test-modal', function() { return view('test-modal'); });
+Route::get('/simple-test', function() { return view('simple-test'); });
+Route::get('/debug-modal', function() { return view('debug-modal'); });
+Route::get('/students-simple', [StudentController::class, 'configurableIndex'])->name('students.simple-config');

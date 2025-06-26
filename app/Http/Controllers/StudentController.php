@@ -115,6 +115,89 @@ class StudentController extends Controller
     }
 
     /**
+     * Display configurable students index with user preferences
+     */
+    public function configurableIndex(Request $request)
+    {
+        // Start with optimized base query - include all potential fields for configuration
+        $query = Student::with([
+            'enrolments.programmeInstance.programme:id,title', 
+            'enrolments.moduleInstance.module:id,module_code,title',
+            'user:id,student_id'
+        ]);
+
+        // Enhanced search with better performance
+        if ($request->filled('search')) {
+            $search = trim($request->get('search'));
+            $query->where(function ($q) use ($search) {
+                $terms = array_filter(explode(' ', $search));
+
+                foreach ($terms as $term) {
+                    $q->where(function ($subQuery) use ($term) {
+                        $subQuery->where('student_number', 'like', "%{$term}%")
+                            ->orWhere('first_name', 'like', "%{$term}%")
+                            ->orWhere('last_name', 'like', "%{$term}%")
+                            ->orWhere('email', 'like', "%{$term}%")
+                            ->orWhereRaw("CONCAT(first_name, ' ', last_name) like ?", ["%{$term}%"]);
+                    });
+                }
+            });
+        }
+
+        // Status filter
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        // Programme filter
+        if ($request->filled('programme')) {
+            $query->whereHas('enrolments.programmeInstance.programme', function ($q) use ($request) {
+                $q->where('id', $request->get('programme'));
+            });
+        }
+
+        // Sorting with support for configurable columns
+        $sortField = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        if (in_array($sortField, ['name', 'student.name'])) {
+            $query->orderByRaw("CONCAT(first_name, ' ', last_name) {$sortDirection}");
+        } elseif (in_array($sortField, ['student_number', 'email', 'status', 'created_at', 'date_of_birth'])) {
+            $query->orderBy($sortField, $sortDirection);
+        }
+
+        // Enhanced pagination for performance
+        $students = $query->paginate(25)->withQueryString();
+
+        // Transform student data to include calculated fields for configurable display
+        $students->getCollection()->transform(function ($student) {
+            $student->full_name = $student->first_name . ' ' . $student->last_name;
+            $student->programmes = $student->enrolments
+                ->where('enrolment_type', 'programme')
+                ->pluck('programmeInstance.programme.title')
+                ->unique()
+                ->values()
+                ->all();
+            $student->last_activity = $student->user?->updated_at; // Use updated_at as proxy for last activity
+            
+            return $student;
+        });
+
+        // Get programmes for filter dropdown
+        $programmes = Programme::select('id', 'title')
+            ->withCount(['programmeInstances as enrolments_count' => function ($query) {
+                $query->whereHas('enrolments');
+            }])
+            ->orderBy('title')
+            ->get();
+
+        return view('students.index', [
+            'students' => $students,
+            'programmes' => $programmes,
+        ]);
+    }
+
+    /**
      * Show the form for creating a new student
      */
     public function create()

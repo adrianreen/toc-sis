@@ -22,7 +22,7 @@
     @endif
 
     <!-- Enhanced Student Management Interface -->
-    <div x-data="studentManager()" class="space-y-4">
+    <div x-data="studentManager()" class="space-y-4" @click.away="closeMenu()">
         
         <!-- Search and Filter Bar -->
         <x-card class="p-3">
@@ -105,6 +105,14 @@
                             </svg>
                             Export
                         </button>
+                        
+                        <button 
+                            type="button"
+                            class="bg-purple-600 text-white px-3 py-2 text-sm rounded-lg hover:bg-purple-700 cursor-pointer"
+                            @click="showTableConfig = true"
+                        >
+                            ⚙️ Configure Columns
+                        </button>
                     </div>
                 </div>
 
@@ -171,6 +179,93 @@
             </form>
         </x-card>
 
+        <!-- Column Configuration Modal -->
+        <div x-show="showTableConfig" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 overflow-y-auto"
+             @click.self="showTableConfig = false">
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+                
+                <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full relative">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Configure Table Columns</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between p-2 border rounded bg-gray-50">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" 
+                                       checked
+                                       disabled
+                                       class="rounded border-gray-300 opacity-50">
+                                <label class="text-sm font-medium text-gray-500">Student Name (required)</label>
+                            </div>
+                            <span class="text-xs text-gray-500">student_info</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 border rounded bg-gray-50">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" 
+                                       checked
+                                       disabled
+                                       class="rounded border-gray-300 opacity-50">
+                                <label class="text-sm font-medium text-gray-500">Actions Menu (required)</label>
+                            </div>
+                            <span class="text-xs text-gray-500">actions</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 border rounded">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" 
+                                       :checked="visibleColumns.includes('status')"
+                                       @change="toggleColumn('status')"
+                                       class="rounded border-gray-300">
+                                <label class="text-sm font-medium text-gray-900">Status</label>
+                            </div>
+                            <span class="text-xs text-gray-500">status_badge</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 border rounded">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" 
+                                       :checked="visibleColumns.includes('email')"
+                                       @change="toggleColumn('email')"
+                                       class="rounded border-gray-300">
+                                <label class="text-sm font-medium text-gray-900">Email</label>
+                            </div>
+                            <span class="text-xs text-gray-500">text</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-2 border rounded">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" 
+                                       :checked="visibleColumns.includes('programmes')"
+                                       @change="toggleColumn('programmes')"
+                                       class="rounded border-gray-300">
+                                <label class="text-sm font-medium text-gray-900">Programmes</label>
+                            </div>
+                            <span class="text-xs text-gray-500">programme_info</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end space-x-3">
+                        <button @click="showTableConfig = false" 
+                                class="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
+                            Close
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4 p-2 bg-gray-100 text-xs">
+                        Visible: <span x-text="visibleColumns.join(', ')"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Students Table -->
         <x-card padding="none" class="overflow-hidden">
             <!-- Table Controls -->
@@ -215,6 +310,9 @@
                             <th scope="col" class="w-12 px-3 py-2">
                                 <span class="sr-only">Select</span>
                             </th>
+                            <th scope="col" class="relative px-4 py-2 w-16">
+                                <span class="sr-only">Actions</span>
+                            </th>
                             <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700" @click="sortBy('name')">
                                 <div class="flex items-center gap-1">
                                     Student
@@ -223,11 +321,14 @@
                                     </svg>
                                 </div>
                             </th>
-                            <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th x-show="visibleColumns.includes('status')" scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status
                             </th>
-                            <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th x-show="visibleColumns.includes('programmes')" scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Programme
+                            </th>
+                            <th x-show="visibleColumns.includes('email')" scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Email
                             </th>
                             <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700" @click="sortBy('created_at')">
                                 <div class="flex items-center gap-1">
@@ -236,9 +337,6 @@
                                         <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>
                                     </svg>
                                 </div>
-                            </th>
-                            <th scope="col" class="relative px-4 py-2">
-                                <span class="sr-only">Actions</span>
                             </th>
                         </tr>
                     </thead>
@@ -256,6 +354,50 @@
                                         @change="toggleStudent({{ $student->id }})"
                                     />
                                 </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-left w-16">
+                                    <div class="relative">
+                                        <button @click="toggleMenu({{ $student->id }})" 
+                                                class="text-gray-400 hover:text-gray-600 cursor-pointer">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
+                                            </svg>
+                                        </button>
+                                        
+                                        <!-- Dropdown Menu -->
+                                        <div x-show="openMenuId === {{ $student->id }}" 
+                                             x-transition:enter="transition ease-out duration-100"
+                                             x-transition:enter-start="transform opacity-0 scale-95"
+                                             x-transition:enter-end="transform opacity-100 scale-100"
+                                             x-transition:leave="transition ease-in duration-75"
+                                             x-transition:leave-start="transform opacity-100 scale-100"
+                                             x-transition:leave-end="transform opacity-0 scale-95"
+                                             class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                            <div class="py-1">
+                                                <a href="{{ route('students.show', $student) }}" 
+                                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                                                    View Details
+                                                </a>
+                                                <a href="{{ route('students.edit', $student) }}" 
+                                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                                                    Edit Student
+                                                </a>
+                                                @if(in_array(Auth::user()->role, ['manager', 'student_services']))
+                                                    <div class="border-t border-gray-100"></div>
+                                                    <form action="{{ route('students.destroy', $student) }}" 
+                                                          method="POST" 
+                                                          onsubmit="return confirm('Are you sure you want to delete {{ $student->full_name }}? This will move them to the recycle bin.')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" 
+                                                                class="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 cursor-pointer">
+                                                            Delete Student
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-sm font-semibold">
@@ -269,11 +411,11 @@
                                             >
                                                 {{ Str::limit($student->full_name, 30) }}
                                             </a>
-                                            <div class="text-sm text-gray-500 truncate">{{ $student->email }}</div>
+                                            <div class="text-sm text-gray-500 truncate">{{ $student->student_number }}</div>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
+                                <td x-show="visibleColumns.includes('status')" class="px-4 py-3 whitespace-nowrap">
                                     <x-status-badge 
                                         :status="$student->status" 
                                         variant="subtle" 
@@ -283,7 +425,7 @@
                                         {{ ucfirst($student->status) }}
                                     </x-status-badge>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap">
+                                <td x-show="visibleColumns.includes('programmes')" class="px-4 py-3 whitespace-nowrap">
                                     <div class="text-sm text-gray-900">
                                         @if($student->enrolments->where('enrolment_type', 'programme')->isNotEmpty())
                                             {{ $student->enrolments->where('enrolment_type', 'programme')->first()->programmeInstance->programme->title ?? 'N/A' }}
@@ -292,35 +434,11 @@
                                         @endif
                                     </div>
                                 </td>
+                                <td x-show="visibleColumns.includes('email')" class="px-4 py-3 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ $student->email }}</div>
+                                </td>
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                     {{ $student->created_at->format('d M Y') }}
-                                </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex items-center gap-2 justify-end">
-                                        <a 
-                                            href="{{ route('students.show', $student) }}" 
-                                            class="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
-                                        >
-                                            View
-                                        </a>
-                                        <a 
-                                            href="{{ route('students.edit', $student) }}" 
-                                            class="text-gray-600 hover:text-gray-700 text-sm font-medium cursor-pointer"
-                                        >
-                                            Edit
-                                        </a>
-                                        @if(in_array(Auth::user()->role, ['manager', 'student_services']))
-                                            <form method="POST" action="{{ route('students.destroy', $student) }}" 
-                                                  onsubmit="return confirm('Are you sure you want to delete {{ $student->full_name }}?')"
-                                                  class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-700 text-sm font-medium cursor-pointer">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -496,6 +614,11 @@
                 // Selection
                 selectedStudents: [],
                 selectAll: false,
+                
+                // Column Configuration
+                showTableConfig: false,
+                visibleColumns: ['student', 'status', 'programmes', 'actions'],
+                openMenuId: null,
                 
                 // Performance
                 searchTimeout: null,
@@ -677,6 +800,41 @@
                                     @change="toggleStudent(${student.id})"
                                 />
                             </td>
+                            <td class="px-4 py-3 whitespace-nowrap text-left w-16">
+                                <div class="relative">
+                                    <button onclick="document.querySelector('[x-data]').__x.\$data.toggleMenu(${student.id})" 
+                                            class="text-gray-400 hover:text-gray-600 cursor-pointer">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
+                                        </svg>
+                                    </button>
+                                    
+                                    <div x-show="openMenuId === ${student.id}" 
+                                         class="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                                        <div class="py-1">
+                                            <a href="/students/${student.id}" 
+                                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                                                View Details
+                                            </a>
+                                            <a href="/students/${student.id}/edit" 
+                                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                                                Edit Student
+                                            </a>
+                                            <div class="border-t border-gray-100"></div>
+                                            <form action="/students/${student.id}" 
+                                                  method="POST" 
+                                                  onsubmit="return confirm('Are you sure you want to delete ${student.full_name}? This will move them to the recycle bin.')">
+                                                <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="_method" value="DELETE">
+                                                <button type="submit" 
+                                                        class="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 cursor-pointer">
+                                                    Delete Student
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <div class="flex items-center">
                                     <div class="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-sm font-semibold">
@@ -690,28 +848,25 @@
                                         >
                                             ${student.full_name.length > 30 ? student.full_name.substring(0, 30) + '...' : student.full_name}
                                         </a>
-                                        <div class="text-sm text-gray-500 truncate">${student.email}</div>
+                                        <div class="text-sm text-gray-500 truncate">${student.student_number || 'N/A'}</div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td x-show="visibleColumns.includes('status')" class="px-4 py-3 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusClasses(student.status)}">
                                     ${student.status.charAt(0).toUpperCase() + student.status.slice(1)}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td x-show="visibleColumns.includes('programmes')" class="px-4 py-3 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">
                                     ${programmes.length > 50 ? programmes.substring(0, 50) + '...' : programmes}
                                 </div>
                             </td>
+                            <td x-show="visibleColumns.includes('email')" class="px-4 py-3 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${student.email}</div>
+                            </td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 ${student.created_at}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <div class="flex items-center gap-2 justify-end">
-                                    <a href="/students/${student.id}" class="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer">View</a>
-                                    <a href="/students/${student.id}/edit" class="text-gray-600 hover:text-gray-700 text-sm font-medium cursor-pointer">Edit</a>
-                                </div>
                             </td>
                         </tr>
                     `;
@@ -916,6 +1071,29 @@
                     if (confirm(`Export all ${totalStudents} students?`)) {
                         alert('Export functionality coming soon');
                     }
+                },
+                
+                // Column Configuration Methods
+                toggleColumn(col) {
+                    // Prevent toggling of required columns
+                    if (col === 'student' || col === 'actions') {
+                        return;
+                    }
+                    
+                    const index = this.visibleColumns.indexOf(col);
+                    if (index > -1) {
+                        this.visibleColumns.splice(index, 1);
+                    } else {
+                        this.visibleColumns.push(col);
+                    }
+                },
+                
+                toggleMenu(studentId) {
+                    this.openMenuId = this.openMenuId === studentId ? null : studentId;
+                },
+                
+                closeMenu() {
+                    this.openMenuId = null;
                 },
                 
                 // URL management with loading state
