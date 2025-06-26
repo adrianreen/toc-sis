@@ -50,9 +50,22 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Left Column -->
-                            <div>
+                        <!-- Preview Toggle Button -->
+                        <div class="mb-4 flex justify-end">
+                            <button type="button" 
+                                    id="toggle-preview" 
+                                    class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors cursor-pointer">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Toggle Preview
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-6" id="editor-container">
+                            <!-- Left Column - Editor -->
+                            <div id="editor-column">
                                 <!-- Template Name -->
                                 <div class="mb-4">
                                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
@@ -63,7 +76,7 @@
                                            name="name" 
                                            value="{{ old('name') }}"
                                            required
-                                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                                            placeholder="e.g., Grade Released Notification">
                                 </div>
 
@@ -130,28 +143,36 @@
                                 <h3 class="text-lg font-medium text-gray-900 mb-4">Available Variables</h3>
                                 <div class="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
                                     <p class="text-sm text-gray-600 mb-3">
-                                        Use these variables in your template. They will be replaced with actual values when emails are sent.
+                                        Click to copy variables or drag them directly into your template.
                                     </p>
                                     
                                     @if(isset($availableVariables))
-                                        <p class="text-xs text-red-600 mb-2">DEBUG: Found {{ count($availableVariables) }} variable categories</p>
                                         @foreach($availableVariables as $category => $variables)
                                             <div class="mb-4">
-                                                <h4 class="font-medium text-gray-800 mb-2">{{ ucfirst($category) }} ({{ count($variables) }} vars)</h4>
+                                                <h4 class="font-medium text-gray-800 mb-2">{{ ucfirst($category) }}</h4>
                                                 <div class="space-y-1">
                                                     @foreach($variables as $variable => $description)
-                                                        <div class="text-sm">
-                                                            <code class="bg-gray-200 px-2 py-1 rounded text-xs font-mono cursor-pointer hover:bg-gray-300 transition-colors" 
-                                                                  data-variable="{{ $variable }}" 
+                                                        <div class="text-sm flex items-center group">
+                                                            <code class="bg-white border border-gray-300 px-2 py-1 rounded text-xs font-mono cursor-grab hover:cursor-grabbing hover:bg-blue-50 hover:border-blue-300 transition-all duration-200 flex-shrink-0 group-hover:shadow-sm" 
+                                                                  data-variable="{{ $variable }}"
+                                                                  draggable="true"
+                                                                  ondragstart="handleDragStart(event)"
                                                                   onclick="copyToClipboard('{{ $variable }}')">{!! '{{' . $variable . '}}' !!}</code>
-                                                            <span class="text-gray-600 ml-2">{{ $description }}</span>
+                                                            <div class="ml-2 flex-1 min-w-0">
+                                                                <span class="text-gray-600 text-xs">{{ $description }}</span>
+                                                            </div>
+                                                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
+                                                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                                                </svg>
+                                                            </div>
                                                         </div>
                                                     @endforeach
                                                 </div>
                                             </div>
                                         @endforeach
                                     @else
-                                        <p class="text-red-600">DEBUG: No available variables found!</p>
+                                        <p class="text-red-600">No available variables found!</p>
                                     @endif
                                 </div>
                             </div>
@@ -163,11 +184,27 @@
                                 Email Content *
                             </label>
                             <!-- Quill Editor Container -->
-                            <div id="quill-editor" style="height: 300px;"></div>
+                            <div class="relative">
+                                <div id="quill-editor" 
+                                     style="height: 300px;"
+                                     ondrop="handleDrop(event)" 
+                                     ondragover="handleDragOver(event)"
+                                     ondragenter="handleDragEnter(event)"
+                                     ondragleave="handleDragLeave(event)"></div>
+                                <div id="drop-indicator" class="hidden absolute inset-0 bg-blue-100 border-2 border-dashed border-blue-400 rounded-lg flex items-center justify-center z-10">
+                                    <div class="text-blue-600 font-medium">
+                                        <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                                        </svg>
+                                        Drop variable here
+                                    </div>
+                                </div>
+                            </div>
                             <!-- Hidden textarea for form submission -->
                             <textarea id="body_html" name="body_html" required style="display: none;">{{ old('body_html') }}</textarea>
                             <p class="mt-1 text-xs text-gray-500">
                                 Use the rich text editor to format your email. Variables like <code>{!! '{{student.name}}' !!}</code> will be replaced automatically.
+                                <br><strong>Tips:</strong> Drag variables from sidebar into editor • <kbd class="bg-gray-100 px-1 rounded">Ctrl+S</kbd> to save • <kbd class="bg-gray-100 px-1 rounded">Ctrl+P</kbd> to preview • <kbd class="bg-gray-100 px-1 rounded">Ctrl+Shift+V</kbd> to validate
                             </p>
                         </div>
 
@@ -185,6 +222,67 @@
                                 If not provided, a plain text version will be automatically generated from the HTML content.
                             </p>
                         </div>
+                        
+                        <!-- Close editor column -->
+                        </div>
+
+                        <!-- Preview Column (initially hidden) -->
+                        <div id="preview-column" class="hidden">
+                            <div class="bg-gray-50 rounded-lg p-6 border">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-lg font-medium text-gray-900">Live Preview</h3>
+                                    <div class="flex space-x-2">
+                                        <button type="button" id="preview-desktop" class="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors cursor-pointer">Desktop</button>
+                                        <button type="button" id="preview-mobile" class="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors cursor-pointer">Mobile</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Email Preview Container -->
+                                <div id="email-preview" class="bg-white rounded border shadow-sm transition-all duration-300" style="max-width: 600px;">
+                                    <!-- Email Header -->
+                                    <div class="border-b border-gray-200 p-4 bg-gray-50">
+                                        <div class="text-sm text-gray-600">Subject:</div>
+                                        <div id="preview-subject" class="font-medium text-gray-900">Your email subject will appear here</div>
+                                    </div>
+                                    
+                                    <!-- Email Body -->
+                                    <div id="preview-body" class="p-6">
+                                        <p class="text-gray-500 italic">Start typing to see your email preview...</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Sample Data Info -->
+                                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                    <div class="text-xs text-blue-800 font-medium mb-1">Preview uses sample data:</div>
+                                    <div class="text-xs text-blue-600">
+                                        • student.name → "John Smith"<br>
+                                        • programme.title → "Business Management"<br>
+                                        • college.name → "The Open College"
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        </div> <!-- Close grid container -->
+
+                        <!-- Template Validation -->
+                        <div id="validation-results" class="mt-6 hidden">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-yellow-800">Template Validation</h3>
+                                        <div id="validation-messages" class="mt-2 text-sm text-yellow-700">
+                                            <!-- Validation messages will be inserted here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
                         <!-- Actions -->
                         <div class="mt-8 flex justify-end space-x-3">
@@ -192,6 +290,14 @@
                                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md font-medium text-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                                 Cancel
                             </a>
+                            <button type="button" 
+                                    id="validate-template"
+                                    class="inline-flex items-center px-4 py-2 bg-yellow-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition duration-150 ease-in-out">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Validate Template
+                            </button>
                             <button type="submit" 
                                     class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-md font-medium text-sm text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
                                 Create Template
@@ -208,18 +314,173 @@
     <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
     
     <script>
-        // Simple global copy function
+        // Auto-save functionality
+        let autoSaveTimer;
+        let isDirty = false;
+        
+        function autoSave() {
+            if (!isDirty) return;
+            
+            const formData = {
+                name: document.getElementById('name').value,
+                subject: document.getElementById('subject').value,
+                category: document.getElementById('category').value,
+                description: document.getElementById('description').value,
+                body_html: quill.root.innerHTML,
+                body_text: document.getElementById('body_text').value,
+                is_active: document.getElementById('is_active').checked
+            };
+            
+            // Save to localStorage as draft
+            localStorage.setItem('email_template_draft', JSON.stringify({
+                ...formData,
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Show auto-save indicator
+            showAutoSaveIndicator();
+            isDirty = false;
+        }
+        
+        function showAutoSaveIndicator() {
+            const indicator = document.getElementById('autosave-indicator') || createAutoSaveIndicator();
+            indicator.textContent = 'Draft saved at ' + new Date().toLocaleTimeString();
+            indicator.classList.remove('opacity-0');
+            
+            setTimeout(() => {
+                indicator.classList.add('opacity-0');
+            }, 2000);
+        }
+        
+        function createAutoSaveIndicator() {
+            const indicator = document.createElement('div');
+            indicator.id = 'autosave-indicator';
+            indicator.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-3 py-2 rounded-md text-sm opacity-0 transition-opacity duration-300 z-50';
+            document.body.appendChild(indicator);
+            return indicator;
+        }
+        
+        function markDirty() {
+            isDirty = true;
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(autoSave, 2000); // Auto-save after 2 seconds of inactivity
+        }
+        
+        function loadDraft() {
+            const draft = localStorage.getItem('email_template_draft');
+            if (draft) {
+                const data = JSON.parse(draft);
+                const draftAge = (new Date() - new Date(data.timestamp)) / 1000 / 60; // minutes
+                
+                if (draftAge < 60) { // Only load drafts less than 1 hour old
+                    if (confirm('Found a recent draft saved ' + Math.round(draftAge) + ' minutes ago. Would you like to restore it?')) {
+                        document.getElementById('name').value = data.name || '';
+                        document.getElementById('subject').value = data.subject || '';
+                        document.getElementById('category').value = data.category || '';
+                        document.getElementById('description').value = data.description || '';
+                        document.getElementById('body_text').value = data.body_text || '';
+                        document.getElementById('is_active').checked = data.is_active;
+                        
+                        // Load into Quill after it's initialized
+                        setTimeout(() => {
+                            if (data.body_html) {
+                                quill.root.innerHTML = data.body_html;
+                            }
+                        }, 100);
+                    }
+                }
+            }
+        }
+
+        // Live preview functionality
+        let previewVisible = false;
+        const sampleData = {
+            'student.name': 'John Smith',
+            'student.first_name': 'John',
+            'student.last_name': 'Smith',
+            'student.email': 'john.smith@student.ie',
+            'student.student_number': 'STU2025001',
+            'programme.title': 'Bachelor of Arts in Business Management',
+            'programme_instance.label': 'September 2025 Intake',
+            'programme_instance.delivery_style': 'Synchronous',
+            'college.name': 'The Open College',
+            'sender.name': 'Dr. Patricia Collins',
+            'portal_url': 'https://portal.theopencollege.ie'
+        };
+        
+        function togglePreview() {
+            previewVisible = !previewVisible;
+            const container = document.getElementById('editor-container');
+            const previewColumn = document.getElementById('preview-column');
+            const toggleBtn = document.getElementById('toggle-preview');
+            
+            if (previewVisible) {
+                container.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6';
+                previewColumn.classList.remove('hidden');
+                toggleBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464a.75.75 0 00-1.061 0L6.05 9.817m3.828.061L12 12m0 0l2.121 2.121M12 12L9.879 9.879m0 0L8.464 8.464m0 0L7.05 7.05m5.657 5.657l1.414 1.414"></path></svg>Hide Preview';
+                updatePreview();
+            } else {
+                container.className = 'grid grid-cols-1 gap-6';
+                previewColumn.classList.add('hidden');
+                toggleBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>Toggle Preview';
+            }
+        }
+        
+        function updatePreview() {
+            if (!previewVisible) return;
+            
+            const subject = document.getElementById('subject').value;
+            const bodyHtml = quill.root.innerHTML;
+            
+            // Replace variables with sample data
+            let previewSubject = subject;
+            let previewBody = bodyHtml;
+            
+            Object.keys(sampleData).forEach(variable => {
+                const regex = new RegExp(`\\{\\{${variable}\\}\\}`, 'g');
+                previewSubject = previewSubject.replace(regex, sampleData[variable]);
+                previewBody = previewBody.replace(regex, sampleData[variable]);
+            });
+            
+            document.getElementById('preview-subject').textContent = previewSubject || 'Your email subject will appear here';
+            document.getElementById('preview-body').innerHTML = previewBody || '<p class="text-gray-500 italic">Start typing to see your email preview...</p>';
+        }
+        
+        function togglePreviewSize(size) {
+            const preview = document.getElementById('email-preview');
+            const desktopBtn = document.getElementById('preview-desktop');
+            const mobileBtn = document.getElementById('preview-mobile');
+            
+            if (size === 'mobile') {
+                preview.style.maxWidth = '375px';
+                mobileBtn.className = 'px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors cursor-pointer';
+                desktopBtn.className = 'px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors cursor-pointer';
+            } else {
+                preview.style.maxWidth = '600px';
+                desktopBtn.className = 'px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors cursor-pointer';
+                mobileBtn.className = 'px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors cursor-pointer';
+            }
+        }
+
+        // Enhanced copy function with modern clipboard API
         function copyToClipboard(variableName) {
-            console.log('copyToClipboard called with:', variableName);
+            const fullVariable = '{{' + variableName + '}}';
             
-            const openBrace = '{';
-            const closeBrace = '}';
-            const fullVariable = openBrace + openBrace + variableName + closeBrace + closeBrace;
-            console.log('Will copy full variable:', fullVariable);
-            
-            // Create temporary textarea
+            // Use modern clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(fullVariable).then(() => {
+                    showCopyFeedback(window.event?.target, fullVariable);
+                }).catch(() => {
+                    fallbackCopy(fullVariable);
+                });
+            } else {
+                fallbackCopy(fullVariable);
+            }
+        }
+        
+        function fallbackCopy(text) {
             const textArea = document.createElement('textarea');
-            textArea.value = fullVariable;
+            textArea.value = text;
             textArea.style.position = 'fixed';
             textArea.style.left = '-9999px';
             document.body.appendChild(textArea);
@@ -229,44 +490,315 @@
             try {
                 const successful = document.execCommand('copy');
                 if (successful) {
-                    console.log('Copy successful! Copied:', fullVariable);
-                    
-                    // Show visual feedback
-                    const clickedElement = window.event ? window.event.target : null;
-                    if (clickedElement) {
-                        const originalText = clickedElement.textContent;
-                        clickedElement.textContent = 'Copied!';
-                        clickedElement.style.backgroundColor = '#10b981';
-                        clickedElement.style.color = 'white';
-                        
-                        setTimeout(function() {
-                            clickedElement.textContent = originalText;
-                            clickedElement.style.backgroundColor = '';
-                            clickedElement.style.color = '';
-                        }, 1000);
-                    }
+                    showCopyFeedback(window.event?.target, text);
                 } else {
-                    alert('Copy failed! Variable: ' + fullVariable);
+                    showToast('Copy failed! Please try manually selecting the variable.', 'error');
                 }
             } catch (err) {
-                console.error('Copy error:', err);
-                alert('Copy error! Variable: ' + fullVariable);
+                showToast('Copy error! Please try manually selecting the variable.', 'error');
             } finally {
                 document.body.removeChild(textArea);
             }
         }
+        
+        function showCopyFeedback(element, text) {
+            if (element) {
+                const originalBg = element.style.backgroundColor;
+                const originalColor = element.style.color;
+                const originalTransform = element.style.transform;
+                
+                element.style.backgroundColor = '#10b981';
+                element.style.color = 'white';
+                element.style.transform = 'scale(1.05)';
+                
+                setTimeout(() => {
+                    element.style.backgroundColor = originalBg;
+                    element.style.color = originalColor;
+                    element.style.transform = originalTransform;
+                }, 800);
+            }
+            
+            showToast('Variable copied to clipboard!', 'success');
+        }
+        
+        // Advanced drag and drop functionality
+        let draggedVariable = null;
+        
+        function handleDragStart(event) {
+            draggedVariable = event.target.getAttribute('data-variable');
+            event.dataTransfer.setData('text/plain', '{{' + draggedVariable + '}}');
+            event.target.style.opacity = '0.5';
+            event.target.style.transform = 'scale(0.95)';
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        }
+        
+        function handleDragEnter(event) {
+            event.preventDefault();
+            const dropIndicator = document.getElementById('drop-indicator');
+            dropIndicator.classList.remove('hidden');
+        }
+        
+        function handleDragLeave(event) {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+                const dropIndicator = document.getElementById('drop-indicator');
+                dropIndicator.classList.add('hidden');
+            }
+        }
+        
+        function handleDrop(event) {
+            event.preventDefault();
+            const dropIndicator = document.getElementById('drop-indicator');
+            dropIndicator.classList.add('hidden');
+            
+            if (draggedVariable) {
+                const variableText = '{{' + draggedVariable + '}}';
+                
+                // Get cursor position in Quill
+                const range = quill.getSelection();
+                const index = range ? range.index : quill.getLength();
+                
+                // Insert the variable at cursor position
+                quill.insertText(index, variableText);
+                quill.setSelection(index + variableText.length);
+                
+                // Update the hidden textarea
+                document.getElementById('body_html').value = quill.root.innerHTML;
+                markDirty();
+                updatePreview();
+                
+                showToast('Variable inserted successfully!', 'success');
+                draggedVariable = null;
+            }
+        }
+        
+        // Toast notification system
+        function showToast(message, type = 'info') {
+            const existingToast = document.querySelector('.toast-notification');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `toast-notification fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium z-50 transform translate-y-full transition-transform duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+            }`;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.style.transform = 'translateY(0)';
+            }, 100);
+            
+            // Auto remove
+            setTimeout(() => {
+                toast.style.transform = 'translateY(100%)';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Template validation functionality
+        function validateTemplate() {
+            const name = document.getElementById('name').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const category = document.getElementById('category').value;
+            const bodyHtml = quill.root.innerHTML;
+            const bodyText = document.getElementById('body_text').value.trim();
+            
+            const warnings = [];
+            const errors = [];
+            const suggestions = [];
+            
+            // Basic validation
+            if (!name) errors.push('Template name is required');
+            if (!subject) errors.push('Email subject is required');
+            if (!category) errors.push('Category selection is required');
+            if (!bodyHtml || bodyHtml.trim() === '<p><br></p>') errors.push('Email content is required');
+            
+            // Advanced validation
+            if (name && name.length < 3) warnings.push('Template name is very short (recommended: 10+ characters)');
+            if (subject && subject.length < 5) warnings.push('Email subject is very short (recommended: 15+ characters)');
+            if (bodyHtml && bodyHtml.length < 50) warnings.push('Email content seems too short for a meaningful message');
+            
+            // Variable validation
+            const variableMatches = bodyHtml.match(/\{\{[^}]+\}\}/g) || [];
+            const subjectMatches = subject.match(/\{\{[^}]+\}\}/g) || [];
+            const allVariables = [...variableMatches, ...subjectMatches];
+            
+            if (allVariables.length === 0) {
+                suggestions.push('Consider adding variables (like {{student.name}}) to personalize your email');
+            }
+            
+            // Check for unrecognized variables
+            const knownVariables = [
+                'student.name', 'student.first_name', 'student.last_name', 'student.email', 'student.student_number',
+                'programme.title', 'programme_instance.label', 'programme_instance.delivery_style',
+                'module.title', 'module.code', 'college.name', 'sender.name', 'portal_url', 'current_date'
+            ];
+            
+            allVariables.forEach(variable => {
+                const cleanVar = variable.replace(/[{}]/g, '');
+                if (!knownVariables.includes(cleanVar)) {
+                    warnings.push(`Unknown variable: ${variable} - may not be replaced when sent`);
+                }
+            });
+            
+            // HTML quality checks
+            if (bodyHtml.includes('style=')) {
+                suggestions.push('Consider avoiding inline styles for better email compatibility');
+            }
+            
+            if (!bodyText && bodyHtml.length > 100) {
+                suggestions.push('Consider adding a plain text version for better accessibility');
+            }
+            
+            // Display results
+            displayValidationResults(errors, warnings, suggestions);
+            
+            return errors.length === 0;
+        }
+        
+        function displayValidationResults(errors, warnings, suggestions) {
+            const resultsContainer = document.getElementById('validation-results');
+            const messagesContainer = document.getElementById('validation-messages');
+            
+            if (errors.length === 0 && warnings.length === 0 && suggestions.length === 0) {
+                resultsContainer.classList.add('hidden');
+                showToast('Template validation passed!', 'success');
+                return;
+            }
+            
+            let html = '';
+            
+            if (errors.length > 0) {
+                html += '<div class="mb-3"><strong>Errors:</strong><ul class="list-disc list-inside mt-1">';
+                errors.forEach(error => {
+                    html += `<li>${error}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (warnings.length > 0) {
+                html += '<div class="mb-3"><strong>Warnings:</strong><ul class="list-disc list-inside mt-1">';
+                warnings.forEach(warning => {
+                    html += `<li>${warning}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (suggestions.length > 0) {
+                html += '<div class="mb-3"><strong>Suggestions:</strong><ul class="list-disc list-inside mt-1">';
+                suggestions.forEach(suggestion => {
+                    html += `<li>${suggestion}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            messagesContainer.innerHTML = html;
+            resultsContainer.classList.remove('hidden');
+            
+            if (errors.length > 0) {
+                showToast(`Template has ${errors.length} error(s) that need fixing`, 'error');
+            } else if (warnings.length > 0) {
+                showToast(`Template validation completed with ${warnings.length} warning(s)`, 'warning');
+            } else {
+                showToast('Template validation completed successfully', 'success');
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Load draft if available
+            loadDraft();
+            
             console.log('DOM loaded, checking for variables...');
             const variableCodes = document.querySelectorAll('code[data-variable]');
             console.log('Found variable codes:', variableCodes.length);
             
-            // Also try event delegation as backup
+            // Enhanced event delegation for variable interactions
             document.addEventListener('click', function(e) {
                 if (e.target.matches('code[data-variable]')) {
-                    console.log('Event delegation triggered');
                     const variable = e.target.getAttribute('data-variable');
                     copyToClipboard(variable);
+                }
+            });
+            
+            // Reset drag styling on dragend
+            document.addEventListener('dragend', function(e) {
+                if (e.target.matches('code[data-variable]')) {
+                    e.target.style.opacity = '1';
+                    e.target.style.transform = 'scale(1)';
+                }
+            });
+            
+            // Preview toggle functionality
+            document.getElementById('toggle-preview').addEventListener('click', togglePreview);
+            document.getElementById('preview-desktop').addEventListener('click', () => togglePreviewSize('desktop'));
+            document.getElementById('preview-mobile').addEventListener('click', () => togglePreviewSize('mobile'));
+            document.getElementById('validate-template').addEventListener('click', validateTemplate);
+            
+            // Auto-save event listeners
+            document.getElementById('name').addEventListener('input', markDirty);
+            document.getElementById('subject').addEventListener('input', function() {
+                markDirty();
+                updatePreview();
+            });
+            document.getElementById('category').addEventListener('change', markDirty);
+            document.getElementById('description').addEventListener('input', markDirty);
+            document.getElementById('body_text').addEventListener('input', markDirty);
+            document.getElementById('is_active').addEventListener('change', markDirty);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl+S / Cmd+S for manual save
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    autoSave();
+                }
+                
+                // Ctrl+P / Cmd+P for preview toggle
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    togglePreview();
+                }
+                
+                // Ctrl+Shift+V / Cmd+Shift+V for validation
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'V') {
+                    e.preventDefault();
+                    validateTemplate();
+                }
+                
+                // Escape to close preview
+                if (e.key === 'Escape' && previewVisible) {
+                    togglePreview();
+                }
+                
+                // Escape to hide validation results
+                if (e.key === 'Escape' && !document.getElementById('validation-results').classList.contains('hidden')) {
+                    document.getElementById('validation-results').classList.add('hidden');
+                }
+            });
+            
+            // Clear draft on successful form submission
+            document.querySelector('form').addEventListener('submit', function() {
+                localStorage.removeItem('email_template_draft');
+            });
+            
+            // Warn before leaving with unsaved changes
+            window.addEventListener('beforeunload', function(e) {
+                if (isDirty) {
+                    e.preventDefault();
+                    e.returnValue = '';
                 }
             });
         });
@@ -292,6 +824,8 @@
         quill.on('text-change', function() {
             const html = quill.root.innerHTML;
             document.getElementById('body_html').value = html;
+            markDirty();
+            updatePreview();
         });
 
         // Load initial content if any
