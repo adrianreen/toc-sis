@@ -337,10 +337,19 @@ class PerformanceMonitor extends Command
 
     private function getDatabaseSize()
     {
-        // This is SQLite specific - adjust for other databases
-        $dbPath = database_path('database.sqlite');
-
-        return file_exists($dbPath) ? round(filesize($dbPath) / 1024 / 1024, 2).' MB' : 'Unknown';
+        try {
+            $databaseName = config('database.connections.mysql.database');
+            $result = DB::selectOne("
+                SELECT 
+                    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'size_mb'
+                FROM information_schema.tables 
+                WHERE table_schema = ?
+            ", [$databaseName]);
+            
+            return ($result ? $result->size_mb : 0) . ' MB';
+        } catch (\Exception $e) {
+            return 'Unknown';
+        }
     }
 
     private function getTableStatistics()
