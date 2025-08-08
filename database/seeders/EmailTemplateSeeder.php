@@ -247,7 +247,10 @@ Best regards,
             $templateData['created_by'] = $manager->id;
             $templateData['is_active'] = true;
 
-            EmailTemplate::create($templateData);
+            EmailTemplate::updateOrCreate(
+                ['name' => $templateData['name']],
+                $templateData
+            );
         }
 
         $this->command->info('Created '.count($templates).' default email templates.');

@@ -6,6 +6,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a comprehensive Laravel-based Student Information System for The Open College (TOC), managing academic programmes, student enrolments, assessments, and academic progress tracking.
 
+## 🔧 DEVELOPMENT PHASE - EARLY STAGE
+
+**IMPORTANT**: This application is in **early development phase**:
+- **No live deployment** - app is not in production
+- **No real data** - using test/seed data only
+- **Single developer** - rapid iteration and schema changes
+- **Constant migration rewrites** - database structure frequently changing
+- **Seeder adjustments** - data structures being refined
+
+**TESTING STRATEGY**: 
+- **Current Focus**: Core functionality and architecture stability
+- **Tests Deferred**: Comprehensive test suites will be implemented when structure stabilizes
+- **CI Pipelines**: Not prioritized until closer to production readiness
+- **Rationale**: Early stage rapid development where tests would slow iteration speed
+
+**Once stable and production-ready, full testing and CI/CD will be implemented.**
+
 ## 🚨 CRITICAL UI/UX STANDARDS - ALWAYS FOLLOW
 
 **NEVER create buttons that are white text on white background or similar low-contrast issues!**
